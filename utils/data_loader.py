@@ -13,6 +13,14 @@ def _scale(df, cols):
     return df
 
 
+def _pct(df, cols):
+    """Multiply percentage columns from decimal form (0.44) to display form (44)."""
+    for c in cols:
+        if c in df.columns:
+            df[c] = pd.to_numeric(df[c], errors="coerce") * 100
+    return df
+
+
 @st.cache_data
 def load_all_data():
     xls = pd.ExcelFile(EXCEL_PATH)
@@ -27,24 +35,29 @@ def load_all_data():
             "Revenue_AOP", "EBITDA_AOP", "PAT_AOP",
             "Revenue_LY", "EBITDA_LY", "PAT_LY",
         ])
+        data["Financial_Monthly"] = _pct(data["Financial_Monthly"], ["EBITDA_Margin"])
 
     if "Cash_CAPEX" in data:
         data["Cash_CAPEX"] = _scale(data["Cash_CAPEX"], [
             "Cash_Balance", "Net_Debt", "FCF", "CAPEX_Actual", "CAPEX_Plan",
         ])
+        data["Cash_CAPEX"] = _pct(data["Cash_CAPEX"], ["Collections_Pct"])
 
     if "Consumer_Sales" in data:
         data["Consumer_Sales"] = _scale(data["Consumer_Sales"], [
             "Revenue", "Revenue_AOP",
         ])
+        data["Consumer_Sales"] = _pct(data["Consumer_Sales"], ["Churn_Pct", "YoY_Change_Pct"])
 
     if "Business_Sales" in data:
         data["Business_Sales"] = _scale(data["Business_Sales"], [
             "Revenue", "Revenue_AOP", "Gross_Profit", "Contribution", "MRR", "Direct_Costs",
         ])
+        data["Business_Sales"] = _pct(data["Business_Sales"], ["GP_Margin_Pct"])
 
     if "Pipeline" in data:
         data["Pipeline"] = _scale(data["Pipeline"], ["Value_TTD_M", "Avg_Deal_Size"])
+        data["Pipeline"] = _pct(data["Pipeline"], ["Win_Rate_Pct"])
 
     if "Renewals" in data:
         data["Renewals"] = _scale(data["Renewals"], ["ACV_TTD_M"])
@@ -53,6 +66,7 @@ def load_all_data():
         data["DPDI"] = _scale(data["DPDI"], [
             "Revenue", "Revenue_AOP", "Gross_Profit", "EBITDA", "Direct_Costs",
         ])
+        data["DPDI"] = _pct(data["DPDI"], ["GP_Margin_Pct"])
 
     if "AMPLIA_Financial" in data:
         data["AMPLIA_Financial"] = _scale(data["AMPLIA_Financial"], [
@@ -85,9 +99,11 @@ def load_all_data():
         kpi = kpi.iloc[:, :8]
         kpi.columns = ["Month", "Section", "KPI_Name", "Actual", "AOP", "LY", "Status", "Unit"]
         kpi = kpi.dropna(subset=["Section", "KPI_Name"])
-        mask = kpi["Unit"] == "TT$M"
+        ttm_mask = kpi["Unit"] == "TT$M"
+        pct_mask = kpi["Unit"] == "%"
         for col in ["Actual", "AOP", "LY"]:
-            kpi.loc[mask, col] = pd.to_numeric(kpi.loc[mask, col], errors="coerce") / M
+            kpi.loc[ttm_mask, col] = pd.to_numeric(kpi.loc[ttm_mask, col], errors="coerce") / M
+            kpi.loc[pct_mask, col] = pd.to_numeric(kpi.loc[pct_mask, col], errors="coerce") * 100
         data["KPI_Summary"] = kpi
 
     return data
