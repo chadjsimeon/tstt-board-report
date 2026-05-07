@@ -33,9 +33,11 @@ page_header(
 # ── KPI Scorecards ────────────────────────────────────────────────────────────
 st.markdown("### Key Performance Indicators")
 
-sections = list(dict.fromkeys(kpi["Section"].tolist()))
+sections = [s for s in dict.fromkeys(kpi["Section"].dropna().tolist()) if str(s).strip()]
 for section in sections:
     section_df = kpi[kpi["Section"] == section].reset_index(drop=True)
+    if len(section_df) == 0:
+        continue
     st.markdown(f"<p class='section-label'>{section}</p>", unsafe_allow_html=True)
     cols = st.columns(len(section_df))
     for i, row in section_df.iterrows():

@@ -33,6 +33,7 @@ def load_all_data():
         kpi = data["KPI_Summary"].copy()
         kpi = kpi.iloc[:, :8]  # keep first 8 cols only
         kpi.columns = ["Month", "Section", "KPI_Name", "Actual", "AOP", "LY", "Status", "Unit"]
+        kpi = kpi.dropna(subset=["Section", "KPI_Name"])
         data["KPI_Summary"] = kpi
 
     return data
