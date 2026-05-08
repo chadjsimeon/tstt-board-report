@@ -14,8 +14,10 @@ and decimal-to-percent conversions.
 import numpy as np
 import pandas as pd
 
-SRC = "financial_data.xlsx"
-DST = "TSTT_Board_Data.xlsx"
+SRC         = "financial_data.xlsx"
+DST         = "TSTT_Board_Data.xlsx"
+SUBS_SRC    = "subscriber_base_apw.xlsx"
+AMP_KPI_SRC = "Amplia Metrics 2024-2025 February 2026.xlsx"
 
 CUR_FY = "2026-27"
 LY_FY  = "2025-26"
@@ -413,7 +415,43 @@ def build_kpi_summary(act, aop, ly, latest_month):
     ])
 
 
-SUBS_SRC = "subscriber_base_apw.xlsx"
+def _amp_metric(df, metric_label, fy_label):
+    """Return the 12 monthly values (cols 2-13) for a given metric + FY row in the Amplia KPI sheet."""
+    metric_rows = df[df[0] == metric_label].index
+    if len(metric_rows) == 0:
+        return [np.nan] * 12
+    start = metric_rows[0]
+    for i in range(start, min(start + 20, len(df))):
+        if df.loc[i, 1] == fy_label:
+            return df.loc[i, 2:13].tolist()
+    return [np.nan] * 12
+
+
+def build_amplia_commercial(amp_kpi):
+    arpu_act  = _amp_metric(amp_kpi, "Amplia ARPU",  "FY25/26 Actual")
+    gross_act = _amp_metric(amp_kpi, "Gross Adds",   "FY25/26 Actual")
+    gross_bud = _amp_metric(amp_kpi, "Gross Adds",   "FY25/26 Budget")
+    churn_act = _amp_metric(amp_kpi, "Amplia Churn", "FY25/26 Actual")
+    churn_bud = _amp_metric(amp_kpi, "Amplia Churn", "FY25/26 Budget")
+
+    rows = []
+    for i, m in enumerate(MONTH_ORDER):
+        ga = gross_act[i]
+        if pd.isna(ga):
+            continue
+        rows.append({
+            "Month":               fmt_month(m, LY_FY),
+            "ARPU":                round(arpu_act[i], 2) if pd.notna(arpu_act[i]) else 0,
+            "Gross_Additions":     int(ga),
+            "Gross_Additions_AOP": int(gross_bud[i]) if pd.notna(gross_bud[i]) else 0,
+            "Monthly_Churn":       int(churn_act[i]) if pd.notna(churn_act[i]) else 0,
+            "Churn_AOP":           int(churn_bud[i]) if pd.notna(churn_bud[i]) else 0,
+            "Net_Port":            0,
+            "Channel":             "Total",
+            "Sales_Count":         int(ga),
+            "Sales_Target":        int(gross_bud[i]) if pd.notna(gross_bud[i]) else 0,
+        })
+    return pd.DataFrame(rows)
 
 
 def main():
@@ -435,6 +473,9 @@ def main():
     print(f"Reading {SUBS_SRC} ...")
     subs_df = pd.read_excel(SUBS_SRC, sheet_name="monthly_pivot", header=1)
 
+    print(f"Reading {AMP_KPI_SRC} ...")
+    amp_kpi = pd.read_excel(AMP_KPI_SRC, sheet_name="Sheet1", header=None)
+
     sheets = {
         "KPI_Summary":       build_kpi_summary(act, aop, ly, latest_month) if act_months
                              else pd.DataFrame(columns=["Month","Section","KPI_Name","Actual","AOP","LY","Status","Unit"]),
@@ -449,7 +490,7 @@ def main():
         "Renewals":          pd.DataFrame(columns=["Customer","Product_Service","ACV_TTD_M","Expiry_Date","Risk_Level","Status","Action_Plan"]),
         "DPDI":              build_dpdi(raw, act_months),
         "AMPLIA_Financial":  build_amplia_financial(act, aop, ly, ly_aop, act_months),
-        "AMPLIA_Commercial": pd.DataFrame(columns=["Month","ARPU","Gross_Additions","Gross_Additions_AOP","Monthly_Churn","Churn_AOP","Net_Port","Channel","Sales_Count","Sales_Target"]),
+        "AMPLIA_Commercial": build_amplia_commercial(amp_kpi),
     }
 
     print(f"\nWriting {DST} ...")
