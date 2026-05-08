@@ -2,6 +2,7 @@ import streamlit as st
 
 st.set_page_config(page_title="TSTT | DPDI", page_icon="💻", layout="wide")
 
+import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data, pivot_by_group, get_month_order
 from utils.charts import (
@@ -13,6 +14,7 @@ from utils.charts import (
 inject_css()
 data = load_all_data()
 dpdi = data["DPDI"]
+dpdi_cos = data.get("DPDI_CoS", pd.DataFrame())
 
 page_header("DPDI — Digital Products", "e-Tender · e-GOVTT · e-Cashbook · e-Health · PAYPR")
 
@@ -23,17 +25,22 @@ sel_month = st.sidebar.selectbox("Focus Month", months, index=len(months) - 1)
 
 # ── Summary metrics ───────────────────────────────────────────────────────────
 latest = dpdi[dpdi["Month"] == sel_month]
-total_rev  = latest["Revenue"].sum()
-total_aop  = latest["Revenue_AOP"].sum()
-total_gp   = latest["Gross_Profit"].sum()
+total_rev    = latest["Revenue"].sum()
+total_aop    = latest["Revenue_AOP"].sum()
+total_gp     = latest["Gross_Profit"].sum()
 total_ebitda = latest["EBITDA"].sum()
 
-m1, m2, m3, m4 = st.columns(4)
+cos_month = dpdi_cos[dpdi_cos["Month"] == sel_month]["Plan"].sum() if not dpdi_cos.empty else 0
+cos_ytd   = dpdi_cos["Plan"].sum() if not dpdi_cos.empty else 0
+
+m1, m2, m3, m4, m5 = st.columns(5)
 m1.metric("DPDI Revenue",  f"TT${total_rev:.2f}M",
           f"{(total_rev - total_aop) / total_aop * 100:+.1f}% vs AOP" if total_aop else "—")
 m2.metric("Revenue AOP",   f"TT${total_aop:.2f}M")
-m3.metric("Gross Profit",  f"TT${total_gp:.2f}M")
-m4.metric("EBITDA",        f"TT${total_ebitda:.2f}M",
+m3.metric("Cost of Sales (AOP)", f"TT${cos_month:.2f}M",
+          f"YTD AOP: TT${cos_ytd:.2f}M")
+m4.metric("Gross Profit",  f"TT${total_gp:.2f}M")
+m5.metric("EBITDA",        f"TT${total_ebitda:.2f}M",
           delta_color="inverse" if total_ebitda < 0 else "normal")
 
 st.markdown("---")
@@ -152,6 +159,32 @@ with tab2:
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="white"), height=340,
             title=dict(text=f"<b>{sel_month} Direct Costs by Product (TT$M)</b>",
+                       font=dict(size=13, color="white"), x=0),
+            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
+            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
+            margin=dict(l=10, r=10, t=44, b=10), showlegend=False,
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    # ── Cost of Sales AOP (from OPEX reclassification) ────────────────────────
+    if not dpdi_cos.empty:
+        st.markdown("---")
+        st.markdown("#### Cost of Sales — AOP (FY2025/26)")
+        st.caption(
+            "Planned cost to deliver DPDI products (Dig. Prod. Dev. & Innovation budget). "
+            "No actuals recorded yet — plan values reflect the FY2025/26 AOP."
+        )
+        cos_plot = dpdi_cos[dpdi_cos["Plan"].notna()][["Month", "Plan"]].copy()
+        fig = go.Figure(go.Bar(
+            x=cos_plot["Month"], y=cos_plot["Plan"],
+            marker_color=ORANGE,
+            text=[f"TT${v:.2f}M" for v in cos_plot["Plan"]],
+            textposition="outside", textfont=dict(color="white", size=10),
+        ))
+        fig.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="white"), height=340,
+            title=dict(text="<b>Monthly Cost of Sales — AOP (TT$M)</b>",
                        font=dict(size=13, color="white"), x=0),
             xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
             yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),

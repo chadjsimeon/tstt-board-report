@@ -74,9 +74,14 @@ def load_all_data():
             "EBITDA", "EBITDA_AOP", "PAT", "OPEX", "Direct_Costs",
         ])
 
-    # ── OPEX: scale first, then recalculate Variance from scaled values ───────
+    # ── OPEX: strip DPDI Cost of Sales, scale, recalculate Variance ─────────
     if "OPEX" in data:
         df = data["OPEX"].copy()
+        # "DIG. PROD DEV & INNOV" is Cost of Sales for the DPDI LoB, not OPEX
+        dpdi_cos = df[df["Category"] == "DIG. PROD DEV & INNOV"].copy()
+        dpdi_cos = _scale(dpdi_cos, ["Actual", "Plan"])
+        data["DPDI_CoS"] = dpdi_cos
+        df = df[df["Category"] != "DIG. PROD DEV & INNOV"].copy()
         df = _scale(df, ["Actual", "Plan"])
         df["Variance"] = df["Actual"] - df["Plan"]
         df["Variance_Pct"] = ((df["Actual"] - df["Plan"]) / df["Plan"].replace(0, pd.NA) * 100).round(1)
