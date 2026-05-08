@@ -7,8 +7,10 @@ from utils.data_loader import load_all_data, pivot_by_group, get_month_order
 from utils.charts import (
     inject_css, page_header,
     line_chart, stacked_bar, grouped_bar, donut_chart, dim,
-    GREEN, RED, BLUE, YELLOW, PURPLE, ORANGE, CYAN,
+    GREEN, RED, BLUE, YELLOW, PURPLE, ORANGE, CYAN, ACCENT,
 )
+
+SEG_COLORS = ACCENT
 
 inject_css()
 data = load_all_data()
@@ -65,7 +67,7 @@ with tab1:
         fig = stacked_bar(
             rev_pivot, x="Month", y_cols=seg_cols_pivot,
             title="Revenue by Segment — Stacked (TT$M)",
-            colors=[BLUE, GREEN, PURPLE],
+            colors=SEG_COLORS,
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -79,7 +81,7 @@ with tab1:
 
         fig = go.Figure()
         for i, seg in enumerate(seg_cols_pivot):
-            color = [BLUE, GREEN, PURPLE][i % 3]
+            color = SEG_COLORS[i % len(SEG_COLORS)]
             fig.add_trace(go.Bar(
                 x=[seg], y=[latest_rev.get(seg, 0)],
                 name=f"{seg} Actual", marker_color=color,
@@ -117,7 +119,7 @@ with tab1:
         fig = line_chart(
             yoy_pivot, x="Month", y_cols=yoy_cols,
             title="YoY Revenue Change (%)",
-            colors=[BLUE, GREEN, PURPLE],
+            colors=SEG_COLORS,
         )
         fig.add_hline(y=0, line_dash="solid", line_color="#3a3a5a")
         st.plotly_chart(fig, use_container_width=True)
@@ -131,7 +133,7 @@ with tab2:
         fig = stacked_bar(
             subs_pivot, x="Month", y_cols=subs_cols,
             title="Subscribers by Segment",
-            colors=[BLUE, GREEN, PURPLE],
+            colors=SEG_COLORS,
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -139,7 +141,7 @@ with tab2:
         fig = line_chart(
             subs_pivot, x="Month", y_cols=subs_cols,
             title="Subscriber Trend by Segment",
-            colors=[BLUE, GREEN, PURPLE],
+            colors=SEG_COLORS,
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -164,7 +166,7 @@ with tab3:
         fig = line_chart(
             churn_pivot, x="Month", y_cols=churn_cols,
             title="Monthly Churn Rate by Segment (%)",
-            colors=[BLUE, GREEN, PURPLE],
+            colors=SEG_COLORS,
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -172,7 +174,7 @@ with tab3:
         churn_bar = consumer[consumer["Month"] == sel_month][["Segment", "Churn_Pct"]].copy()
         fig = go.Figure(go.Bar(
             x=churn_bar["Segment"], y=churn_bar["Churn_Pct"],
-            marker_color=[BLUE, GREEN, PURPLE][:len(churn_bar)],
+            marker_color=SEG_COLORS[:len(churn_bar)],
             text=[f"{v:.1f}%" for v in churn_bar["Churn_Pct"]],
             textposition="outside", textfont=dict(color="white", size=11),
         ))
@@ -196,7 +198,7 @@ with tab4:
         fig = line_chart(
             arpu_pivot, x="Month", y_cols=arpu_cols,
             title="ARPU by Segment (TT$)",
-            colors=[BLUE, GREEN, PURPLE],
+            colors=SEG_COLORS,
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -204,7 +206,7 @@ with tab4:
         arpu_bar = consumer[consumer["Month"] == sel_month][["Segment", "ARPU"]].copy()
         fig = go.Figure(go.Bar(
             x=arpu_bar["Segment"], y=arpu_bar["ARPU"],
-            marker_color=[BLUE, GREEN, PURPLE][:len(arpu_bar)],
+            marker_color=SEG_COLORS[:len(arpu_bar)],
             text=[f"TT${v:,.0f}" for v in arpu_bar["ARPU"]],
             textposition="outside", textfont=dict(color="white", size=11),
         ))

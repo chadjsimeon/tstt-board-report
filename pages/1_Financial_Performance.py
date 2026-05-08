@@ -16,10 +16,14 @@ data = load_all_data()
 fin    = data["Financial_Monthly"]
 bridge = data["EBITDA_Bridge"]
 
+# Compute AOP EBITDA margin from the scaled columns (already in TT$M and %)
+fin["EBITDA_Margin_AOP"] = (fin["EBITDA_AOP"] / fin["Revenue_AOP"] * 100)
+
 page_header("Financial Performance", "Revenue · EBITDA · PAT · Bridge")
 
 # ── Latest-month metrics ──────────────────────────────────────────────────────
 latest = fin.iloc[-1]
+aop_margin = latest["EBITDA_Margin_AOP"]
 m1, m2, m3, m4 = st.columns(4)
 
 def vs(actual, plan, inverse=False):
@@ -31,7 +35,7 @@ def vs(actual, plan, inverse=False):
 m1.metric("Revenue",       f"TT${latest['Revenue']:,.0f}M",  vs(latest["Revenue"],  latest["Revenue_AOP"]))
 m2.metric("EBITDA",        f"TT${latest['EBITDA']:,.0f}M",   vs(latest["EBITDA"],   latest["EBITDA_AOP"]))
 m3.metric("PAT",           f"TT${latest['PAT']:,.0f}M",      vs(latest["PAT"],      latest["PAT_AOP"]))
-m4.metric("EBITDA Margin", f"{latest['EBITDA_Margin']:.1f}%", f"{latest['EBITDA_Margin'] - 30.2:+.1f}pp vs 30.2% AOP")
+m4.metric("EBITDA Margin", f"{latest['EBITDA_Margin']:.1f}%", f"{latest['EBITDA_Margin'] - aop_margin:+.1f}pp vs {aop_margin:.1f}% AOP")
 
 st.markdown("---")
 
@@ -108,8 +112,8 @@ with tab2:
             title="EBITDA Margin (%)",
             colors=[YELLOW],
         )
-        fig.add_hline(y=30.2, line_dash="dot", line_color=WHITE_FAINT,
-                      annotation_text="AOP 30.2%", annotation_font_color="#7788aa",
+        fig.add_hline(y=aop_margin, line_dash="dot", line_color=WHITE_FAINT,
+                      annotation_text=f"AOP {aop_margin:.1f}%", annotation_font_color="#7788aa",
                       annotation_position="bottom right")
         st.plotly_chart(fig, use_container_width=True)
 
