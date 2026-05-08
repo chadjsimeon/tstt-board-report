@@ -196,7 +196,7 @@ def build_consumer_sales(act, aop, ly, ly_aop, act_months, subs_df):
         "WTTx":                 ["WTTX"],
         "TV":                   ["TV"],
         "Residential Security": ["Residential Security"],
-        "Other":                ["OTHER SERVICES", "Other Mobile Revenue."],
+        "Other":                ["OTHER SERVICES", "Other Mobile Revenue.", "DATA", "Voice"],
     }
     _SUB_COLS = {"Prepaid": "Prepaid", "Postpaid": "Postpaid", "WTTx": "WTTx"}
 
