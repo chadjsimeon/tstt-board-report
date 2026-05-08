@@ -259,9 +259,11 @@ def build_business_sales(act, aop, ly, ly_aop, act_months):
         "Circuit/Data": ["Domestic Circuit Revenues.", "International Circuit Revenues.", "Metro E"],
         "Cloud":        ["Cloud Application Revenues."],
         "Carrier":      ["Total Carrier Revenue."],
-        "Enterprise":   ["Enterprise Fixed", "Enterprise Mobile", "Enterprise Wireless Broadband"],
-        "Security":     [],
-        "Managed":      [],
+        "Enterprise":   ["Enterprise Fixed", "Enterprise Mobile", "Enterprise Wireless Broadband",
+                         "Enterprise CPE Revenues."],
+        "Security":     ["Enterprise Security"],
+        "Other":        ["BlackBerry Services Revenues.", "Blink - On The Go.",
+                         "Directory Advertising Revenues.", "OTHER", "loT Revenues."],
         "IoT":          [],
     }
     rows = []
@@ -454,10 +456,41 @@ def build_amplia_commercial(amp_kpi):
     return pd.DataFrame(rows)
 
 
+def build_pnl_breakdown(act, aop, ly, ly_aop, act_months):
+    """Rolling 13-month consolidated P&L cascade: Revenue by group → Total → COS → GP → OPEX → EBITDA."""
+    groups  = ["CONSUMER SALES", "BUSINESS SALES", "AMPLIA", "DPDI", "OTHER"]
+    rev_map = {g: f"{g} REVENUE" for g in groups}
+    cos_map = {g: f"{g} COS"     for g in groups}
+
+    def row(src, src_aop, m, fy):
+        r = {"Month": fmt_month(m, fy)}
+        for g in groups:
+            r[f"{g}_Rev"]     = _get(src,     "Consolidated", rev_map[g], m, 0)
+            r[f"{g}_Rev_AOP"] = _get(src_aop, "Consolidated", rev_map[g], m, 0)
+            r[f"{g}_COS"]     = _get(src,     "Consolidated", cos_map[g], m, 0)
+            r[f"{g}_COS_AOP"] = _get(src_aop, "Consolidated", cos_map[g], m, 0)
+        r["Total_Rev"]      = _get(src,     "Consolidated", "TOTAL REVENUE", m, 0)
+        r["Total_Rev_AOP"]  = _get(src_aop, "Consolidated", "TOTAL REVENUE", m, 0)
+        r["Total_COS"]      = _get(src,     "Consolidated", "DIRECT COSTS",  m, 0)
+        r["Total_COS_AOP"]  = _get(src_aop, "Consolidated", "DIRECT COSTS",  m, 0)
+        r["Total_OPEX"]     = _get(src,     "Consolidated", "Total OPEX",    m, 0)
+        r["Total_OPEX_AOP"] = _get(src_aop, "Consolidated", "Total OPEX",    m, 0)
+        r["EBITDA"]         = _get(src,     "Consolidated", "EBITDA",        m, 0)
+        r["EBITDA_AOP"]     = _get(src_aop, "Consolidated", "EBITDA",        m, 0)
+        return r
+
+    rows = []
+    for m in MONTH_ORDER:
+        rows.append(row(ly, ly_aop, m, LY_FY))
+    for m in act_months:
+        rows.append(row(act, aop, m, CUR_FY))
+    return pd.DataFrame(rows)
+
+
 def main():
     print(f"Reading {SRC} ...")
     raw = pd.read_excel(SRC, sheet_name="financial_data", header=1)
-    raw.columns = ["FY", "Period", "Month", "DataType", "BU", "Description", "Category", "Value"]
+    raw.columns = ["FY", "Period", "Month", "DataType", "BU", "Description", "Category", "Subcategory", "Value"]
 
     act    = raw[(raw["FY"] == CUR_FY) & (raw["DataType"] == "ACT")].copy()
     aop    = raw[(raw["FY"] == CUR_FY) & (raw["DataType"] == "AOP")].copy()
@@ -491,6 +524,7 @@ def main():
         "DPDI":              build_dpdi(raw, act_months),
         "AMPLIA_Financial":  build_amplia_financial(act, aop, ly, ly_aop, act_months),
         "AMPLIA_Commercial": build_amplia_commercial(amp_kpi),
+        "PnL_Breakdown":     build_pnl_breakdown(act, aop, ly, ly_aop, act_months),
     }
 
     print(f"\nWriting {DST} ...")

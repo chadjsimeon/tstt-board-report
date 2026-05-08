@@ -93,6 +93,10 @@ def load_all_data():
         bridge["Value"] = bridge["Value"] / M
         data["EBITDA_Bridge"] = bridge
 
+    if "PnL_Breakdown" in data:
+        mon_cols = [c for c in data["PnL_Breakdown"].columns if c != "Month"]
+        data["PnL_Breakdown"] = _scale(data["PnL_Breakdown"], mon_cols)
+
     # ── KPI Summary: scale only TT$M rows ────────────────────────────────────
     if "KPI_Summary" in data:
         kpi = data["KPI_Summary"].copy()
