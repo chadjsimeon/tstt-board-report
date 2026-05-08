@@ -28,7 +28,7 @@ latest = consumer[consumer["Month"] == sel_month]
 total_rev  = latest["Revenue"].sum()
 total_subs = latest["Subscribers"].sum()
 avg_churn  = latest["Churn_Pct"].mean()
-avg_arpu   = (latest["Revenue"] * latest["Subscribers"]).sum() / total_subs if total_subs else 0
+avg_arpu   = (latest["ARPU"] * latest["Subscribers"]).sum() / total_subs if total_subs else 0
 
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Total Revenue",    f"TT${total_rev:,.0f}M")

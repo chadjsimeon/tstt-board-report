@@ -189,9 +189,7 @@ def build_cash_capex(act, aop, ly, act_months):
     return pd.DataFrame(rows)
 
 
-def build_consumer_sales(act, aop, ly, ly_aop, act_months):
-    # Only revenue lines are available; operational metrics (subs/churn/ARPU) zeroed.
-    # "Other" aggregates two source lines into one display segment.
+def build_consumer_sales(act, aop, ly, ly_aop, act_months, subs_df):
     segment_map = {
         "Prepaid":              ["Prepd Revenue."],
         "Postpaid":             ["Postpd. Revenue."],
@@ -200,32 +198,54 @@ def build_consumer_sales(act, aop, ly, ly_aop, act_months):
         "Residential Security": ["Residential Security"],
         "Other":                ["OTHER SERVICES", "Other Mobile Revenue."],
     }
+    _SUB_COLS = {"Prepaid": "Prepaid", "Postpaid": "Postpaid", "WTTx": "WTTx"}
+
+    def get_subs(fy, month_full, segment):
+        col = _SUB_COLS.get(segment)
+        if col is None:
+            return 0
+        abbr = pd.to_datetime(month_full, format="%B").strftime("%b")
+        row = subs_df[(subs_df["FY"] == fy) & (subs_df["Month"] == abbr)]
+        if row.empty:
+            return 0
+        val = row.iloc[0][col]
+        return int(val) if pd.notna(val) else 0
+
     rows = []
     # Pass 1: FY 2025-26 full year
     for m in MONTH_ORDER:
         for seg, descs in segment_map.items():
+            rev  = _get_sum(ly, "Consumer Sales", descs, m)
+            subs = get_subs(LY_FY, m, seg)
+            arpu = rev / subs if subs > 0 and pd.notna(rev) else 0
             rows.append({
                 "Month":          fmt_month(m, LY_FY),
                 "Segment":        seg,
-                "Revenue":        _get_sum(ly,     "Consumer Sales", descs, m),
+                "Revenue":        rev,
                 "Revenue_AOP":    _get_sum(ly_aop, "Consumer Sales", descs, m),
-                "Subscribers":    0,
+                "Subscribers":    subs,
                 "Churn_Pct":      0,
-                "ARPU":           0,
+                "ARPU":           arpu,
                 "YoY_Change_Pct": 0,
             })
     # Pass 2: FY 2026-27 ACT months
     for m in act_months:
         for seg, descs in segment_map.items():
+            act_rev = _get_sum(act, "Consumer Sales", descs, m)
+            ly_rev  = _get_sum(ly,  "Consumer Sales", descs, m)
+            subs    = get_subs(CUR_FY, m, seg)
+            arpu    = act_rev / subs if subs > 0 and pd.notna(act_rev) else 0
+            yoy     = ((act_rev - ly_rev) / abs(ly_rev)
+                       if pd.notna(ly_rev) and ly_rev != 0 and pd.notna(act_rev) else 0)
             rows.append({
                 "Month":          fmt_month(m, CUR_FY),
                 "Segment":        seg,
-                "Revenue":        _get_sum(act, "Consumer Sales", descs, m),
+                "Revenue":        act_rev,
                 "Revenue_AOP":    _get_sum(aop, "Consumer Sales", descs, m),
-                "Subscribers":    0,
+                "Subscribers":    subs,
                 "Churn_Pct":      0,
-                "ARPU":           0,
-                "YoY_Change_Pct": 0,
+                "ARPU":           arpu,
+                "YoY_Change_Pct": yoy,
             })
     return pd.DataFrame(rows)
 
@@ -393,6 +413,9 @@ def build_kpi_summary(act, aop, ly, latest_month):
     ])
 
 
+SUBS_SRC = "subscriber_base_apw.xlsx"
+
+
 def main():
     print(f"Reading {SRC} ...")
     raw = pd.read_excel(SRC, sheet_name="financial_data", header=1)
@@ -409,6 +432,9 @@ def main():
     print(f"  Current FY ({CUR_FY}) ACT months: {act_months or ['(none)']}")
     print(f"  Last Year  ({LY_FY}) ACT months:  {ly_months}")
 
+    print(f"Reading {SUBS_SRC} ...")
+    subs_df = pd.read_excel(SUBS_SRC, sheet_name="monthly_pivot", header=1)
+
     sheets = {
         "KPI_Summary":       build_kpi_summary(act, aop, ly, latest_month) if act_months
                              else pd.DataFrame(columns=["Month","Section","KPI_Name","Actual","AOP","LY","Status","Unit"]),
@@ -417,7 +443,7 @@ def main():
                              else pd.DataFrame(columns=["Category","Value","Type","Sort_Order"]),
         "OPEX":              build_opex(act, aop, ly, ly_aop, act_months),
         "Cash_CAPEX":        build_cash_capex(act, aop, ly, act_months),
-        "Consumer_Sales":    build_consumer_sales(act, aop, ly, ly_aop, act_months),
+        "Consumer_Sales":    build_consumer_sales(act, aop, ly, ly_aop, act_months, subs_df),
         "Business_Sales":    build_business_sales(act, aop, ly, ly_aop, act_months),
         "Pipeline":          pd.DataFrame(columns=["Month","Stage","Deal_Count","Value_TTD_M","Avg_Deal_Size","Win_Rate_Pct"]),
         "Renewals":          pd.DataFrame(columns=["Customer","Product_Service","ACV_TTD_M","Expiry_Date","Risk_Level","Status","Action_Plan"]),
