@@ -170,44 +170,44 @@ with col_right:
     st.markdown("<div style='margin-top:10px'></div>", unsafe_allow_html=True)
     st.markdown("---")
 
-    # ── Cost-Out Programme ────────────────────────────────────────────────────
-    st.markdown("#### Cost-Out Programme")
+    # ── Spend to Date ─────────────────────────────────────────────────────────
+    st.markdown("#### Spend to Date")
     st.markdown("<div style='margin-top:8px'></div>", unsafe_allow_html=True)
 
-    # YTD: sum favorable variances (Plan > Actual) across all months
-    ytd         = opex.groupby("Category", sort=False).agg(
-        Actual=("Actual", "sum"), Plan=("Plan", "sum")
-    ).reset_index()
-    ytd_savings = (ytd["Plan"] - ytd["Actual"]).clip(lower=0).sum()
-    ytd_oversp  = (ytd["Actual"] - ytd["Plan"]).clip(lower=0).sum()
-    ytd_plan    = ytd["Plan"].sum()
-    progress    = min(ytd_savings / ytd_plan * 100, 100) if ytd_plan else 0
+    ytd_spend    = opex["Actual"].sum()
+    annual_plan  = opex["Plan"].sum()
+    remaining    = annual_plan - ytd_spend
+    progress     = min(ytd_spend / annual_plan * 100, 100) if annual_plan else 0
+    over_budget  = ytd_spend > annual_plan
 
-    oversp_line = (
-        f'<div style="margin-top:10px;font-size:12px;color:#ef4444;font-weight:600">'
-        f'&#9650; TT${ytd_oversp:,.2f}M overspend across some categories</div>'
-        if ytd_oversp > 0 else ""
-    )
+    bar_color    = "linear-gradient(90deg,#ef4444,#ff6b6b)" if over_budget else "linear-gradient(90deg,#1d4ed8,#4a9eff)"
+    pct_color    = "#ef4444" if over_budget else "#4a9eff"
+    rem_color    = "#ef4444" if remaining < 0 else "#6688aa"
+    rem_label    = "over budget" if remaining < 0 else "remaining"
+    rem_sign     = "+" if remaining < 0 else ""
 
     st.markdown(f"""
 <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:20px 20px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="color:#aaaacc;font-size:14px;font-weight:500">YTD Savings vs AOP Budget</span>
-        <span style="color:#22c55e;font-weight:800;font-size:22px">{progress:.1f}%</span>
+        <span style="color:#aaaacc;font-size:14px;font-weight:500">YTD Spend vs Annual Budget</span>
+        <span style="color:{pct_color};font-weight:800;font-size:22px">{progress:.1f}%</span>
     </div>
     <div style="background:#1e1e3a;border-radius:8px;height:20px;overflow:hidden;margin-bottom:14px">
-        <div style="background:linear-gradient(90deg,#16a34a,#22c55e);
+        <div style="background:{bar_color};
                     width:{progress:.1f}%;height:100%;border-radius:8px"></div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:baseline">
         <div>
-            <div style="color:#22c55e;font-size:18px;font-weight:700">TT${ytd_savings:,.2f}M</div>
-            <div style="color:#6688aa;font-size:12px;margin-top:2px">saved YTD</div>
+            <div style="color:{pct_color};font-size:18px;font-weight:700">TT${ytd_spend:,.2f}M</div>
+            <div style="color:#6688aa;font-size:12px;margin-top:2px">spent YTD</div>
+        </div>
+        <div style="text-align:center">
+            <div style="color:{rem_color};font-size:18px;font-weight:700">{rem_sign}TT${abs(remaining):,.2f}M</div>
+            <div style="color:#6688aa;font-size:12px;margin-top:2px">{rem_label}</div>
         </div>
         <div style="text-align:right">
-            <div style="color:#aaaacc;font-size:18px;font-weight:700">TT${ytd_plan:,.2f}M</div>
-            <div style="color:#6688aa;font-size:12px;margin-top:2px">AOP target</div>
+            <div style="color:#aaaacc;font-size:18px;font-weight:700">TT${annual_plan:,.2f}M</div>
+            <div style="color:#6688aa;font-size:12px;margin-top:2px">annual budget</div>
         </div>
     </div>
-    {oversp_line}
 </div>""", unsafe_allow_html=True)
