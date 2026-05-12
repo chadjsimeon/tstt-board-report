@@ -56,7 +56,17 @@ def load_all_data():
         data["Consumer_Sales"] = _scale(data["Consumer_Sales"], [
             "Revenue", "Revenue_AOP",
         ])
-        data["Consumer_Sales"] = _pct(data["Consumer_Sales"], ["Churn_Pct", "YoY_Change_Pct"])
+        data["Consumer_Sales"] = _pct(data["Consumer_Sales"], ["YoY_Change_Pct"])
+        # Derive Churn_Pct = (prev_subs - curr_subs) / prev_subs, per segment
+        cs = data["Consumer_Sales"].copy()
+        cs["_dt"] = pd.to_datetime(cs["Month"], format="%b-%y", errors="coerce")
+        cs = cs.sort_values(["Segment", "_dt"]).reset_index(drop=True)
+        cs["_prev_subs"] = cs.groupby("Segment")["Subscribers"].shift(1)
+        cs["Churn_Pct"] = (
+            (cs["_prev_subs"] - cs["Subscribers"]) / cs["_prev_subs"] * 100
+        ).where(cs["_prev_subs"] > 0)
+        cs.drop(columns=["_dt", "_prev_subs"], inplace=True)
+        data["Consumer_Sales"] = cs
 
     if "Business_Sales" in data:
         data["Business_Sales"] = _scale(data["Business_Sales"], [
