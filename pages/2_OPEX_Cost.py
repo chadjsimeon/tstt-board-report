@@ -131,16 +131,12 @@ with col_left:
 # RIGHT — Top 5 movements + Cost-Out Programme
 # ════════════════════════════════════════════════════════════════════════════════
 with col_right:
-    st.markdown("#### Top 5 Cost Movements")
+    st.markdown("#### Cost Movements")
 
-    top5 = (
-        latest
-        .assign(_abs=latest["Variance"].abs())
-        .sort_values("_abs", ascending=False)
-        .head(5)
-    )
+    # Sort descending by Plan to match top-to-bottom order of the bullet chart
+    movements = latest.sort_values("Plan", ascending=False)
 
-    for rank, (_, row) in enumerate(top5.iterrows(), 1):
+    for rank, (_, row) in enumerate(movements.iterrows(), 1):
         var      = row["Variance"]
         vpct     = row["Variance_Pct"]
         color    = "#ef4444" if var > 0 else "#22c55e"

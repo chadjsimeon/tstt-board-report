@@ -23,6 +23,41 @@ AOP_OPEX_SRC     = "OPEX_AOP_FY2027.xlsx"
 CUR_FY = "2026-27"
 LY_FY  = "2025-26"
 
+# ── OPEX category consolidation ───────────────────────────────────────────────
+# Maps every financial_data.xlsx OPEX description → one of 6 canonical categories
+OPEX_CATEGORY_MAP = {
+    "Personnel.":                "Personnel",
+    "Maintenance.":              "Maintenance",
+    "Consultancy & Other Fees.": "Consultancy & Professional Fees",
+    "Professional.":             "Consultancy & Professional Fees",
+    "Consultancy/Contractors":   "Consultancy & Professional Fees",
+    "Other Operating Expenses.": "Other Operating Expenses",
+    "Insurance":                 "Other Operating Expenses",
+    "Security.":                 "Other Operating Expenses",
+    "Bad Debt":                  "Bad Debt",
+    "Advertising & PR.":         "Advertising & PR",
+}
+
+# Maps OPEX_AOP_FY2027.xlsx Group names → same 6 canonical categories
+AOP_OPEX_CATEGORY_MAP = {
+    "Personnel":                "Personnel",
+    "Maintenance":              "Maintenance",
+    "Consultancy & Other Fees": "Consultancy & Professional Fees",
+    "Professional":             "Consultancy & Professional Fees",
+    "Other Operating Expenses": "Other Operating Expenses",
+    "Bad Debt":                 "Bad Debt",
+    "Advertising & PR":         "Advertising & PR",
+}
+
+CANONICAL_OPEX_CATS = [
+    "Personnel",
+    "Maintenance",
+    "Consultancy & Professional Fees",
+    "Other Operating Expenses",
+    "Bad Debt",
+    "Advertising & PR",
+]
+
 # Month order within a TSTT financial year (April = Period 1)
 MONTH_ORDER = [
     "April", "May", "June", "July", "August", "September",
@@ -50,6 +85,16 @@ def _get(src: pd.DataFrame, bu: str, desc: str, month: str, default=np.nan):
 
 def _get_sum(src: pd.DataFrame, bu: str, descs: list, month: str, default=np.nan):
     """Sum values across multiple descriptions for one BU / month."""
+    if not descs:
+        return default
+    mask = (src["BU"] == bu) & (src["Description"].isin(descs)) & (src["Month"] == month)
+    rows = src.loc[mask, "Value"]
+    return float(rows.sum()) if len(rows) else default
+
+
+def _get_opex_canon_sum(src: pd.DataFrame, bu: str, canonical_cat: str, month: str, cat_map: dict, default=np.nan):
+    """Sum all OPEX descriptions that map to canonical_cat for bu/month."""
+    descs = [desc for desc, canon in cat_map.items() if canon == canonical_cat]
     if not descs:
         return default
     mask = (src["BU"] == bu) & (src["Description"].isin(descs)) & (src["Month"] == month)
@@ -104,16 +149,18 @@ def build_financial_monthly(act, aop, ly, ly_aop, act_months):
 
 
 def _load_aop_opex_fy27():
-    """Aggregate OPEX_AOP_FY2027.xlsx → dict {(category, 'Mon-YY'): plan_amount}.
+    """Aggregate OPEX_AOP_FY2027.xlsx → dict {(canonical_category, 'Mon-YY'): plan_amount}.
     Returns empty dict if the file is missing."""
     try:
         aop = pd.read_excel(AOP_OPEX_SRC, sheet_name="OPEX AOP")
+        aop["CanonicalCat"] = aop["Group"].map(AOP_OPEX_CATEGORY_MAP)
+        aop = aop.dropna(subset=["CanonicalCat"])
         lookup = (
-            aop.groupby(["Group", "Period"])["Amount"]
+            aop.groupby(["CanonicalCat", "Period"])["Amount"]
             .sum()
             .to_dict()
         )
-        return lookup   # keys are (group_name, "Apr-26") etc.
+        return lookup   # keys are (canonical_cat, "Apr-26") etc.
     except FileNotFoundError:
         print(f"  WARNING: {AOP_OPEX_SRC} not found — FY2027 OPEX plan will be empty.")
         return {}
@@ -125,42 +172,24 @@ def _norm(s):
 
 
 def build_opex(act, aop, ly, ly_aop, act_months, aop_fy27):
-    """Build the OPEX sheet.
+    """Build the OPEX sheet with 6 canonical categories.
 
-    FY 2025-26: actuals + plan from financial_data.xlsx (full 12 months).
+    FY 2025-26: actuals + plan from financial_data.xlsx (full 12 months),
+                source descriptions mapped to canonical cats via OPEX_CATEGORY_MAP.
     FY 2026-27: actuals from financial_data.xlsx for ACT months; plan from
                 OPEX_AOP_FY2027.xlsx for all 12 months so the annual budget
                 is always complete.
     """
-    # FY2026 categories from financial_data
-    ly_cats = sorted(
-        set(ly.loc[ly["Category"] == "OPEX", "Description"].unique())
-        | set(ly_aop.loc[ly_aop["Category"] == "OPEX", "Description"].unique())
-    )
-
-    # FY2027 canonical categories come from the AOP file (clean names, no trailing dots)
-    fy27_cats = sorted(set(k[0] for k in aop_fy27.keys())) if aop_fy27 else sorted(
-        set(act.loc[act["Category"] == "OPEX", "Description"].unique())
-        | set(aop.loc[aop["Category"] == "OPEX", "Description"].unique())
-    )
-
-    # Build a normalised lookup for FY2027 actuals from financial_data so we can
-    # match even when description names have trailing dots or different casing.
-    act_opex = act[act["Category"] == "OPEX"].copy()
-    act_norm_lookup = {}   # (norm_cat, month_name) → value
-    for _, row in act_opex.iterrows():
-        act_norm_lookup[(_norm(row["Description"]), row["Month"])] = row["Value"]
-
     rows = []
 
     # ── Pass 1: FY 2025-26 full year ─────────────────────────────────────────
     for m in MONTH_ORDER:
-        for cat in ly_cats:
+        for cat in CANONICAL_OPEX_CATS:
             rows.append({
                 "Month":        fmt_month(m, LY_FY),
                 "Category":     cat,
-                "Actual":       _get(ly,     "Consolidated", cat, m),
-                "Plan":         _get(ly_aop, "Consolidated", cat, m),
+                "Actual":       _get_opex_canon_sum(ly,     "Consolidated", cat, m, OPEX_CATEGORY_MAP),
+                "Plan":         _get_opex_canon_sum(ly_aop, "Consolidated", cat, m, OPEX_CATEGORY_MAP),
                 "Variance":     0,
                 "Variance_Pct": 0,
             })
@@ -168,8 +197,8 @@ def build_opex(act, aop, ly, ly_aop, act_months, aop_fy27):
     # ── Pass 2: FY 2026-27 ACT months — actual from financial_data ───────────
     for m in act_months:
         month_abbr = fmt_month(m, CUR_FY)
-        for cat in fy27_cats:
-            actual = act_norm_lookup.get((_norm(cat), m), np.nan)
+        for cat in CANONICAL_OPEX_CATS:
+            actual = _get_opex_canon_sum(act, "Consolidated", cat, m, OPEX_CATEGORY_MAP)
             plan   = aop_fy27.get((cat, month_abbr), np.nan)
             rows.append({
                 "Month":        month_abbr,
@@ -184,7 +213,7 @@ def build_opex(act, aop, ly, ly_aop, act_months, aop_fy27):
     future_months = [m for m in MONTH_ORDER if m not in act_months]
     for m in future_months:
         month_abbr = fmt_month(m, CUR_FY)
-        for cat in fy27_cats:
+        for cat in CANONICAL_OPEX_CATS:
             plan = aop_fy27.get((cat, month_abbr), np.nan)
             rows.append({
                 "Month":        month_abbr,
