@@ -14,10 +14,11 @@ and decimal-to-percent conversions.
 import numpy as np
 import pandas as pd
 
-SRC         = "financial_data.xlsx"
-DST         = "TSTT_Board_Data.xlsx"
-SUBS_SRC    = "subscriber_base_apw.xlsx"
-AMP_KPI_SRC = "Amplia Metrics 2024-2025 February 2026.xlsx"
+SRC              = "financial_data.xlsx"
+DST              = "TSTT_Board_Data.xlsx"
+SUBS_SRC         = "subscriber_base_apw.xlsx"
+AMP_KPI_SRC      = "Amplia Metrics 2024-2025 February 2026.xlsx"
+AOP_OPEX_SRC     = "OPEX_AOP_FY2027.xlsx"
 
 CUR_FY = "2026-27"
 LY_FY  = "2025-26"
@@ -102,19 +103,59 @@ def build_financial_monthly(act, aop, ly, ly_aop, act_months):
     return pd.DataFrame(rows)
 
 
-def build_opex(act, aop, ly, ly_aop, act_months):
-    # Union of OPEX categories across all four frames
-    opex_cats = sorted(
-        set(act.loc[act["Category"] == "OPEX", "Description"].unique())
-        | set(aop.loc[aop["Category"] == "OPEX", "Description"].unique())
-        | set(ly.loc[ly["Category"] == "OPEX", "Description"].unique())
+def _load_aop_opex_fy27():
+    """Aggregate OPEX_AOP_FY2027.xlsx → dict {(category, 'Mon-YY'): plan_amount}.
+    Returns empty dict if the file is missing."""
+    try:
+        aop = pd.read_excel(AOP_OPEX_SRC, sheet_name="OPEX AOP")
+        lookup = (
+            aop.groupby(["Group", "Period"])["Amount"]
+            .sum()
+            .to_dict()
+        )
+        return lookup   # keys are (group_name, "Apr-26") etc.
+    except FileNotFoundError:
+        print(f"  WARNING: {AOP_OPEX_SRC} not found — FY2027 OPEX plan will be empty.")
+        return {}
+
+
+def _norm(s):
+    """Normalise a category name for fuzzy matching (strip dots/spaces, lowercase)."""
+    return str(s).strip().rstrip(".").strip().lower()
+
+
+def build_opex(act, aop, ly, ly_aop, act_months, aop_fy27):
+    """Build the OPEX sheet.
+
+    FY 2025-26: actuals + plan from financial_data.xlsx (full 12 months).
+    FY 2026-27: actuals from financial_data.xlsx for ACT months; plan from
+                OPEX_AOP_FY2027.xlsx for all 12 months so the annual budget
+                is always complete.
+    """
+    # FY2026 categories from financial_data
+    ly_cats = sorted(
+        set(ly.loc[ly["Category"] == "OPEX", "Description"].unique())
         | set(ly_aop.loc[ly_aop["Category"] == "OPEX", "Description"].unique())
     )
 
+    # FY2027 canonical categories come from the AOP file (clean names, no trailing dots)
+    fy27_cats = sorted(set(k[0] for k in aop_fy27.keys())) if aop_fy27 else sorted(
+        set(act.loc[act["Category"] == "OPEX", "Description"].unique())
+        | set(aop.loc[aop["Category"] == "OPEX", "Description"].unique())
+    )
+
+    # Build a normalised lookup for FY2027 actuals from financial_data so we can
+    # match even when description names have trailing dots or different casing.
+    act_opex = act[act["Category"] == "OPEX"].copy()
+    act_norm_lookup = {}   # (norm_cat, month_name) → value
+    for _, row in act_opex.iterrows():
+        act_norm_lookup[(_norm(row["Description"]), row["Month"])] = row["Value"]
+
     rows = []
-    # Pass 1: FY 2025-26 full year
+
+    # ── Pass 1: FY 2025-26 full year ─────────────────────────────────────────
     for m in MONTH_ORDER:
-        for cat in opex_cats:
+        for cat in ly_cats:
             rows.append({
                 "Month":        fmt_month(m, LY_FY),
                 "Category":     cat,
@@ -123,17 +164,37 @@ def build_opex(act, aop, ly, ly_aop, act_months):
                 "Variance":     0,
                 "Variance_Pct": 0,
             })
-    # Pass 2: FY 2026-27 ACT months
+
+    # ── Pass 2: FY 2026-27 ACT months — actual from financial_data ───────────
     for m in act_months:
-        for cat in opex_cats:
+        month_abbr = fmt_month(m, CUR_FY)
+        for cat in fy27_cats:
+            actual = act_norm_lookup.get((_norm(cat), m), np.nan)
+            plan   = aop_fy27.get((cat, month_abbr), np.nan)
             rows.append({
-                "Month":        fmt_month(m, CUR_FY),
+                "Month":        month_abbr,
                 "Category":     cat,
-                "Actual":       _get(act, "Consolidated", cat, m),
-                "Plan":         _get(aop, "Consolidated", cat, m),
+                "Actual":       actual,
+                "Plan":         plan,
                 "Variance":     0,
                 "Variance_Pct": 0,
             })
+
+    # ── Pass 3: FY 2026-27 remaining months — plan only ──────────────────────
+    future_months = [m for m in MONTH_ORDER if m not in act_months]
+    for m in future_months:
+        month_abbr = fmt_month(m, CUR_FY)
+        for cat in fy27_cats:
+            plan = aop_fy27.get((cat, month_abbr), np.nan)
+            rows.append({
+                "Month":        month_abbr,
+                "Category":     cat,
+                "Actual":       np.nan,
+                "Plan":         plan,
+                "Variance":     0,
+                "Variance_Pct": 0,
+            })
+
     return pd.DataFrame(rows)
 
 
@@ -509,13 +570,17 @@ def main():
     print(f"Reading {AMP_KPI_SRC} ...")
     amp_kpi = pd.read_excel(AMP_KPI_SRC, sheet_name="Sheet1", header=None)
 
+    print(f"Reading {AOP_OPEX_SRC} ...")
+    aop_fy27 = _load_aop_opex_fy27()
+    print(f"  FY2027 OPEX plan entries loaded: {len(aop_fy27)}")
+
     sheets = {
         "KPI_Summary":       build_kpi_summary(act, aop, ly, latest_month) if act_months
                              else pd.DataFrame(columns=["Month","Section","KPI_Name","Actual","AOP","LY","Status","Unit"]),
         "Financial_Monthly": build_financial_monthly(act, aop, ly, ly_aop, act_months),
         "EBITDA_Bridge":     build_ebitda_bridge(act, aop, latest_month) if act_months
                              else pd.DataFrame(columns=["Category","Value","Type","Sort_Order"]),
-        "OPEX":              build_opex(act, aop, ly, ly_aop, act_months),
+        "OPEX":              build_opex(act, aop, ly, ly_aop, act_months, aop_fy27),
         "Cash_CAPEX":        build_cash_capex(act, aop, ly, act_months),
         "Consumer_Sales":    build_consumer_sales(act, aop, ly, ly_aop, act_months, subs_df),
         "Business_Sales":    build_business_sales(act, aop, ly, ly_aop, act_months),
