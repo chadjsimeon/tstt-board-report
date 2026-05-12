@@ -245,15 +245,17 @@ with tab1:
     with cl:
         mo = list(consumer["Month"].unique())
         mr = monthly.set_index("Month")["Revenue"].reindex(mo)
-        days = pd.to_datetime(pd.Series(mo), format="%b-%y").dt.days_in_month.values
-        daily_rev = [r / d if pd.notna(r) else None for r, d in zip(mr.values, days)]
+        ma = monthly.set_index("Month")["Revenue_AOP"].reindex(mo)
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=mo, y=daily_rev, name="Avg Daily Revenue",
-                                 line=dict(color="#22c55e", width=2.5), mode="lines+markers",
-                                 marker=dict(size=6),
-                                 hovertemplate="%{x}<br>TT$%{y:.2f}M/day<extra></extra>"))
-        _base_layout(fig, "Average Daily Revenue by Month (TT$M)", 300)
-        fig.update_layout(showlegend=False)
+        fig.add_trace(go.Scatter(x=mo, y=mr.values, name="Actual",
+                                 line=dict(color="#22c55e",width=2.5), mode="lines+markers",
+                                 marker=dict(size=6)))
+        ax = [m for m,v in zip(mo,ma.values) if pd.notna(v)]
+        ay = [v for v in ma.values if pd.notna(v)]
+        if ax:
+            fig.add_trace(go.Scatter(x=ax, y=ay, name="AOP",
+                                     line=dict(color="#556677",width=1.8,dash="dash")))
+        _base_layout(fig, "Monthly Revenue vs AOP (TT$M)", 300)
         st.plotly_chart(fig, use_container_width=True)
 
     with cr:
@@ -347,22 +349,15 @@ with tab2:
     with ml:
         pre_mons = list(prepaid["Month"].unique())
         pre_rev  = prepaid.set_index("Month")["Revenue"].reindex(pre_mons)
+        pre_days = pd.to_datetime(pd.Series(pre_mons), format="%b-%y").dt.days_in_month.values
+        pre_daily = [r / d if pd.notna(r) else None for r, d in zip(pre_rev.values, pre_days)]
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=pre_mons, y=pre_rev.values, name="Actual",
+        fig.add_trace(go.Scatter(x=pre_mons, y=pre_daily, name="Avg Daily Revenue",
                                  line=dict(color="#22c55e",width=2.5), mode="lines+markers",
-                                 marker=dict(size=6)))
-        aop_val = latest_pre["Revenue_AOP"]
-        if pd.notna(aop_val):
-            fig.add_trace(go.Scatter(x=["Apr-26"], y=[aop_val], name="AOP",
-                                     mode="markers+text",
-                                     marker=dict(color="#556677",size=10,symbol="diamond"),
-                                     text=[f"AOP TT${aop_val:.1f}M"],
-                                     textposition="top center",
-                                     textfont=dict(color="#8899bb",size=10)))
-            fig.add_hline(y=aop_val, line_dash="dash", line_color="#334455",
-                          annotation_text=f"AOP {aop_val:.1f}M",
-                          annotation_font=dict(color="#8899bb",size=10))
-        _base_layout(fig, "Prepaid Monthly Revenue (TT$M)", 290)
+                                 marker=dict(size=6),
+                                 hovertemplate="%{x}<br>TT$%{y:.2f}M/day<extra></extra>"))
+        _base_layout(fig, "Prepaid Avg Daily Revenue by Month (TT$M)", 290)
+        fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
 
     with mr:
