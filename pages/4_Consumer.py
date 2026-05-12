@@ -245,17 +245,15 @@ with tab1:
     with cl:
         mo = list(consumer["Month"].unique())
         mr = monthly.set_index("Month")["Revenue"].reindex(mo)
-        ma = monthly.set_index("Month")["Revenue_AOP"].reindex(mo)
+        days = pd.to_datetime(pd.Series(mo), format="%b-%y").dt.days_in_month.values
+        daily_rev = [r / d if pd.notna(r) else None for r, d in zip(mr.values, days)]
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=mo, y=mr.values, name="Actual",
-                                 line=dict(color="#22c55e",width=2.5), mode="lines+markers",
-                                 marker=dict(size=6)))
-        ax = [m for m,v in zip(mo,ma.values) if pd.notna(v)]
-        ay = [v for v in ma.values if pd.notna(v)]
-        if ax:
-            fig.add_trace(go.Scatter(x=ax, y=ay, name="AOP",
-                                     line=dict(color="#556677",width=1.8,dash="dash")))
-        _base_layout(fig, "Monthly Revenue vs AOP (TT$M)", 300)
+        fig.add_trace(go.Scatter(x=mo, y=daily_rev, name="Avg Daily Revenue",
+                                 line=dict(color="#22c55e", width=2.5), mode="lines+markers",
+                                 marker=dict(size=6),
+                                 hovertemplate="%{x}<br>TT$%{y:.2f}M/day<extra></extra>"))
+        _base_layout(fig, "Average Daily Revenue by Month (TT$M)", 300)
+        fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
 
     with cr:
