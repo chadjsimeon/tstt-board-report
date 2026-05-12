@@ -48,10 +48,34 @@ postpaid = consumer[consumer["Segment"] == "Postpaid"].copy()
 wttx     = consumer[consumer["Segment"] == "WTTx"].copy()
 
 
-def _card(title, value_str, sub_str, sub_color, extra_str="", accent="#00ff88"):
+def _sparkline(series, color, height=44):
+    vals = [float(v) if pd.notna(v) else 0.0 for v in series]
+    mn, mx = min(vals), max(vals)
+    rng = mx - mn if mx != mn else 1
+    w = 220
+    pts = []
+    for i, v in enumerate(vals):
+        x = i * w / max(len(vals) - 1, 1)
+        y = height - (v - mn) / rng * height * 0.78 - height * 0.11
+        pts.append(f"{x:.1f},{y:.1f}")
+    line_pts = " ".join(pts)
+    fill_pts  = f"0,{height} {line_pts} {w},{height}"
+    r, g, b   = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
+    return (
+        f'<svg width="100%" height="{height}" viewBox="0 0 {w} {height}" '
+        f'preserveAspectRatio="none" style="display:block;margin-top:8px">'
+        f'<polygon points="{fill_pts}" fill="rgba({r},{g},{b},0.15)"/>'
+        f'<polyline points="{line_pts}" fill="none" stroke="{color}" stroke-width="1.5"/>'
+        f'</svg>'
+    )
+
+
+def _card(title, value_str, sub_str, sub_color, extra_str="", accent="#00ff88",
+          spark_series=None):
     extra = (""
              if not extra_str
              else f'<div style="font-size:11px;color:#8899bb;margin-top:3px">{extra_str}</div>')
+    spark = _sparkline(spark_series, accent) if spark_series is not None else ""
     return (
         f'<div style="background:#1a1a2e;border-radius:10px;padding:14px 16px;'
         f'border:1px solid #2a2a4a;border-top:3px solid {accent};height:100%">'
@@ -59,7 +83,7 @@ def _card(title, value_str, sub_str, sub_color, extra_str="", accent="#00ff88"):
         f'letter-spacing:1px;margin-bottom:6px">{title}</div>'
         f'<div style="font-size:22px;font-weight:700;color:white;margin-bottom:4px">{value_str}</div>'
         f'<div style="font-size:12px;color:{sub_color};font-weight:600">{sub_str}</div>'
-        f'{extra}</div>'
+        f'{extra}{spark}</div>'
     )
 
 
@@ -166,18 +190,24 @@ with tab1:
         return v if v and pd.notna(v) else None
     def _vp(name): a,p=_seg_r(name),_seg_a(name); return (a-p)/abs(p)*100 if p else None
 
-    fm     = data["Financial_Monthly"]
-    fm_apr = fm[fm["Month"] == sel_month]
-    if not fm_apr.empty:
-        em_act = fm_apr["EBITDA_Margin"].values[0]
-        em_aop = fm_apr["EBITDA_AOP"].values[0] / fm_apr["Revenue_AOP"].values[0] * 100
-        em_pp  = em_act - em_aop
-    else:
-        em_act = em_pp = None
-
     monthly = (consumer.groupby("Month", sort=False)
                .agg(Revenue=("Revenue","sum"), Revenue_AOP=("Revenue_AOP","sum"))
                .reset_index())
+
+    # Other = all segments except the three main ones
+    _main = ["Prepaid", "Postpaid", "WTTx"]
+    other_cons      = consumer[~consumer["Segment"].isin(_main)]
+    other_by_month  = other_cons.groupby("Month", sort=False)["Revenue"].sum()
+    other_rev_sel   = other_by_month.get(sel_month, 0.0)
+    other_aop_sel   = other_cons[other_cons["Month"] == sel_month]["Revenue_AOP"].sum()
+    other_var       = (other_rev_sel - other_aop_sel) / other_aop_sel * 100 if other_aop_sel else None
+
+    # Sparkline series — one value per month, aligned to full month list
+    total_trend = monthly.set_index("Month")["Revenue"].reindex(months).fillna(0).tolist()
+    post_trend  = postpaid.set_index("Month")["Revenue"].reindex(months).fillna(0).tolist()
+    pre_trend   = prepaid.set_index("Month")["Revenue"].reindex(months).fillna(0).tolist()
+    wx_trend    = wttx.set_index("Month")["Revenue"].reindex(months).fillna(0).tolist()
+    other_trend = other_by_month.reindex(months).fillna(0).tolist()
 
     segs_meaningful = ["Prepaid","Postpaid","WTTx","Residential Security"]
     svars = {s: _vp(s) for s in segs_meaningful if _vp(s) is not None}
@@ -195,17 +225,19 @@ with tab1:
 
     c1,c2,c3,c4,c5 = st.columns(5)
     yoy_x = f"YoY: {yoy_pct:+.1f}%" if abs(yoy_pct) > 0.05 else "YoY: flat"
-    c1.markdown(_card("Total Revenue",    f"TT${t_rev:.1f}M",  _vs(t_var),  _vc(t_var),  yoy_x, "#00d4a0"), unsafe_allow_html=True)
+    c1.markdown(_card("Total Revenue",    f"TT${t_rev:.1f}M",  _vs(t_var),  _vc(t_var),  yoy_x,
+                      "#00d4a0", spark_series=total_trend), unsafe_allow_html=True)
     v2 = _vp("Postpaid")
-    c2.markdown(_card("Postpaid Revenue", f"TT${_seg_r('Postpaid'):.1f}M", _vs(v2), _vc(v2), accent="#4a9eff"), unsafe_allow_html=True)
+    c2.markdown(_card("Postpaid Revenue", f"TT${_seg_r('Postpaid'):.1f}M", _vs(v2), _vc(v2),
+                      accent="#4a9eff", spark_series=post_trend), unsafe_allow_html=True)
     v3 = _vp("Prepaid")
-    c3.markdown(_card("Prepaid Revenue",  f"TT${_seg_r('Prepaid'):.1f}M",  _vs(v3), _vc(v3), accent="#a78bfa"), unsafe_allow_html=True)
+    c3.markdown(_card("Prepaid Revenue",  f"TT${_seg_r('Prepaid'):.1f}M",  _vs(v3), _vc(v3),
+                      accent="#a78bfa", spark_series=pre_trend), unsafe_allow_html=True)
     v4 = _vp("WTTx")
-    c4.markdown(_card("WTTx Revenue",     f"TT${_seg_r('WTTx'):.1f}M",     _vs(v4), _vc(v4), accent="#f59e0b"), unsafe_allow_html=True)
-    if em_act is not None:
-        c5.markdown(_card("EBITDA Margin", f"{em_act:.1f}%", f"{em_pp:+.1f}pp vs AOP", _vc(em_pp), accent="#00ff88"), unsafe_allow_html=True)
-    else:
-        c5.markdown(_card("EBITDA Margin", "—%", "— vs AOP", "#888888"), unsafe_allow_html=True)
+    c4.markdown(_card("WTTx Revenue",     f"TT${_seg_r('WTTx'):.1f}M",     _vs(v4), _vc(v4),
+                      accent="#f59e0b", spark_series=wx_trend), unsafe_allow_html=True)
+    c5.markdown(_card("Other Revenue",    f"TT${other_rev_sel:.1f}M", _vs(other_var), _vc(other_var),
+                      accent="#ff6b6b", spark_series=other_trend), unsafe_allow_html=True)
 
     st.markdown("<div style='margin:16px 0 0 0'></div>", unsafe_allow_html=True)
     cl, cr = st.columns([3,2])
