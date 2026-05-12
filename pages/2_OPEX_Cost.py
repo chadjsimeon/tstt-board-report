@@ -2,6 +2,7 @@ import streamlit as st
 
 st.set_page_config(page_title="TSTT | OPEX & Cost", page_icon="📊", layout="wide")
 
+import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data
 from utils.charts import inject_css, page_header, GREEN, RED
@@ -174,8 +175,17 @@ with col_right:
     st.markdown("#### Spend to Date")
     st.markdown("<div style='margin-top:8px'></div>", unsafe_allow_html=True)
 
-    ytd_spend    = opex["Actual"].sum()
-    annual_plan  = opex["Plan"].sum()
+    # Restrict to the financial year that contains sel_month (Apr–Mar)
+    _sel_dt   = pd.to_datetime(sel_month, format="%b-%y")
+    _fy_year  = _sel_dt.year if _sel_dt.month >= 4 else _sel_dt.year - 1
+    _fy_start = pd.Timestamp(year=_fy_year,     month=4, day=1)
+    _fy_end   = pd.Timestamp(year=_fy_year + 1, month=3, day=31)
+    _opex_fy  = opex.copy()
+    _opex_fy["_dt"] = pd.to_datetime(_opex_fy["Month"], format="%b-%y", errors="coerce")
+    _opex_fy  = _opex_fy[(_opex_fy["_dt"] >= _fy_start) & (_opex_fy["_dt"] <= _fy_end)]
+
+    ytd_spend    = _opex_fy["Actual"].sum()
+    annual_plan  = _opex_fy["Plan"].sum()
     remaining    = annual_plan - ytd_spend
     progress     = min(ytd_spend / annual_plan * 100, 100) if annual_plan else 0
     over_budget  = ytd_spend > annual_plan
