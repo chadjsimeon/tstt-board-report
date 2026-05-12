@@ -9,11 +9,9 @@ from utils.charts import inject_css
 
 inject_css()
 
-# ── Viewport-fill CSS ─────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 .main .block-container { padding-bottom: 0.5rem !important; }
-[data-testid="column"] { min-height: calc(100vh - 200px); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -49,11 +47,10 @@ def fmt(val, unit):
     if unit == "subs":   return f"{v:,.0f}"
     if unit == "hrs":    return f"{v:.1f} hrs"
     if unit == "days":   return f"{v:.0f} days"
-    return f"{v:.0f}"          # score and anything else
+    return f"{v:.0f}"
 
 
 def arrow(kpi_name, actual, aop):
-    """Returns (symbol, hex_colour) for the direction indicator."""
     if pd.isna(actual) or pd.isna(aop) or aop == 0:
         return "", "#666666"
     pct = abs(float(actual) - float(aop)) / abs(float(aop))
@@ -67,7 +64,6 @@ def arrow(kpi_name, actual, aop):
 
 
 def rag_dot(status_val):
-    """Map Status emoji/string to a styled HTML circle."""
     s = str(status_val).strip()
     if "🟢" in s or s.upper() == "G":
         color = "#22c55e"
@@ -89,61 +85,64 @@ def quadrant_html(section_key, section_display, accent):
     if df.empty:
         return (
             f'<div style="background:#1a1a2e;border-radius:12px;padding:20px;'
-            f'border:1px solid #2a2a4a;border-left:4px solid {accent};height:100%">'
+            f'border:1px solid #2a2a4a;border-left:4px solid {accent};'
+            f'display:flex;flex-direction:column;overflow:hidden">'
             f'<div style="font-size:10px;font-weight:700;color:{accent};'
-            f'text-transform:uppercase;letter-spacing:2.5px;margin-bottom:14px">'
+            f'text-transform:uppercase;letter-spacing:2.5px;margin-bottom:14px;flex-shrink:0">'
             f'{section_display}</div>'
             f'<p style="color:#5566aa;font-size:13px">No data available</p></div>'
         )
 
-    # Header row
-    th = (
-        'padding:7px 8px;text-align:{align};font-size:10px;color:#5566aa;'
-        'font-weight:600;text-transform:uppercase;letter-spacing:1px;'
-        'border-bottom:1px solid #2a2a4a'
-    )
+    # Column header row (fixed, doesn't grow)
     header = (
-        f'<tr>'
-        f'<th style="{th.format(align="left")}">KPI</th>'
-        f'<th style="{th.format(align="right")}">Actual</th>'
-        f'<th style="{th.format(align="right")}">AOP</th>'
-        f'<th style="{th.format(align="center")}">Status</th>'
-        f'</tr>'
+        f'<div style="display:flex;padding:7px 8px;border-bottom:1px solid #2a2a4a;flex-shrink:0">'
+        f'<div style="flex:3;font-size:10px;color:#5566aa;font-weight:600;'
+        f'text-transform:uppercase;letter-spacing:1px">KPI</div>'
+        f'<div style="flex:1.2;text-align:right;font-size:10px;color:#5566aa;'
+        f'font-weight:600;text-transform:uppercase;letter-spacing:1px">Actual</div>'
+        f'<div style="flex:1.2;text-align:right;font-size:10px;color:#5566aa;'
+        f'font-weight:600;text-transform:uppercase;letter-spacing:1px">AOP</div>'
+        f'<div style="flex:0.8;text-align:center;font-size:10px;color:#5566aa;'
+        f'font-weight:600;text-transform:uppercase;letter-spacing:1px">Status</div>'
+        f'</div>'
     )
 
     rows = ""
     for _, r in df.iterrows():
         sym, col = arrow(r["KPI_Name"], r["Actual"], r["AOP"])
-        dot = rag_dot(r["Status"])
+        dot      = rag_dot(r["Status"])
         actual_s = fmt(r["Actual"], r["Unit"])
         aop_s    = fmt(r["AOP"],    r["Unit"])
 
         rows += (
-            f'<tr style="border-bottom:1px solid #16163a">'
-            f'<td style="padding:9px 8px;color:#c8d8ee;font-size:13px">{r["KPI_Name"]}</td>'
-            f'<td style="padding:9px 8px;text-align:right;font-weight:700;'
-            f'font-size:14px;color:white">{actual_s}</td>'
-            f'<td style="padding:9px 8px;text-align:right;font-size:12px;'
-            f'color:#6688aa">{aop_s}</td>'
-            f'<td style="padding:9px 10px">'
-            f'<div style="display:flex;align-items:center;justify-content:center;gap:6px">'
+            f'<div style="display:flex;align-items:center;flex:1;'
+            f'border-bottom:1px solid #16163a;padding:0 8px;min-height:0">'
+            f'<div style="flex:3;color:#c8d8ee;font-size:13px;line-height:1.3">'
+            f'{r["KPI_Name"]}</div>'
+            f'<div style="flex:1.2;text-align:right;font-weight:700;'
+            f'font-size:14px;color:white">{actual_s}</div>'
+            f'<div style="flex:1.2;text-align:right;font-size:12px;'
+            f'color:#6688aa">{aop_s}</div>'
+            f'<div style="flex:0.8;display:flex;align-items:center;'
+            f'justify-content:center;gap:6px">'
             f'{dot}'
             f'<span style="color:{col};font-size:15px;font-weight:700;'
             f'line-height:1">{sym}</span>'
-            f'</div></td>'
-            f'</tr>'
+            f'</div>'
+            f'</div>'
         )
 
     return (
         f'<div style="background:#1a1a2e;border-radius:12px;padding:18px 20px;'
-        f'border:1px solid #2a2a4a;border-left:4px solid {accent}">'
+        f'border:1px solid #2a2a4a;border-left:4px solid {accent};'
+        f'display:flex;flex-direction:column;overflow:hidden;min-height:0">'
         f'<div style="font-size:10px;font-weight:700;color:{accent};'
-        f'text-transform:uppercase;letter-spacing:2.5px;margin-bottom:14px">'
+        f'text-transform:uppercase;letter-spacing:2.5px;margin-bottom:12px;flex-shrink:0">'
         f'{section_display}</div>'
-        f'<table style="width:100%;border-collapse:collapse">'
-        f'<thead>{header}</thead>'
-        f'<tbody>{rows}</tbody>'
-        f'</table>'
+        f'{header}'
+        f'<div style="display:flex;flex-direction:column;flex:1;min-height:0">'
+        f'{rows}'
+        f'</div>'
         f'</div>'
     )
 
@@ -153,7 +152,7 @@ st.markdown(f"""
 <div style="display:flex;justify-content:space-between;align-items:center;
             padding:1.1rem 1.6rem;
             background:linear-gradient(135deg,#1a1a2e 0%,#0f1e3c 60%,#0d2040 100%);
-            border-radius:12px;border:1px solid #2a3a5a;margin-bottom:1.4rem">
+            border-radius:12px;border:1px solid #2a3a5a;margin-bottom:1rem">
     <div style="font-size:1.4rem;font-weight:700;color:white;
                 letter-spacing:0.5px">Enterprise Scorecard</div>
     <div style="font-size:0.88rem;font-weight:600;color:#00d4a0;
@@ -161,37 +160,30 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── 2×2 Quadrant grid ─────────────────────────────────────────────────────────
-r1c1, r1c2 = st.columns(2, gap="medium")
-r2c1, r2c2 = st.columns(2, gap="medium")
+# ── 2×2 CSS Grid — all four cards perfectly equal ─────────────────────────────
+q_financial = quadrant_html("Financial",  "Financial",            "#00d4a0")
+q_customer  = quadrant_html("Customer",   "Customer",             "#4a9eff")
+q_network   = quadrant_html("Network",    "Network & Operations", "#a78bfa")
+q_people    = quadrant_html("People",     "People & Culture",     "#f59e0b")
 
-with r1c1:
-    st.markdown(
-        quadrant_html("Financial",  "Financial",           "#00d4a0"),
-        unsafe_allow_html=True,
-    )
-
-with r1c2:
-    st.markdown(
-        quadrant_html("Customer",   "Customer",            "#4a9eff"),
-        unsafe_allow_html=True,
-    )
-
-with r2c1:
-    st.markdown(
-        quadrant_html("Network",    "Network & Operations","#a78bfa"),
-        unsafe_allow_html=True,
-    )
-
-with r2c2:
-    st.markdown(
-        quadrant_html("People",     "People & Culture",    "#f59e0b"),
-        unsafe_allow_html=True,
-    )
+st.markdown(f"""
+<div style="
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    height: calc(100vh - 180px);
+    gap: 14px;
+">
+    {q_financial}
+    {q_customer}
+    {q_network}
+    {q_people}
+</div>
+""", unsafe_allow_html=True)
 
 # ── Confidential footer ───────────────────────────────────────────────────────
 st.markdown("""
-<div style="text-align:center;margin-top:28px;padding:10px;
+<div style="text-align:center;margin-top:12px;padding:8px;
             color:#3a4466;font-size:11px;font-weight:700;
             letter-spacing:2.5px;text-transform:uppercase;
             border-top:1px solid #1e1e3a">
