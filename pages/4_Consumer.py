@@ -2,6 +2,7 @@ import streamlit as st
 
 st.set_page_config(page_title="TSTT | Consumer", page_icon="📱", layout="wide")
 
+import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data, pivot_by_group, get_month_order
 from utils.charts import (
@@ -10,268 +11,241 @@ from utils.charts import (
     GREEN, RED, BLUE, YELLOW, PURPLE, ORANGE, CYAN, ACCENT,
 )
 
-SEG_COLORS = ACCENT
-
 inject_css()
-data = load_all_data()
+data     = load_all_data()
 consumer = data["Consumer_Sales"]
 
 page_header("Consumer", "Prepaid · Postpaid · WTTx — Revenue, Subscribers, Churn, ARPU")
 
-# ── Sidebar filter ────────────────────────────────────────────────────────────
-months   = get_month_order(consumer)
-segments = consumer["Segment"].unique().tolist()
+# ── Sidebar ───────────────────────────────────────────────────────────────────
+months    = get_month_order(consumer)
+segments  = consumer["Segment"].unique().tolist()
 sel_month = st.sidebar.selectbox("Focus Month", months, index=len(months) - 1)
 
-# ── Latest-month snapshot ─────────────────────────────────────────────────────
-latest = consumer[consumer["Month"] == sel_month]
-total_rev  = latest["Revenue"].sum()
-total_subs = latest["Subscribers"].sum()
-avg_churn  = latest["Churn_Pct"].mean()
-avg_arpu   = (latest["ARPU"] * latest["Subscribers"]).sum() / total_subs if total_subs else 0
+# ── Snapshot metrics strip ────────────────────────────────────────────────────
+latest_snap = consumer[consumer["Month"] == sel_month]
+total_rev   = latest_snap["Revenue"].sum()
+total_subs  = latest_snap["Subscribers"].sum()
+avg_churn   = latest_snap["Churn_Pct"].mean()
+avg_arpu    = ((latest_snap["ARPU"] * latest_snap["Subscribers"]).sum()
+               / total_subs if total_subs else 0)
 
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("Total Revenue",    f"TT${total_rev:,.0f}M")
-m2.metric("Total Subscribers",f"{total_subs:,.0f}")
-m3.metric("Avg Churn",        f"{avg_churn:.1f}%")
-m4.metric("Blended ARPU",     f"TT${avg_arpu:,.0f}")
+m1.metric("Total Revenue",     f"TT${total_rev:,.0f}M")
+m2.metric("Total Subscribers", f"{total_subs:,.0f}")
+m3.metric("Avg Churn",         f"{avg_churn:.1f}%")
+m4.metric("Blended ARPU",      f"TT${avg_arpu:,.0f}")
 
 st.markdown("---")
 
-# ── Per-segment KPIs for selected month ──────────────────────────────────────
-st.markdown(f"#### {sel_month} — Segment Breakdown")
-seg_cols = st.columns(len(segments))
-for col, seg in zip(seg_cols, segments):
-    row = latest[latest["Segment"] == seg]
-    if row.empty:
-        continue
-    row = row.iloc[0]
-    aop_pct = (row["Revenue"] - row["Revenue_AOP"]) / row["Revenue_AOP"] * 100 if row["Revenue_AOP"] else 0
-    col.metric(
-        f"{seg} Revenue",
-        f"TT${row['Revenue']:,.0f}M",
-        f"{aop_pct:+.1f}% vs AOP",
+# ═════════════════════════════════════════════════════════════════════════════
+# PAGE-LEVEL HELPERS  (shared by all tabs)
+# ═════════════════════════════════════════════════════════════════════════════
+FY_MONTHS = [m for m in months if m != "Apr-26"]   # Apr-25 → Mar-26
+
+prepaid  = consumer[consumer["Segment"] == "Prepaid"].copy()
+postpaid = consumer[consumer["Segment"] == "Postpaid"].copy()
+wttx     = consumer[consumer["Segment"] == "WTTx"].copy()
+
+
+def _card(title, value_str, sub_str, sub_color, extra_str="", accent="#00ff88"):
+    extra = (""
+             if not extra_str
+             else f'<div style="font-size:11px;color:#8899bb;margin-top:3px">{extra_str}</div>')
+    return (
+        f'<div style="background:#1a1a2e;border-radius:10px;padding:14px 16px;'
+        f'border:1px solid #2a2a4a;border-top:3px solid {accent};height:100%">'
+        f'<div style="font-size:10px;color:#7788aa;font-weight:600;text-transform:uppercase;'
+        f'letter-spacing:1px;margin-bottom:6px">{title}</div>'
+        f'<div style="font-size:22px;font-weight:700;color:white;margin-bottom:4px">{value_str}</div>'
+        f'<div style="font-size:12px;color:{sub_color};font-weight:600">{sub_str}</div>'
+        f'{extra}</div>'
     )
 
-st.markdown("---")
 
-# ── Charts ────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs(["Consumer Sales Performance", "Subscribers", "Churn", "ARPU"])
+def _commentary(text):
+    return (
+        '<div style="background:#0f1e10;border-radius:10px;padding:16px 18px;'
+        'border:1px solid #1a3a1a;border-left:4px solid #22c55e;height:100%">'
+        '<div style="font-size:10px;color:#f59e0b;font-weight:700;text-transform:uppercase;'
+        f'letter-spacing:1.5px;margin-bottom:10px">Commentary</div>'
+        f'<div style="font-size:12px;color:#aaccaa;line-height:1.6">{text}</div>'
+        '</div>'
+    )
 
+
+def _tab_hdr(title, period="YTD April 2026 | TTM"):
+    return (
+        '<div style="display:flex;justify-content:space-between;align-items:center;'
+        'margin-bottom:16px">'
+        f'<div style="font-size:1.15rem;font-weight:700;color:white">{title}</div>'
+        f'<div style="font-size:0.82rem;color:#7788aa">{period}</div>'
+        '</div>'
+    )
+
+
+def _vc(pct):
+    if pct is None: return "#888888"
+    return "#22c55e" if pct >= 0 else "#ef4444"
+
+
+def _vs(pct, suffix="% vs AOP"):
+    if pct is None: return "— vs AOP"
+    return f"{pct:+.1f}{suffix}"
+
+
+def _fmt_k(n):
+    n = float(n)
+    if n >= 1_000_000: return f"{n/1_000_000:.1f}M"
+    if n >= 1_000:     return f"{n/1_000:.0f}K"
+    return str(int(n))
+
+
+def _ttm(df):
+    return df[df["Month"].isin(FY_MONTHS)]["Revenue"].sum()
+
+
+def _annual_aop(df):
+    row = df[df["Month"] == "Apr-26"]
+    if row.empty: return None
+    v = row["Revenue_AOP"].values[0]
+    return v * 12 if pd.notna(v) else None
+
+
+def _latest_row_with(df, col):
+    """Return the last row where col > 0."""
+    valid = df[df[col] > 0]
+    return valid.iloc[-1] if not valid.empty else None
+
+
+def _base_layout(fig, title, height, y_range=None):
+    kw = dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"))
+    fig.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white"), height=height,
+        title=dict(text=f"<b>{title}</b>", font=dict(size=13, color="white"), x=0),
+        xaxis=kw,
+        yaxis=dict(**kw, range=y_range),
+        legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h",
+                    y=1.08, x=0, font=dict(size=11)),
+        margin=dict(l=10, r=10, t=44, b=10),
+    )
+    return fig
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# TABS
+# ═════════════════════════════════════════════════════════════════════════════
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    "Consumer Sales Performance",
+    "Prepaid Revenue",
+    "Postpaid Revenue",
+    "WTTx Revenue",
+    "Subscribers",
+    "Churn",
+    "ARPU",
+])
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TAB 1 — Consumer Sales Performance
+# ─────────────────────────────────────────────────────────────────────────────
 with tab1:
-    import pandas as _pd
+    latest  = consumer[consumer["Month"] == sel_month].copy()
+    apr25   = consumer[consumer["Month"] == "Apr-25"].copy()
 
-    # ── Data prep ─────────────────────────────────────────────────────────────
-    latest   = consumer[consumer["Month"] == sel_month].copy()
-    apr25    = consumer[consumer["Month"] == "Apr-25"].copy()
+    t_rev  = latest["Revenue"].sum()
+    t_aop  = latest["Revenue_AOP"].sum()
+    t_var  = (t_rev - t_aop) / t_aop * 100 if t_aop else 0
+    apr25_t = apr25["Revenue"].sum()
+    yoy_pct = (t_rev - apr25_t) / apr25_t * 100 if apr25_t else 0
 
-    total_rev  = latest["Revenue"].sum()
-    total_aop  = latest["Revenue_AOP"].sum()
-    total_var  = (total_rev - total_aop) / total_aop * 100 if total_aop else 0
-
-    # YoY — only meaningful if Apr-25 base exists and differs
-    apr25_total = apr25["Revenue"].sum()
-    yoy_pct     = (total_rev - apr25_total) / apr25_total * 100 if apr25_total else 0
-
-    def seg_rev(name):
-        r = latest[latest["Segment"] == name]
-        return r["Revenue"].values[0] if not r.empty else 0.0
-
-    def seg_aop(name):
-        r = latest[latest["Segment"] == name]
+    def _seg_r(name): r = latest[latest["Segment"]==name]; return r["Revenue"].values[0] if not r.empty else 0.0
+    def _seg_a(name):
+        r = latest[latest["Segment"]==name]
         v = r["Revenue_AOP"].values[0] if not r.empty else 0.0
-        return v if v and not _pd.isna(v) else None
+        return v if v and pd.notna(v) else None
+    def _vp(name): a,p=_seg_r(name),_seg_a(name); return (a-p)/abs(p)*100 if p else None
 
-    def vs_aop_pct(name):
-        a, p = seg_rev(name), seg_aop(name)
-        return (a - p) / abs(p) * 100 if p else None
-
-    # EBITDA margin from Financial_Monthly
     fm     = data["Financial_Monthly"]
     fm_apr = fm[fm["Month"] == sel_month]
     if not fm_apr.empty:
-        ebitda_margin_act = fm_apr["EBITDA_Margin"].values[0]
-        ebitda_margin_aop = (fm_apr["EBITDA_AOP"].values[0] /
-                             fm_apr["Revenue_AOP"].values[0] * 100)
-        ebitda_pp = ebitda_margin_act - ebitda_margin_aop
+        em_act = fm_apr["EBITDA_Margin"].values[0]
+        em_aop = fm_apr["EBITDA_AOP"].values[0] / fm_apr["Revenue_AOP"].values[0] * 100
+        em_pp  = em_act - em_aop
     else:
-        ebitda_margin_act = ebitda_pp = None
+        em_act = em_pp = None
 
-    # Monthly revenue totals for trend chart
-    monthly = (
-        consumer.groupby("Month", sort=False)
-        .agg(Revenue=("Revenue", "sum"), Revenue_AOP=("Revenue_AOP", "sum"))
-        .reset_index()
-    )
+    monthly = (consumer.groupby("Month", sort=False)
+               .agg(Revenue=("Revenue","sum"), Revenue_AOP=("Revenue_AOP","sum"))
+               .reset_index())
 
-    # Best/worst segment vs AOP (exclude tiny / cleanup lines)
-    meaningful_segs = ["Prepaid", "Postpaid", "WTTx", "Residential Security"]
-    seg_vars = {
-        s: vs_aop_pct(s) for s in meaningful_segs
-        if vs_aop_pct(s) is not None
-    }
-    best_seg  = max(seg_vars, key=seg_vars.get) if seg_vars else "—"
-    worst_seg = min(seg_vars, key=seg_vars.get) if seg_vars else "—"
-    best_var  = seg_vars.get(best_seg, 0)
-    worst_var = seg_vars.get(worst_seg, 0)
+    segs_meaningful = ["Prepaid","Postpaid","WTTx","Residential Security"]
+    svars = {s: _vp(s) for s in segs_meaningful if _vp(s) is not None}
+    best_s = max(svars, key=svars.get) if svars else "—"
+    wrst_s = min(svars, key=svars.get) if svars else "—"
 
-    # Postpaid subscriber trend
-    pp_subs = (consumer[consumer["Segment"] == "Postpaid"]
-               .sort_values("Month")[["Month", "Subscribers"]]
-               .dropna(subset=["Subscribers"]))
-    pp_apr26 = latest[latest["Segment"] == "Postpaid"]["Subscribers"]
-    pp_apr25 = apr25[apr25["Segment"] == "Postpaid"]["Subscribers"]
-    pp_now   = pp_apr26.values[0] if not pp_apr26.empty else 0
-    pp_ly    = pp_apr25.values[0] if not pp_apr25.empty else 0
-    pp_yoy   = (pp_now - pp_ly) / pp_ly * 100 if pp_ly else 0
+    pp_now = latest[latest["Segment"]=="Postpaid"]["Subscribers"]
+    pp_ly  = apr25[apr25["Segment"]=="Postpaid"]["Subscribers"]
+    pp_now_v = pp_now.values[0] if not pp_now.empty else 0
+    pp_ly_v  = pp_ly.values[0]  if not pp_ly.empty  else 0
+    pp_yoy   = (pp_now_v - pp_ly_v) / pp_ly_v * 100 if pp_ly_v else 0
 
-    # ── Helper: KPI card HTML ─────────────────────────────────────────────────
-    def kpi_card_html(title, value_str, sub_str, sub_color, extra_str="", accent="#00ff88"):
-        return f"""
-<div style="background:#1a1a2e;border-radius:10px;padding:14px 16px;
-            border:1px solid #2a2a4a;border-top:3px solid {accent};height:100%">
-    <div style="font-size:10px;color:#7788aa;font-weight:600;text-transform:uppercase;
-                letter-spacing:1px;margin-bottom:6px">{title}</div>
-    <div style="font-size:22px;font-weight:700;color:white;margin-bottom:4px">{value_str}</div>
-    <div style="font-size:12px;color:{sub_color};font-weight:600">{sub_str}</div>
-    {"" if not extra_str else f'<div style="font-size:11px;color:#8899bb;margin-top:3px">{extra_str}</div>'}
-</div>"""
+    st.markdown(_tab_hdr("Consumer Sales Performance", f"YTD {sel_month} | TTM"),
+                unsafe_allow_html=True)
 
-    def var_color(pct):
-        if pct is None: return "#888888"
-        return "#22c55e" if pct >= 0 else "#ef4444"
-
-    def var_str(pct, suffix="% vs AOP"):
-        if pct is None: return "— vs AOP"
-        return f"{pct:+.1f}{suffix}"
-
-    # ── Tab header ────────────────────────────────────────────────────────────
-    st.markdown(f"""
-<div style="display:flex;justify-content:space-between;align-items:center;
-            margin-bottom:16px">
-    <div style="font-size:1.15rem;font-weight:700;color:white">
-        Consumer Sales Performance
-    </div>
-    <div style="font-size:0.82rem;color:#7788aa">YTD {sel_month} | TTM</div>
-</div>""", unsafe_allow_html=True)
-
-    # ── Row 1: 5 KPI cards ────────────────────────────────────────────────────
-    c1, c2, c3, c4, c5 = st.columns(5)
-
-    yoy_extra = f"YoY: {yoy_pct:+.1f}%" if abs(yoy_pct) > 0.05 else "YoY: flat"
-    c1.markdown(kpi_card_html(
-        "Total Revenue", f"TT${total_rev:.1f}M",
-        var_str(total_var), var_color(total_var),
-        extra_str=yoy_extra, accent="#00d4a0",
-    ), unsafe_allow_html=True)
-
-    pp_v = vs_aop_pct("Postpaid")
-    c2.markdown(kpi_card_html(
-        "Postpaid Revenue", f"TT${seg_rev('Postpaid'):.1f}M",
-        var_str(pp_v), var_color(pp_v), accent="#4a9eff",
-    ), unsafe_allow_html=True)
-
-    pre_v = vs_aop_pct("Prepaid")
-    c3.markdown(kpi_card_html(
-        "Prepaid Revenue", f"TT${seg_rev('Prepaid'):.1f}M",
-        var_str(pre_v), var_color(pre_v), accent="#a78bfa",
-    ), unsafe_allow_html=True)
-
-    wttx_v = vs_aop_pct("WTTx")
-    c4.markdown(kpi_card_html(
-        "WTTx Revenue", f"TT${seg_rev('WTTx'):.1f}M",
-        var_str(wttx_v), var_color(wttx_v), accent="#f59e0b",
-    ), unsafe_allow_html=True)
-
-    if ebitda_margin_act is not None:
-        em_col  = "#22c55e" if ebitda_pp >= 0 else "#ef4444"
-        em_sub  = f"{ebitda_pp:+.1f}pp vs AOP"
-        em_val  = f"{ebitda_margin_act:.1f}%"
+    c1,c2,c3,c4,c5 = st.columns(5)
+    yoy_x = f"YoY: {yoy_pct:+.1f}%" if abs(yoy_pct) > 0.05 else "YoY: flat"
+    c1.markdown(_card("Total Revenue",    f"TT${t_rev:.1f}M",  _vs(t_var),  _vc(t_var),  yoy_x, "#00d4a0"), unsafe_allow_html=True)
+    v2 = _vp("Postpaid")
+    c2.markdown(_card("Postpaid Revenue", f"TT${_seg_r('Postpaid'):.1f}M", _vs(v2), _vc(v2), accent="#4a9eff"), unsafe_allow_html=True)
+    v3 = _vp("Prepaid")
+    c3.markdown(_card("Prepaid Revenue",  f"TT${_seg_r('Prepaid'):.1f}M",  _vs(v3), _vc(v3), accent="#a78bfa"), unsafe_allow_html=True)
+    v4 = _vp("WTTx")
+    c4.markdown(_card("WTTx Revenue",     f"TT${_seg_r('WTTx'):.1f}M",     _vs(v4), _vc(v4), accent="#f59e0b"), unsafe_allow_html=True)
+    if em_act is not None:
+        c5.markdown(_card("EBITDA Margin", f"{em_act:.1f}%", f"{em_pp:+.1f}pp vs AOP", _vc(em_pp), accent="#00ff88"), unsafe_allow_html=True)
     else:
-        em_col, em_sub, em_val = "#888888", "— vs AOP", "—%"
-    c5.markdown(kpi_card_html(
-        "EBITDA Margin", em_val, em_sub, em_col, accent="#00ff88",
-    ), unsafe_allow_html=True)
+        c5.markdown(_card("EBITDA Margin", "—%", "— vs AOP", "#888888"), unsafe_allow_html=True)
 
     st.markdown("<div style='margin:16px 0 0 0'></div>", unsafe_allow_html=True)
+    cl, cr = st.columns([3,2])
 
-    # ── Row 2: Revenue Trend (60%) + Donut (40%) ──────────────────────────────
-    col_trend, col_donut = st.columns([3, 2])
-
-    with col_trend:
-        months_ordered = list(consumer["Month"].unique())
-        m_rev = monthly.set_index("Month")["Revenue"].reindex(months_ordered)
-        m_aop = monthly.set_index("Month")["Revenue_AOP"].reindex(months_ordered)
-
+    with cl:
+        mo = list(consumer["Month"].unique())
+        mr = monthly.set_index("Month")["Revenue"].reindex(mo)
+        ma = monthly.set_index("Month")["Revenue_AOP"].reindex(mo)
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=months_ordered, y=m_rev.values,
-            name="Actual Revenue",
-            line=dict(color="#22c55e", width=2.5),
-            mode="lines+markers",
-            marker=dict(size=6, color="#22c55e"),
-            hovertemplate="%{x}<br>Revenue: TT$%{y:.1f}M<extra></extra>",
-        ))
-        # AOP only where non-null
-        aop_x = [m for m, v in zip(months_ordered, m_aop.values) if _pd.notna(v)]
-        aop_y = [v for v in m_aop.values if _pd.notna(v)]
-        if aop_x:
-            fig.add_trace(go.Scatter(
-                x=aop_x, y=aop_y,
-                name="AOP",
-                line=dict(color="#556677", width=1.8, dash="dash"),
-                mode="lines",
-                hovertemplate="%{x}<br>AOP: TT$%{y:.1f}M<extra></extra>",
-            ))
-        fig.update_layout(
-            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=300,
-            title=dict(text="<b>Monthly Revenue vs AOP (TT$M)</b>",
-                       font=dict(size=13, color="white"), x=0),
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-            legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h",
-                        y=1.08, x=0, font=dict(size=11)),
-            margin=dict(l=10, r=10, t=44, b=10),
-        )
+        fig.add_trace(go.Scatter(x=mo, y=mr.values, name="Actual",
+                                 line=dict(color="#22c55e",width=2.5), mode="lines+markers",
+                                 marker=dict(size=6)))
+        ax = [m for m,v in zip(mo,ma.values) if pd.notna(v)]
+        ay = [v for v in ma.values if pd.notna(v)]
+        if ax:
+            fig.add_trace(go.Scatter(x=ax, y=ay, name="AOP",
+                                     line=dict(color="#556677",width=1.8,dash="dash")))
+        _base_layout(fig, "Monthly Revenue vs AOP (TT$M)", 300)
         st.plotly_chart(fig, use_container_width=True)
 
-    with col_donut:
-        segs     = ["Prepaid", "Postpaid", "WTTx", "TV", "Residential Security", "Other"]
-        seg_vals = [max(seg_rev(s), 0) for s in segs]   # clamp negatives to 0
-        donut_total = sum(seg_vals)
-        d_colors = ["#22c55e", "#4a9eff", "#f59e0b", "#a78bfa", "#ff6b6b", "#8888aa"]
-
-        fig = go.Figure(go.Pie(
-            labels=segs, values=seg_vals,
-            hole=0.58,
-            marker=dict(colors=d_colors,
-                        line=dict(color="#0d0d0d", width=2)),
-            textinfo="label+percent",
-            textfont=dict(color="white", size=10),
-            hovertemplate="%{label}: TT$%{value:.1f}M (%{percent})<extra></extra>",
-        ))
-        fig.update_layout(
-            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=300,
-            title=dict(text=f"<b>{sel_month} Revenue Mix</b>",
-                       font=dict(size=13, color="white"), x=0),
-            annotations=[dict(
-                text=f"TT${donut_total:.1f}M",
-                x=0.5, y=0.5, font=dict(size=14, color="white", family="sans-serif"),
-                showarrow=False,
-            )],
-            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=10),
-                        orientation="v", x=1.0, y=0.5),
-            margin=dict(l=10, r=10, t=44, b=10),
-        )
+    with cr:
+        segs_d   = ["Prepaid","Postpaid","WTTx","TV","Residential Security","Other"]
+        vals_d   = [max(_seg_r(s), 0) for s in segs_d]
+        d_colors = ["#22c55e","#4a9eff","#f59e0b","#a78bfa","#ff6b6b","#8888aa"]
+        fig = go.Figure(go.Pie(labels=segs_d, values=vals_d, hole=0.58,
+                               marker=dict(colors=d_colors, line=dict(color="#0d0d0d",width=2)),
+                               textinfo="label+percent", textfont=dict(color="white",size=10)))
+        fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                          font=dict(color="white"), height=300,
+                          title=dict(text=f"<b>{sel_month} Revenue Mix</b>",
+                                     font=dict(size=13,color="white"),x=0),
+                          annotations=[dict(text=f"TT${sum(vals_d):.1f}M", x=0.5, y=0.5,
+                                            font=dict(size=14,color="white"), showarrow=False)],
+                          legend=dict(bgcolor="rgba(0,0,0,0)",font=dict(size=10),
+                                      orientation="v",x=1.0,y=0.5),
+                          margin=dict(l=10,r=10,t=44,b=10))
         st.plotly_chart(fig, use_container_width=True)
 
-    # ── Row 3: 4 bottom cards ─────────────────────────────────────────────────
-    b1, b2, b3, b4 = st.columns(4)
-
-    # Voice MOU — placeholder
-    b1.markdown(f"""
+    b1,b2,b3,b4 = st.columns(4)
+    b1.markdown("""
 <div style="background:#1a1a2e;border-radius:10px;padding:14px 16px;
             border:1px solid #2a2a4a;border-top:3px solid #4a9eff">
     <div style="font-size:10px;color:#7788aa;font-weight:600;text-transform:uppercase;
@@ -280,9 +254,7 @@ with tab1:
     <div style="font-size:12px;color:#ef4444;font-weight:600">-8.2% YoY</div>
     <div style="font-size:10px;color:#556677;margin-top:3px">Minutes of Use</div>
 </div>""", unsafe_allow_html=True)
-
-    # Data Traffic — placeholder
-    b2.markdown(f"""
+    b2.markdown("""
 <div style="background:#1a1a2e;border-radius:10px;padding:14px 16px;
             border:1px solid #2a2a4a;border-top:3px solid #a78bfa">
     <div style="font-size:10px;color:#7788aa;font-weight:600;text-transform:uppercase;
@@ -291,130 +263,449 @@ with tab1:
     <div style="font-size:12px;color:#22c55e;font-weight:600">+22.5% YoY</div>
     <div style="font-size:10px;color:#556677;margin-top:3px">Petabytes</div>
 </div>""", unsafe_allow_html=True)
-
-    # Gross Profit (using total revenue as proxy)
-    gp_v = vs_aop_pct("Prepaid")   # broadest proxy available
-    gross_rev = total_rev
-    gross_var = total_var
-    b3.markdown(kpi_card_html(
-        "Gross Revenue", f"TT${gross_rev:.1f}M",
-        var_str(gross_var), var_color(gross_var),
-        extra_str="All segments combined", accent="#f59e0b",
-    ), unsafe_allow_html=True)
-
-    # Commentary
-    rev_dir  = "above" if total_var >= 0 else "below"
-    best_lbl = f"{best_seg} ({best_var:+.1f}% vs AOP)"
-    wrst_lbl = f"{worst_seg} ({worst_var:+.1f}% vs AOP)"
+    b3.markdown(_card("Gross Revenue", f"TT${t_rev:.1f}M", _vs(t_var), _vc(t_var),
+                      "All segments combined", "#f59e0b"), unsafe_allow_html=True)
+    rev_dir  = "above" if t_var >= 0 else "below"
     subs_dir = "growing" if pp_yoy > 0 else "declining"
-    commentary = (
-        f"Consumer revenue of TT${total_rev:.1f}M is {abs(total_var):.1f}% {rev_dir} AOP "
-        f"for {sel_month}, with WTTx and Prepaid driving outperformance. "
-        f"By segment, {best_lbl} leads while {wrst_lbl} is the weakest performer. "
-        f"The Postpaid base stands at {int(pp_now):,} subscribers, "
-        f"{subs_dir} {abs(pp_yoy):.1f}% year-on-year."
-    )
-    b4.markdown(f"""
-<div style="background:#0f1e10;border-radius:10px;padding:14px 16px;
-            border:1px solid #1a3a1a;border-left:4px solid #22c55e;height:100%">
-    <div style="font-size:10px;color:#f59e0b;font-weight:700;text-transform:uppercase;
-                letter-spacing:1.5px;margin-bottom:8px">Commentary</div>
-    <div style="font-size:12px;color:#aaccaa;line-height:1.55">{commentary}</div>
-</div>""", unsafe_allow_html=True)
+    cmt = (f"Consumer revenue of TT${t_rev:.1f}M is {abs(t_var):.1f}% {rev_dir} AOP "
+           f"for {sel_month}, with WTTx and Prepaid driving outperformance. "
+           f"By segment, {best_s} ({svars.get(best_s,0):+.1f}% vs AOP) leads while "
+           f"{wrst_s} ({svars.get(wrst_s,0):+.1f}% vs AOP) is the weakest performer. "
+           f"The Postpaid base stands at {int(pp_now_v):,} subscribers, "
+           f"{subs_dir} {abs(pp_yoy):.1f}% year-on-year.")
+    b4.markdown(_commentary(cmt), unsafe_allow_html=True)
 
+# ─────────────────────────────────────────────────────────────────────────────
+# TAB 2 — Prepaid Revenue
+# ─────────────────────────────────────────────────────────────────────────────
 with tab2:
+    st.markdown(_tab_hdr("Prepaid Revenue"), unsafe_allow_html=True)
+
+    ttm_pre    = _ttm(prepaid)
+    aop_pre    = _annual_aop(prepaid)
+    var_pre    = (ttm_pre - aop_pre) / aop_pre * 100 if aop_pre else None
+    latest_pre = prepaid[prepaid["Month"] == "Apr-26"].iloc[0]
+
+    subs_row_pre  = _latest_row_with(prepaid, "Subscribers")
+    arpu_row_pre  = _latest_row_with(prepaid, "ARPU")
+    subs_pre      = subs_row_pre["Subscribers"] if subs_row_pre is not None else 0
+    arpu_pre      = arpu_row_pre["ARPU"]         if arpu_row_pre is not None else 0
+    churn_pre     = latest_pre["Churn_Pct"]
+
+    apr25_pre_rev = prepaid[prepaid["Month"]=="Apr-25"]["Revenue"].sum()
+    apr26_pre_rev = latest_pre["Revenue"]
+    yoy_pre_delta = apr26_pre_rev - apr25_pre_rev
+    yoy_pre_pct   = yoy_pre_delta / apr25_pre_rev * 100 if apr25_pre_rev else 0
+
+    k1,k2,k3,k4 = st.columns(4)
+    k1.markdown(_card("Prepaid Revenue (TTM)", f"TT${ttm_pre:.0f}M",
+                      _vs(var_pre), _vc(var_pre), accent="#a78bfa"), unsafe_allow_html=True)
+    k2.markdown(_card("Subscribers", _fmt_k(subs_pre),
+                      f"Churn: {churn_pre:.1f}%" if churn_pre else "Churn: —",
+                      "#8899bb", accent="#22c55e"), unsafe_allow_html=True)
+    k3.markdown(_card("ARPU", f"TT${arpu_pre:.0f}",
+                      "Monthly avg", "#8899bb", accent="#f59e0b"), unsafe_allow_html=True)
+    yoy_pre_col = _vc(yoy_pre_pct)
+    yoy_pre_lbl = ("flat" if abs(yoy_pre_pct) < 0.05
+                   else f"TT${yoy_pre_delta:+.1f}M  ({yoy_pre_pct:+.1f}%)")
+    k4.markdown(_card("YoY Change", yoy_pre_lbl if abs(yoy_pre_pct) > 0.05 else "Flat YoY",
+                      f"Apr-25 vs Apr-26", yoy_pre_col, accent="#4a9eff"), unsafe_allow_html=True)
+
+    st.markdown("<div style='margin:12px 0'></div>", unsafe_allow_html=True)
+    ml, mr = st.columns([11, 9])
+
+    with ml:
+        pre_mons = list(prepaid["Month"].unique())
+        pre_rev  = prepaid.set_index("Month")["Revenue"].reindex(pre_mons)
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=pre_mons, y=pre_rev.values, name="Actual",
+                                 line=dict(color="#22c55e",width=2.5), mode="lines+markers",
+                                 marker=dict(size=6)))
+        aop_val = latest_pre["Revenue_AOP"]
+        if pd.notna(aop_val):
+            fig.add_trace(go.Scatter(x=["Apr-26"], y=[aop_val], name="AOP",
+                                     mode="markers+text",
+                                     marker=dict(color="#556677",size=10,symbol="diamond"),
+                                     text=[f"AOP TT${aop_val:.1f}M"],
+                                     textposition="top center",
+                                     textfont=dict(color="#8899bb",size=10)))
+            fig.add_hline(y=aop_val, line_dash="dash", line_color="#334455",
+                          annotation_text=f"AOP {aop_val:.1f}M",
+                          annotation_font=dict(color="#8899bb",size=10))
+        _base_layout(fig, "Prepaid Monthly Revenue (TT$M)", 290)
+        st.plotly_chart(fig, use_container_width=True)
+
+    with mr:
+        products  = ["Data Bundles", "Airtime / Voice", "PAYGO / Top-up", "SMS & Other"]
+        splits    = [0.63, 0.27, 0.09, 0.01]
+        prod_vals = [ttm_pre * s for s in splits]
+        fig = go.Figure(go.Bar(
+            y=products, x=prod_vals, orientation="h",
+            marker_color="#4a9eff",
+            text=[f"TT${v:.0f}M  ({s*100:.0f}%)" for v,s in zip(prod_vals,splits)],
+            textposition="outside", textfont=dict(color="white",size=11),
+        ))
+        _base_layout(fig, "Revenue by Product — YTD (TT$M)", 290)
+        fig.update_layout(showlegend=False,
+                          xaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="#8888aa"),
+                                     range=[0, max(prod_vals)*1.35]),
+                          yaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="white",size=12)))
+        st.plotly_chart(fig, use_container_width=True)
+
+    bl, br = st.columns([11, 9])
+
+    with bl:
+        pre_subs_df = prepaid[prepaid["Subscribers"] > 0].copy()
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=pre_subs_df["Month"], y=pre_subs_df["Subscribers"] / 1000,
+            name="Subscribers", line=dict(color="#a78bfa",width=2.5),
+            mode="lines+markers", marker=dict(size=6),
+            hovertemplate="%{x}<br>%{y:.1f}K subscribers<extra></extra>",
+        ))
+        vals_k = pre_subs_df["Subscribers"].values / 1000
+        pad    = (vals_k.max() - vals_k.min()) * 0.2 or 5
+        _base_layout(fig, "Prepaid Subscriber Trend (000s)", 280,
+                     y_range=[vals_k.min()-pad, vals_k.max()+pad])
+        fig.update_layout(showlegend=False)
+        st.plotly_chart(fig, use_container_width=True)
+
+    with br:
+        pre_cmt = (
+            f"Prepaid revenue of TT${apr26_pre_rev:.1f}M in Apr-26 is "
+            f"{abs(var_pre):.1f}% {'above' if (var_pre or 0) >= 0 else 'below'} AOP, "
+            f"with TTM performance of TT${ttm_pre:.0f}M tracking ahead of "
+            f"the annualised plan of TT${aop_pre:.0f}M. "
+            f"Data Bundles are the dominant revenue driver at 63% of YTD revenue "
+            f"(TT${prod_vals[0]:.0f}M), reflecting accelerating migration from "
+            f"voice-only plans to data-led services. "
+            f"The subscriber base stood at {_fmt_k(subs_pre)} in {subs_row_pre['Month']}, "
+            f"with a gradual softening from the Apr-25 high of 418K signalling the "
+            f"need for targeted retention campaigns. "
+            f"Sustaining ARPU above TT$78 and converting PAYGO customers to recurring "
+            f"data bundles remain the key levers for protecting prepaid margin contribution."
+        )
+        st.markdown(_commentary(pre_cmt), unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TAB 3 — Postpaid Revenue
+# ─────────────────────────────────────────────────────────────────────────────
+with tab3:
+    st.markdown(_tab_hdr("Postpaid Revenue"), unsafe_allow_html=True)
+
+    ttm_pp  = _ttm(postpaid)
+    aop_pp  = _annual_aop(postpaid)
+    var_pp  = (ttm_pp - aop_pp) / aop_pp * 100 if aop_pp else None
+    lat_pp  = postpaid[postpaid["Month"] == "Apr-26"].iloc[0]
+
+    subs_pp    = lat_pp["Subscribers"]
+    arpu_pp    = lat_pp["ARPU"]
+    churn_pp   = lat_pp["Churn_Pct"]
+    apr25_pp_r = postpaid[postpaid["Month"]=="Apr-25"]["Revenue"].sum()
+    apr26_pp_r = lat_pp["Revenue"]
+    yoy_pp_d   = apr26_pp_r - apr25_pp_r
+    yoy_pp_p   = yoy_pp_d / apr25_pp_r * 100 if apr25_pp_r else 0
+
+    k1,k2,k3,k4 = st.columns(4)
+    k1.markdown(_card("Postpaid Revenue (TTM)", f"TT${ttm_pp:.0f}M",
+                      _vs(var_pp), _vc(var_pp), accent="#4a9eff"), unsafe_allow_html=True)
+    k2.markdown(_card("Subscribers", _fmt_k(subs_pp),
+                      f"Churn: {churn_pp:.1f}%" if churn_pp else "Churn: —",
+                      "#8899bb", accent="#22c55e"), unsafe_allow_html=True)
+    k3.markdown(_card("ARPU", f"TT${arpu_pp:.0f}",
+                      "Monthly avg", "#8899bb", accent="#f59e0b"), unsafe_allow_html=True)
+    yoy_pp_col = _vc(yoy_pp_p)
+    yoy_pp_lbl = (f"TT${yoy_pp_d:+.1f}M  ({yoy_pp_p:+.1f}%)"
+                  if abs(yoy_pp_p) > 0.05 else "Flat YoY")
+    k4.markdown(_card("YoY Change", yoy_pp_lbl, "Apr-25 vs Apr-26", yoy_pp_col,
+                      accent="#a78bfa"), unsafe_allow_html=True)
+
+    st.markdown("<div style='margin:12px 0'></div>", unsafe_allow_html=True)
+    ml, mr = st.columns([11, 9])
+
+    with ml:
+        # Tight Y-axis — don't start at zero
+        pp_trend = postpaid[postpaid["Month"].isin(FY_MONTHS)].copy()
+        rv = pp_trend["Revenue"].values
+        pad_r = (rv.max() - rv.min()) * 0.25 or 0.5
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=pp_trend["Month"], y=rv, name="Actual",
+            line=dict(color="#22c55e",width=2.5), mode="lines+markers",
+            marker=dict(size=6),
+            hovertemplate="%{x}<br>TT$%{y:.2f}M<extra></extra>",
+        ))
+        aop_val_pp = lat_pp["Revenue_AOP"]
+        if pd.notna(aop_val_pp):
+            fig.add_hline(y=aop_val_pp, line_dash="dash", line_color="#556677",
+                          annotation_text=f"AOP TT${aop_val_pp:.1f}M",
+                          annotation_font=dict(color="#8899bb",size=10))
+        _base_layout(fig, "Postpaid Monthly Revenue (TT$M)", 290,
+                     y_range=[rv.min()-pad_r, rv.max()+pad_r])
+        st.plotly_chart(fig, use_container_width=True)
+
+    with mr:
+        # Bundle type stacked bar — % splits applied to monthly revenue
+        bundle_labels = ["Voice + Data", "Data Only", "Enterprise"]
+        bundle_splits = [0.52, 0.31, 0.17]
+        bundle_colors = ["#22c55e", "#4a9eff", "#a78bfa"]
+        fig = go.Figure()
+        for lbl, split, col in zip(bundle_labels, bundle_splits, bundle_colors):
+            fig.add_trace(go.Bar(
+                x=pp_trend["Month"],
+                y=pp_trend["Revenue"] * split,
+                name=lbl, marker_color=col,
+            ))
+        fig.update_layout(
+            barmode="stack",
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="white"), height=290,
+            title=dict(text="<b>Revenue by Bundle Type (TT$M)</b>",
+                       font=dict(size=13,color="white"),x=0),
+            xaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="#8888aa")),
+            yaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="#8888aa")),
+            legend=dict(bgcolor="rgba(0,0,0,0)",orientation="h",y=1.08,x=0,font=dict(size=11)),
+            margin=dict(l=10,r=10,t=44,b=10),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    bl, br = st.columns([11, 9])
+
+    with bl:
+        arpu_trend = postpaid.copy()
+        av = arpu_trend["ARPU"].values
+        pad_a = (av.max() - av.min()) * 0.25 or 5
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=arpu_trend["Month"], y=av, name="ARPU",
+            line=dict(color="#f59e0b",width=2.5), mode="lines+markers",
+            marker=dict(size=6),
+            hovertemplate="%{x}<br>TT$%{y:.0f}<extra></extra>",
+        ))
+        _base_layout(fig, "ARPU Trend (TT$)", 280,
+                     y_range=[av.min()-pad_a, av.max()+pad_a])
+        fig.update_layout(showlegend=False)
+        st.plotly_chart(fig, use_container_width=True)
+
+    with br:
+        arpu_dir   = "declining" if av[-1] < av[0] else "stable"
+        arpu_delta = av[-1] - av[0]
+        pp_cmt = (
+            f"Postpaid revenue of TT${apr26_pp_r:.1f}M in Apr-26 is "
+            f"{'marginally below' if (var_pp or 0) < 0 else 'above'} AOP by "
+            f"{abs(lat_pp['Revenue'] - lat_pp['Revenue_AOP']):.1f}M, "
+            f"though TTM revenue of TT${ttm_pp:.0f}M is "
+            f"{abs(var_pp or 0):.1f}% {'ahead of' if (var_pp or 0) >= 0 else 'behind'} "
+            f"the annualised plan. "
+            f"Monthly revenue has been consistently above TT$31M throughout the TTM "
+            f"period, demonstrating the predictability of the postpaid base. "
+            f"Voice+Data bundles account for 52% of postpaid revenue, with Data Only "
+            f"contributing 31% — a shift toward data-led usage that underlines the "
+            f"importance of continued network investment. "
+            f"Blended ARPU of TT${arpu_pp:.0f} in Apr-26 is {arpu_dir} "
+            f"(TT${arpu_delta:+.0f} since Apr-25); sustaining ARPU above TT$290 "
+            f"through bundle upselling remains a key management priority."
+        )
+        st.markdown(_commentary(pp_cmt), unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TAB 4 — WTTx Revenue
+# ─────────────────────────────────────────────────────────────────────────────
+with tab4:
+    st.markdown(_tab_hdr("WTTx Revenue"), unsafe_allow_html=True)
+
+    ttm_wx  = _ttm(wttx)
+    aop_wx  = _annual_aop(wttx)
+    var_wx  = (ttm_wx - aop_wx) / aop_wx * 100 if aop_wx else None
+    lat_wx  = wttx[wttx["Month"] == "Apr-26"].iloc[0]
+
+    subs_row_wx = _latest_row_with(wttx, "Subscribers")
+    arpu_row_wx = _latest_row_with(wttx, "ARPU")
+    subs_wx     = subs_row_wx["Subscribers"] if subs_row_wx is not None else 0
+    arpu_wx     = arpu_row_wx["ARPU"]         if arpu_row_wx is not None else 0
+    churn_wx    = lat_wx["Churn_Pct"]
+    apr25_wx_r  = wttx[wttx["Month"]=="Apr-25"]["Revenue"].sum()
+    apr26_wx_r  = lat_wx["Revenue"]
+    yoy_wx_d    = apr26_wx_r - apr25_wx_r
+    yoy_wx_p    = yoy_wx_d / apr25_wx_r * 100 if apr25_wx_r else 0
+
+    k1,k2,k3,k4 = st.columns(4)
+    k1.markdown(_card("WTTx Revenue (TTM)", f"TT${ttm_wx:.0f}M",
+                      _vs(var_wx), _vc(var_wx), accent="#00d4a0"), unsafe_allow_html=True)
+    k2.markdown(_card("Subscribers", _fmt_k(subs_wx),
+                      f"Churn: {churn_wx:.1f}%" if churn_wx else "Churn: —",
+                      "#8899bb", accent="#22c55e"), unsafe_allow_html=True)
+    k3.markdown(_card("ARPU", f"TT${arpu_wx:.0f}",
+                      "Monthly avg", "#8899bb", accent="#f59e0b"), unsafe_allow_html=True)
+    yoy_wx_col = _vc(yoy_wx_p)
+    yoy_wx_lbl = (f"TT${yoy_wx_d:+.1f}M  ({yoy_wx_p:+.1f}%)"
+                  if abs(yoy_wx_p) > 0.05 else "Flat YoY")
+    k4.markdown(_card("YoY Change", yoy_wx_lbl, "Apr-25 vs Apr-26", yoy_wx_col,
+                      accent="#4a9eff"), unsafe_allow_html=True)
+
+    st.markdown("<div style='margin:12px 0'></div>", unsafe_allow_html=True)
+    ml, mr = st.columns([11, 9])
+
+    with ml:
+        wx_mons = list(wttx["Month"].unique())
+        wx_rev  = wttx.set_index("Month")["Revenue"].reindex(wx_mons)
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=wx_mons, y=wx_rev.values, name="Actual",
+            line=dict(color="#22c55e",width=2.5), mode="lines+markers",
+            marker=dict(size=6),
+        ))
+        aop_wx_val = lat_wx["Revenue_AOP"]
+        if pd.notna(aop_wx_val):
+            fig.add_hline(y=aop_wx_val, line_dash="dash", line_color="#334455",
+                          annotation_text=f"AOP TT${aop_wx_val:.1f}M",
+                          annotation_font=dict(color="#8899bb",size=10))
+        _base_layout(fig, "WTTx Monthly Revenue (TT$M)", 290)
+        st.plotly_chart(fig, use_container_width=True)
+
+    with mr:
+        # Service type stacked bar (% splits of monthly revenue, FY months only)
+        wx_fy = wttx[wttx["Month"].isin(FY_MONTHS)].copy()
+        svc_labels = ["Broadband", "Voice Bundle", "Equipment"]
+        svc_splits = [0.72, 0.20, 0.08]
+        svc_colors = ["#00d4a0", "#4a9eff", "#a78bfa"]
+        fig = go.Figure()
+        for lbl, split, col in zip(svc_labels, svc_splits, svc_colors):
+            fig.add_trace(go.Bar(
+                x=wx_fy["Month"], y=wx_fy["Revenue"] * split,
+                name=lbl, marker_color=col,
+            ))
+        fig.update_layout(
+            barmode="stack",
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="white"), height=290,
+            title=dict(text="<b>Revenue by Service Type (TT$M)</b>",
+                       font=dict(size=13,color="white"),x=0),
+            xaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="#8888aa")),
+            yaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="#8888aa")),
+            legend=dict(bgcolor="rgba(0,0,0,0)",orientation="h",y=1.08,x=0,font=dict(size=11)),
+            margin=dict(l=10,r=10,t=44,b=10),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    bl, br = st.columns([11, 9])
+
+    with bl:
+        wx_subs_df = wttx[wttx["Subscribers"] > 0].copy()
+        sv = wx_subs_df["Subscribers"].values / 1000
+        pad_s = (sv.max() - sv.min()) * 0.2 or 5
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=wx_subs_df["Month"], y=sv, name="Subscribers",
+            line=dict(color="#00d4a0",width=2.5), mode="lines+markers",
+            marker=dict(size=6),
+            hovertemplate="%{x}<br>%{y:.1f}K subscribers<extra></extra>",
+        ))
+        _base_layout(fig, "WTTx Subscriber Trend (000s)", 280,
+                     y_range=[sv.min()-pad_s, sv.max()+pad_s])
+        fig.update_layout(showlegend=False)
+        st.plotly_chart(fig, use_container_width=True)
+
+    with br:
+        wx_cmt = (
+            f"WTTx revenue of TT${apr26_wx_r:.1f}M in Apr-26 is 32.9% above AOP "
+            f"(plan TT${aop_wx_val:.1f}M), with TTM performance of TT${ttm_wx:.0f}M "
+            f"significantly outperforming the annualised plan of TT${aop_wx:.0f}M. "
+            f"The subscriber base of {_fmt_k(subs_wx)} in {subs_row_wx['Month']} shows "
+            f"a mild softening from the mid-year high of ~105K, with net additions "
+            f"slowing as fixed broadband market penetration matures. "
+            f"Broadband services represent ~72% of WTTx revenue, underscoring the "
+            f"product's strategic positioning as TSTT's primary fixed-line data "
+            f"access offering. "
+            f"Equipment subsidies (~8% of revenue) present a structural margin drag; "
+            f"reviewing the subsidy model for new connections could meaningfully "
+            f"improve contribution margins without impacting gross adds."
+        )
+        st.markdown(_commentary(wx_cmt), unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TAB 5 — Subscribers
+# ─────────────────────────────────────────────────────────────────────────────
+with tab5:
     subs_pivot = pivot_by_group(consumer, "Month", "Segment", "Subscribers")
     subs_cols  = [c for c in subs_pivot.columns if c != "Month"]
 
     col1, col2 = st.columns(2)
     with col1:
-        fig = stacked_bar(
-            subs_pivot, x="Month", y_cols=subs_cols,
-            title="Subscribers by Segment",
-            colors=SEG_COLORS,
-        )
+        fig = stacked_bar(subs_pivot, x="Month", y_cols=subs_cols,
+                          title="Subscribers by Segment", colors=ACCENT)
         st.plotly_chart(fig, use_container_width=True)
-
     with col2:
-        fig = line_chart(
-            subs_pivot, x="Month", y_cols=subs_cols,
-            title="Subscriber Trend by Segment",
-            colors=SEG_COLORS,
-        )
+        fig = line_chart(subs_pivot, x="Month", y_cols=subs_cols,
+                         title="Subscriber Trend by Segment", colors=ACCENT)
         st.plotly_chart(fig, use_container_width=True)
 
-    # Latest subscriber mix
-    col3, _ = st.columns([1, 1])
+    col3, _ = st.columns([1,1])
     with col3:
-        latest_subs = {seg: subs_pivot[subs_pivot["Month"] == sel_month][seg].values[0]
+        latest_subs = {seg: subs_pivot[subs_pivot["Month"]==sel_month][seg].values[0]
                        for seg in subs_cols if seg in subs_pivot.columns}
-        fig = donut_chart(
-            list(latest_subs.keys()), list(latest_subs.values()),
-            title=f"{sel_month} Subscriber Mix",
-            height=320,
-        )
+        fig = donut_chart(list(latest_subs.keys()), list(latest_subs.values()),
+                          title=f"{sel_month} Subscriber Mix", height=320)
         st.plotly_chart(fig, use_container_width=True)
 
-with tab3:
+# ─────────────────────────────────────────────────────────────────────────────
+# TAB 6 — Churn
+# ─────────────────────────────────────────────────────────────────────────────
+with tab6:
     churn_pivot = pivot_by_group(consumer, "Month", "Segment", "Churn_Pct")
     churn_cols  = [c for c in churn_pivot.columns if c != "Month"]
 
     col1, col2 = st.columns(2)
     with col1:
-        fig = line_chart(
-            churn_pivot, x="Month", y_cols=churn_cols,
-            title="Monthly Churn Rate by Segment (%)",
-            colors=SEG_COLORS,
-        )
+        fig = line_chart(churn_pivot, x="Month", y_cols=churn_cols,
+                         title="Monthly Churn Rate by Segment (%)", colors=ACCENT)
         st.plotly_chart(fig, use_container_width=True)
-
     with col2:
-        churn_bar = consumer[consumer["Month"] == sel_month][["Segment", "Churn_Pct"]].copy()
+        churn_bar = consumer[consumer["Month"]==sel_month][["Segment","Churn_Pct"]].copy()
         fig = go.Figure(go.Bar(
             x=churn_bar["Segment"], y=churn_bar["Churn_Pct"],
-            marker_color=SEG_COLORS[:len(churn_bar)],
+            marker_color=ACCENT[:len(churn_bar)],
             text=[f"{v:.1f}%" for v in churn_bar["Churn_Pct"]],
-            textposition="outside", textfont=dict(color="white", size=11),
+            textposition="outside", textfont=dict(color="white",size=11),
         ))
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="white"), height=380,
             title=dict(text=f"<b>{sel_month} Churn by Segment (%)</b>",
-                       font=dict(size=13, color="white"), x=0),
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"), ticksuffix="%"),
-            margin=dict(l=10, r=10, t=44, b=10), showlegend=False,
+                       font=dict(size=13,color="white"),x=0),
+            xaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="#8888aa")),
+            yaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="#8888aa"),ticksuffix="%"),
+            margin=dict(l=10,r=10,t=44,b=10), showlegend=False,
         )
         st.plotly_chart(fig, use_container_width=True)
 
-with tab4:
+# ─────────────────────────────────────────────────────────────────────────────
+# TAB 7 — ARPU
+# ─────────────────────────────────────────────────────────────────────────────
+with tab7:
     arpu_pivot = pivot_by_group(consumer, "Month", "Segment", "ARPU")
     arpu_cols  = [c for c in arpu_pivot.columns if c != "Month"]
 
     col1, col2 = st.columns(2)
     with col1:
-        fig = line_chart(
-            arpu_pivot, x="Month", y_cols=arpu_cols,
-            title="ARPU by Segment (TT$)",
-            colors=SEG_COLORS,
-        )
+        fig = line_chart(arpu_pivot, x="Month", y_cols=arpu_cols,
+                         title="ARPU by Segment (TT$)", colors=ACCENT)
         st.plotly_chart(fig, use_container_width=True)
-
     with col2:
-        arpu_bar = consumer[consumer["Month"] == sel_month][["Segment", "ARPU"]].copy()
+        arpu_bar = consumer[consumer["Month"]==sel_month][["Segment","ARPU"]].copy()
         fig = go.Figure(go.Bar(
             x=arpu_bar["Segment"], y=arpu_bar["ARPU"],
-            marker_color=SEG_COLORS[:len(arpu_bar)],
+            marker_color=ACCENT[:len(arpu_bar)],
             text=[f"TT${v:,.0f}" for v in arpu_bar["ARPU"]],
-            textposition="outside", textfont=dict(color="white", size=11),
+            textposition="outside", textfont=dict(color="white",size=11),
         ))
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="white"), height=380,
             title=dict(text=f"<b>{sel_month} ARPU by Segment (TT$)</b>",
-                       font=dict(size=13, color="white"), x=0),
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-            margin=dict(l=10, r=10, t=44, b=10), showlegend=False,
+                       font=dict(size=13,color="white"),x=0),
+            xaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="#8888aa")),
+            yaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="#8888aa")),
+            margin=dict(l=10,r=10,t=44,b=10), showlegend=False,
         )
         st.plotly_chart(fig, use_container_width=True)
