@@ -214,7 +214,7 @@ def page_header(title, subtitle="", period="Apr-26"):
     </div>""", unsafe_allow_html=True)
 
 
-def kpi_card(name, actual, unit, vs_aop_pct, vs_ly_pct, status_emoji=""):
+def kpi_card(name, actual, unit, vs_aop_pct, vs_py_pct, status_emoji=""):
     """Renders a styled KPI card using st.markdown."""
     if "\U0001f7e2" in status_emoji or "\U0001f7e2" in str(status_emoji):
         border = "green"
@@ -234,7 +234,7 @@ def kpi_card(name, actual, unit, vs_aop_pct, vs_ly_pct, status_emoji=""):
             border = "blue"
 
     aop_class = "green-text" if vs_aop_pct >= 0 else "red-text"
-    ly_class  = "green-text" if vs_ly_pct  >= 0 else "red-text"
+    py_class  = "green-text" if vs_py_pct  >= 0 else "red-text"
 
     try:
         val_str = f"{actual:,.0f}"
@@ -248,6 +248,6 @@ def kpi_card(name, actual, unit, vs_aop_pct, vs_ly_pct, status_emoji=""):
         <div class="kpi-meta">
             <span class="{aop_class}">AOP: {vs_aop_pct:+.1f}%</span>
             &nbsp;&nbsp;
-            <span class="{ly_class}">LY: {vs_ly_pct:+.1f}%</span>
+            <span class="{py_class}">PY: {vs_py_pct:+.1f}%</span>
         </div>
     </div>""", unsafe_allow_html=True)

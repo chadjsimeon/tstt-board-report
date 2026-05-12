@@ -42,9 +42,9 @@ for section in sections:
     cols = st.columns(len(section_df))
     for i, row in section_df.iterrows():
         aop = float(row["AOP"]) if pd.notna(row["AOP"]) and row["AOP"] != 0 else 1.0
-        ly  = float(row["LY"])  if pd.notna(row["LY"])  and row["LY"]  != 0 else 1.0
+        py  = float(row["PY"])  if pd.notna(row["PY"])  and row["PY"]  != 0 else 1.0
         vs_aop = (float(row["Actual"]) - aop) / abs(aop) * 100
-        vs_ly  = (float(row["Actual"]) - ly)  / abs(ly)  * 100
+        vs_py  = (float(row["Actual"]) - py)  / abs(py)  * 100
         unit = str(row["Unit"]) if pd.notna(row["Unit"]) else ""
         with cols[i]:
             kpi_card(
@@ -52,7 +52,7 @@ for section in sections:
                 actual=row["Actual"],
                 unit=unit,
                 vs_aop_pct=vs_aop,
-                vs_ly_pct=vs_ly,
+                vs_py_pct=vs_py,
                 status_emoji=str(row["Status"]),
             )
 
@@ -65,20 +65,20 @@ col1, col2 = st.columns(2)
 with col1:
     fig = line_chart(
         fin, x="Month",
-        y_cols=["Revenue", "Revenue_AOP", "Revenue_LY"],
+        y_cols=["Revenue", "Revenue_AOP", "Revenue_PY"],
         title="Revenue (TT$M)",
         colors=[BLUE, BLUE_DIM, WHITE_DIM],
-        dash_cols=["Revenue_AOP", "Revenue_LY"],
+        dash_cols=["Revenue_AOP", "Revenue_PY"],
     )
     st.plotly_chart(fig, use_container_width=True)
 
 with col2:
     fig = line_chart(
         fin, x="Month",
-        y_cols=["EBITDA", "EBITDA_AOP", "EBITDA_LY"],
+        y_cols=["EBITDA", "EBITDA_AOP", "EBITDA_PY"],
         title="EBITDA (TT$M)",
         colors=[GREEN, GREEN_DIM, WHITE_DIM],
-        dash_cols=["EBITDA_AOP", "EBITDA_LY"],
+        dash_cols=["EBITDA_AOP", "EBITDA_PY"],
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -86,10 +86,10 @@ col3, col4 = st.columns(2)
 with col3:
     fig = line_chart(
         fin, x="Month",
-        y_cols=["PAT", "PAT_AOP", "PAT_LY"],
+        y_cols=["PAT", "PAT_AOP", "PAT_PY"],
         title="Profit After Tax (TT$M)",
         colors=[PURPLE, PURPLE_DIM, WHITE_DIM],
-        dash_cols=["PAT_AOP", "PAT_LY"],
+        dash_cols=["PAT_AOP", "PAT_PY"],
     )
     st.plotly_chart(fig, use_container_width=True)
 

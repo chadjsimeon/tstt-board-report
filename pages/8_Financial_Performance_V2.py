@@ -13,7 +13,7 @@ inject_css()
 data = load_all_data()
 fin  = data["Financial_Monthly"].copy()
 fin["EBITDA_Margin_AOP"] = (fin["EBITDA_AOP"] / fin["Revenue_AOP"] * 100)
-fin["EBITDA_Margin_LY"]  = (fin["EBITDA_LY"]  / fin["Revenue_LY"]  * 100)
+fin["EBITDA_Margin_PY"]  = (fin["EBITDA_PY"]  / fin["Revenue_PY"]  * 100)
 
 last12  = fin.tail(12).reset_index(drop=True)
 latest  = fin.iloc[-1]
@@ -77,7 +77,7 @@ def kpi_card(label, col, aop_col, ly_col, color, is_margin=False):
     ly = latest.get(ly_col)
     if ly is not None and pd.notna(ly) and ly != 0:
         d = (actual - ly) if is_margin else (actual - ly) / abs(ly) * 100
-        lbl = f"vs LY {'+' if d >= 0 else ''}{d:.1f}{unit}"
+        lbl = f"vs PY {'+' if d >= 0 else ''}{d:.1f}{unit}"
         badges.append(_badge(lbl, d, "#4a9eff", "#FFD700"))
 
     sparkline = make_svg_sparkline(last12[col].fillna(0).tolist(), color)
@@ -137,10 +137,10 @@ st.markdown(f"""
 
 # ── KPI Cards ─────────────────────────────────────────────────────────────────
 METRICS = [
-    ("Revenue",       "Revenue",       "Revenue_AOP",       "Revenue_LY",       REV_COLOR,  False),
-    ("EBITDA",        "EBITDA",        "EBITDA_AOP",        "EBITDA_LY",        EBI_COLOR,  False),
-    ("PAT",           "PAT",           "PAT_AOP",           "PAT_LY",           PAT_COLOR,  False),
-    ("EBITDA Margin", "EBITDA_Margin", "EBITDA_Margin_AOP", "EBITDA_Margin_LY", MARG_COLOR, True),
+    ("Revenue",       "Revenue",       "Revenue_AOP",       "Revenue_PY",       REV_COLOR,  False),
+    ("EBITDA",        "EBITDA",        "EBITDA_AOP",        "EBITDA_PY",        EBI_COLOR,  False),
+    ("PAT",           "PAT",           "PAT_AOP",           "PAT_PY",           PAT_COLOR,  False),
+    ("EBITDA Margin", "EBITDA_Margin", "EBITDA_Margin_AOP", "EBITDA_Margin_PY", MARG_COLOR, True),
 ]
 
 c1, c2, c3, c4 = st.columns(4)
@@ -182,9 +182,9 @@ with chart_col:
 
 with driver_col:
     blocks = "".join([
-        driver_block("Revenue", REV_COLOR,  "Revenue", "Revenue_AOP", "Revenue_LY",  False),
-        driver_block("EBITDA",  EBI_COLOR,  "EBITDA",  "EBITDA_AOP",  "EBITDA_LY",  False),
-        driver_block("PAT",     PAT_COLOR,  "PAT",     "PAT_AOP",     "PAT_LY",     False, last_entry=True),
+        driver_block("Revenue", REV_COLOR,  "Revenue", "Revenue_AOP", "Revenue_PY",  False),
+        driver_block("EBITDA",  EBI_COLOR,  "EBITDA",  "EBITDA_AOP",  "EBITDA_PY",  False),
+        driver_block("PAT",     PAT_COLOR,  "PAT",     "PAT_AOP",     "PAT_PY",     False, last_entry=True),
     ])
     st.markdown(f"""
 <div style="background:{CARD_BG};border-radius:12px;padding:24px;

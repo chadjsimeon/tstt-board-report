@@ -143,7 +143,7 @@ with col_left:
     <div style="font-size:20px;font-weight:800;color:white;margin-bottom:5px;
                 white-space:nowrap">TT${cash_val:,.0f}M</div>
     <div style="font-size:12px;color:{cash_dc};font-weight:600">
-        {cash_delta:+,.0f} vs LY</div>
+        {cash_delta:+,.0f} vs PY</div>
   </div>
 
   <div style="background:#151528;border-radius:10px;padding:14px 16px;
@@ -153,7 +153,7 @@ with col_left:
     <div style="font-size:20px;font-weight:800;color:white;margin-bottom:5px;
                 white-space:nowrap">TT${debt_val:,.0f}M</div>
     <div style="font-size:12px;color:{debt_dc};font-weight:600">
-        {debt_delta:+,.0f} vs LY</div>
+        {debt_delta:+,.0f} vs PY</div>
   </div>
 
   <div style="background:#151528;border-radius:10px;padding:14px 16px;
@@ -178,9 +178,9 @@ with col_left:
                 letter-spacing:2.5px;margin-bottom:14px">Working Capital Summary</div>
     <div style="font-size:13px;color:#c8d8ee;line-height:2;
                 border-bottom:1px solid #1e1e3a;padding-bottom:12px;margin-bottom:12px">
-        DSO:&nbsp;<strong style="color:white">68 days</strong>&nbsp;(LY: 72)
+        DSO:&nbsp;<strong style="color:white">68 days</strong>&nbsp;(PY: 72)
         &nbsp;&nbsp;|&nbsp;&nbsp;
-        DPO:&nbsp;<strong style="color:white">45 days</strong>&nbsp;(LY: 42)
+        DPO:&nbsp;<strong style="color:white">45 days</strong>&nbsp;(PY: 42)
         &nbsp;&nbsp;|&nbsp;&nbsp;
         Cash Conversion:&nbsp;<strong style="color:white">84%</strong>
     </div>

@@ -124,9 +124,9 @@ def build_financial_monthly(act, aop, ly, ly_aop, act_months):
             "Revenue_AOP":   _get(ly_aop, "Consolidated", "TOTAL REVENUE", m),
             "EBITDA_AOP":    _get(ly_aop, "Consolidated", "EBITDA", m),
             "PAT_AOP":       _get(ly_aop, "Consolidated", "Profit After Taxation", m),
-            "Revenue_LY":    np.nan,   # FY 2024-25 not in source data
-            "EBITDA_LY":     np.nan,
-            "PAT_LY":        np.nan,
+            "Revenue_PY":    np.nan,   # FY 2024-25 not in source data
+            "EBITDA_PY":     np.nan,
+            "PAT_PY":        np.nan,
         })
 
     # Current year: FY 2026-27 ACT months (April onward)
@@ -140,9 +140,9 @@ def build_financial_monthly(act, aop, ly, ly_aop, act_months):
             "Revenue_AOP":   _get(aop, "Consolidated", "TOTAL REVENUE", m),
             "EBITDA_AOP":    _get(aop, "Consolidated", "EBITDA", m),
             "PAT_AOP":       _get(aop, "Consolidated", "Profit After Taxation", m),
-            "Revenue_LY":    _get(ly,  "Consolidated", "TOTAL REVENUE", m),  # same month, prior FY
-            "EBITDA_LY":     _get(ly,  "Consolidated", "EBITDA", m),
-            "PAT_LY":        _get(ly,  "Consolidated", "Profit After Taxation", m),
+            "Revenue_PY":    _get(ly,  "Consolidated", "TOTAL REVENUE", m),  # same month, prior FY
+            "EBITDA_PY":     _get(ly,  "Consolidated", "EBITDA", m),
+            "PAT_PY":        _get(ly,  "Consolidated", "Profit After Taxation", m),
         })
 
     return pd.DataFrame(rows)
@@ -500,10 +500,10 @@ def build_kpi_summary(act, aop, ly, latest_month):
     # TT$M rows: raw TTD$ values (data_loader divides by 1,000,000)
     # % rows:    decimal values (data_loader multiplies by 100)
     return pd.DataFrame([
-        {"Month": label, "Section": "Financial", "KPI_Name": "Revenue",       "Actual": rev_a, "AOP": rev_p, "LY": rev_l, "Status": status(rev_a, rev_p), "Unit": "TT$M"},
-        {"Month": label, "Section": "Financial", "KPI_Name": "EBITDA",        "Actual": ebi_a, "AOP": ebi_p, "LY": ebi_l, "Status": status(ebi_a, ebi_p), "Unit": "TT$M"},
-        {"Month": label, "Section": "Financial", "KPI_Name": "PAT",           "Actual": pat_a, "AOP": pat_p, "LY": pat_l, "Status": status(pat_a, pat_p), "Unit": "TT$M"},
-        {"Month": label, "Section": "Financial", "KPI_Name": "EBITDA Margin", "Actual": mgn_a, "AOP": mgn_p, "LY": mgn_l, "Status": status(mgn_a, mgn_p), "Unit": "%"},
+        {"Month": label, "Section": "Financial", "KPI_Name": "Revenue",       "Actual": rev_a, "AOP": rev_p, "PY": rev_l, "Status": status(rev_a, rev_p), "Unit": "TT$M"},
+        {"Month": label, "Section": "Financial", "KPI_Name": "EBITDA",        "Actual": ebi_a, "AOP": ebi_p, "PY": ebi_l, "Status": status(ebi_a, ebi_p), "Unit": "TT$M"},
+        {"Month": label, "Section": "Financial", "KPI_Name": "PAT",           "Actual": pat_a, "AOP": pat_p, "PY": pat_l, "Status": status(pat_a, pat_p), "Unit": "TT$M"},
+        {"Month": label, "Section": "Financial", "KPI_Name": "EBITDA Margin", "Actual": mgn_a, "AOP": mgn_p, "PY": mgn_l, "Status": status(mgn_a, mgn_p), "Unit": "%"},
     ])
 
 
@@ -605,7 +605,7 @@ def main():
 
     sheets = {
         "KPI_Summary":       build_kpi_summary(act, aop, ly, latest_month) if act_months
-                             else pd.DataFrame(columns=["Month","Section","KPI_Name","Actual","AOP","LY","Status","Unit"]),
+                             else pd.DataFrame(columns=["Month","Section","KPI_Name","Actual","AOP","PY","Status","Unit"]),
         "Financial_Monthly": build_financial_monthly(act, aop, ly, ly_aop, act_months),
         "EBITDA_Bridge":     build_ebitda_bridge(act, aop, latest_month) if act_months
                              else pd.DataFrame(columns=["Category","Value","Type","Sort_Order"]),

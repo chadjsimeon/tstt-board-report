@@ -35,12 +35,12 @@ def load_all_data():
             "Revenue_AOP", "EBITDA_AOP", "PAT_AOP",
         ])
         data["Financial_Monthly"] = _pct(data["Financial_Monthly"], ["EBITDA_Margin"])
-        # Derive LY columns from 12 months prior in the same series
+        # Derive PY columns from 12 months prior in the same series
         fin = data["Financial_Monthly"].copy()
         fin["_dt"] = pd.to_datetime(fin["Month"], format="%b-%y", errors="coerce")
         for col in ["Revenue", "EBITDA", "PAT"]:
             lk = fin.dropna(subset=["_dt"]).set_index("_dt")[col]
-            fin[f"{col}_LY"] = fin["_dt"].apply(
+            fin[f"{col}_PY"] = fin["_dt"].apply(
                 lambda dt, lk=lk: lk.get(dt - pd.DateOffset(months=12))
             )
         fin.drop(columns=["_dt"], inplace=True)
@@ -124,25 +124,25 @@ def load_all_data():
     # ── KPI Summary: scale only TT$M rows ────────────────────────────────────
     if "KPI_Summary" in data:
         kpi = data["KPI_Summary"].copy()
-        # Accept 7 columns (no LY) or 8 columns (with LY placeholder)
+        # Accept 7 columns (no PY) or 8 columns (with PY placeholder)
         if kpi.shape[1] >= 8:
             kpi = kpi.iloc[:, :8]
-            kpi.columns = ["Month", "Section", "KPI_Name", "Actual", "AOP", "LY", "Status", "Unit"]
+            kpi.columns = ["Month", "Section", "KPI_Name", "Actual", "AOP", "PY", "Status", "Unit"]
         else:
             kpi = kpi.iloc[:, :7]
             kpi.columns = ["Month", "Section", "KPI_Name", "Actual", "AOP", "Status", "Unit"]
-            kpi["LY"] = pd.NA
+            kpi["PY"] = pd.NA
         kpi = kpi.dropna(subset=["Section", "KPI_Name"])
         ttm_mask = kpi["Unit"] == "TT$M"
         pct_mask = kpi["Unit"] == "%"
         for col in ["Actual", "AOP"]:
             kpi.loc[ttm_mask, col] = pd.to_numeric(kpi.loc[ttm_mask, col], errors="coerce") / M
             kpi.loc[pct_mask, col] = pd.to_numeric(kpi.loc[pct_mask, col], errors="coerce") * 100
-        # Derive LY from Actual 12 months prior for each KPI
+        # Derive PY from Actual 12 months prior for each KPI
         kpi["_dt"] = pd.to_datetime(kpi["Month"], format="%b-%y", errors="coerce")
-        ly_lk = kpi.dropna(subset=["_dt"]).set_index(["_dt", "KPI_Name"])["Actual"]
-        kpi["LY"] = kpi.apply(
-            lambda r: ly_lk.get((r["_dt"] - pd.DateOffset(months=12), r["KPI_Name"]))
+        py_lk = kpi.dropna(subset=["_dt"]).set_index(["_dt", "KPI_Name"])["Actual"]
+        kpi["PY"] = kpi.apply(
+            lambda r: py_lk.get((r["_dt"] - pd.DateOffset(months=12), r["KPI_Name"]))
             if pd.notna(r["_dt"]) else pd.NA,
             axis=1,
         )

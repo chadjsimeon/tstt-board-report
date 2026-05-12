@@ -160,20 +160,20 @@ with tab1:
     with col1:
         fig = line_chart(
             fin, x="Month",
-            y_cols=["Revenue", "Revenue_AOP", "Revenue_LY"],
-            title="Revenue vs AOP vs LY (TT$M)",
+            y_cols=["Revenue", "Revenue_AOP", "Revenue_PY"],
+            title="Revenue vs AOP vs PY (TT$M)",
             colors=[BLUE, BLUE_DIM, WHITE_DIM],
-            dash_cols=["Revenue_AOP", "Revenue_LY"],
+            dash_cols=["Revenue_AOP", "Revenue_PY"],
         )
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
         fig = line_chart(
             fin, x="Month",
-            y_cols=["EBITDA", "EBITDA_AOP", "EBITDA_LY"],
-            title="EBITDA vs AOP vs LY (TT$M)",
+            y_cols=["EBITDA", "EBITDA_AOP", "EBITDA_PY"],
+            title="EBITDA vs AOP vs PY (TT$M)",
             colors=[GREEN, GREEN_DIM, WHITE_DIM],
-            dash_cols=["EBITDA_AOP", "EBITDA_LY"],
+            dash_cols=["EBITDA_AOP", "EBITDA_PY"],
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -211,10 +211,10 @@ with tab2:
     with col1:
         fig = line_chart(
             fin, x="Month",
-            y_cols=["PAT", "PAT_AOP", "PAT_LY"],
+            y_cols=["PAT", "PAT_AOP", "PAT_PY"],
             title="Profit After Tax (TT$M)",
             colors=[PURPLE, PURPLE_DIM, WHITE_DIM],
-            dash_cols=["PAT_AOP", "PAT_LY"],
+            dash_cols=["PAT_AOP", "PAT_PY"],
         )
         st.plotly_chart(fig, use_container_width=True)
 
