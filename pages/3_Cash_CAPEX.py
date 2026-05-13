@@ -137,7 +137,7 @@ with col_left:
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
 
   <div style="background:#151528;border-radius:10px;padding:14px 16px;
-              border:1px solid #252545;border-top:3px solid #00ff88">
+              border:1px solid #252545;border-top:3px solid #00d4a0">
     <div style="font-size:10px;color:#556688;font-weight:600;text-transform:uppercase;
                 letter-spacing:1.5px;margin-bottom:8px">Cash Balance</div>
     <div style="font-size:20px;font-weight:800;color:white;margin-bottom:5px;
@@ -147,7 +147,7 @@ with col_left:
   </div>
 
   <div style="background:#151528;border-radius:10px;padding:14px 16px;
-              border:1px solid #252545;border-top:3px solid #ef4444">
+              border:1px solid #252545;border-top:3px solid #FF8844">
     <div style="font-size:10px;color:#556688;font-weight:600;text-transform:uppercase;
                 letter-spacing:1.5px;margin-bottom:8px">Net Debt</div>
     <div style="font-size:20px;font-weight:800;color:white;margin-bottom:5px;
@@ -157,7 +157,7 @@ with col_left:
   </div>
 
   <div style="background:#151528;border-radius:10px;padding:14px 16px;
-              border:1px solid #252545;border-top:3px solid #4488ff">
+              border:1px solid #252545;border-top:3px solid #aa44ff">
     <div style="font-size:10px;color:#556688;font-weight:600;text-transform:uppercase;
                 letter-spacing:1.5px;margin-bottom:8px">Collections</div>
     <div style="font-size:20px;font-weight:800;color:white;margin-bottom:5px">

@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data
 from utils.charts import (
-    inject_css, page_header,
+    inject_css, page_header, styled_metric,
     line_chart, waterfall_chart, grouped_bar, stacked_bar,
     GREEN, RED, BLUE, YELLOW, PURPLE, ORANGE, CYAN,
     BLUE_DIM, GREEN_DIM, PURPLE_DIM, WHITE_DIM, WHITE_FAINT, BLUE_MED,
@@ -34,10 +34,26 @@ def vs(actual, plan, inverse=False):
         return f"{'↑' if pct > 0 else '↓'} {abs(pct):.1f}% vs AOP"
     return ""
 
-m1.metric("Revenue",       f"TT${latest['Revenue']:,.0f}M",  vs(latest["Revenue"],  latest["Revenue_AOP"]))
-m2.metric("EBITDA",        f"TT${latest['EBITDA']:,.0f}M",   vs(latest["EBITDA"],   latest["EBITDA_AOP"]))
-m3.metric("PAT",           f"TT${latest['PAT']:,.0f}M",      vs(latest["PAT"],      latest["PAT_AOP"]))
-m4.metric("EBITDA Margin", f"{latest['EBITDA_Margin']:.1f}%", f"{latest['EBITDA_Margin'] - aop_margin:+.1f}pp vs {aop_margin:.1f}% AOP")
+with m1:
+    styled_metric("Revenue", f"TT${latest['Revenue']:,.0f}M",
+                  vs(latest["Revenue"], latest["Revenue_AOP"]),
+                  latest["Revenue"] >= latest["Revenue_AOP"] if latest["Revenue_AOP"] else None,
+                  "#00d4a0")
+with m2:
+    styled_metric("EBITDA", f"TT${latest['EBITDA']:,.0f}M",
+                  vs(latest["EBITDA"], latest["EBITDA_AOP"]),
+                  latest["EBITDA"] >= latest["EBITDA_AOP"] if latest["EBITDA_AOP"] else None,
+                  "#4a9eff")
+with m3:
+    styled_metric("PAT", f"TT${latest['PAT']:,.0f}M",
+                  vs(latest["PAT"], latest["PAT_AOP"]),
+                  latest["PAT"] >= latest["PAT_AOP"] if latest["PAT_AOP"] else None,
+                  "#aa44ff")
+with m4:
+    em_delta = latest["EBITDA_Margin"] - aop_margin
+    styled_metric("EBITDA Margin", f"{latest['EBITDA_Margin']:.1f}%",
+                  f"{em_delta:+.1f}pp vs {aop_margin:.1f}% AOP",
+                  em_delta >= 0, "#FF8844")
 
 st.markdown("---")
 

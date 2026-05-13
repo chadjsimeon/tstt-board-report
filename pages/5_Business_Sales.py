@@ -5,7 +5,7 @@ st.set_page_config(page_title="TSTT | Business Sales", page_icon="🏢", layout=
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data, pivot_by_group, get_month_order
 from utils.charts import (
-    inject_css, page_header,
+    inject_css, page_header, styled_metric,
     line_chart, stacked_bar, grouped_bar, funnel_chart, donut_chart,
     GREEN, RED, BLUE, YELLOW, PURPLE, ORANGE, CYAN,
 )
@@ -34,10 +34,17 @@ total_aop   = latest["Revenue_AOP"].sum()
 vs_aop      = (total_rev - total_aop) / total_aop * 100 if total_aop else 0
 
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("Business Revenue",   f"TT${total_rev:,.0f}M",   f"{vs_aop:+.1f}% vs AOP")
-m2.metric("Gross Profit",       f"TT${total_gp:,.0f}M",    f"{avg_gp_pct:.1f}% margin")
-m3.metric("Monthly Recurring",  f"TT${total_mrr:,.0f}M")
-m4.metric("Pipeline (Apr)",     f"TT${pipeline[pipeline['Month'] == pip_month]['Value_TTD_M'].sum():,.0f}M")
+with m1:
+    styled_metric("Business Revenue", f"TT${total_rev:,.0f}M",
+                  f"{vs_aop:+.1f}% vs AOP", vs_aop >= 0, "#00d4a0")
+with m2:
+    styled_metric("Gross Profit", f"TT${total_gp:,.0f}M",
+                  f"{avg_gp_pct:.1f}% margin", None, "#4a9eff")
+with m3:
+    styled_metric("Monthly Recurring", f"TT${total_mrr:,.0f}M", accent="#aa44ff")
+with m4:
+    pip_val = pipeline[pipeline["Month"] == pip_month]["Value_TTD_M"].sum()
+    styled_metric("Pipeline", f"TT${pip_val:,.0f}M", accent="#FF8844")
 
 st.markdown("---")
 

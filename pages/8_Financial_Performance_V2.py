@@ -97,7 +97,7 @@ def kpi_card(label, col, aop_col, ly_col, color, is_margin=False):
 
     return f"""
 <div style="background:{CARD_BG};border-radius:12px;padding:20px 16px;
-            border:1px solid rgba(74,158,255,0.08);height:100%;">
+            border:1px solid rgba(74,158,255,0.08);border-top:3px solid {color};height:100%;">
     <div style="color:{MUTED};font-size:13px;font-weight:500;margin-bottom:4px;">{label}</div>
     <div style="color:white;font-size:64px;font-weight:800;line-height:1;margin:4px 0 10px 0;">{val_str}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;">{badges_html}</div>

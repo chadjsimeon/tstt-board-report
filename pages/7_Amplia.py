@@ -5,7 +5,7 @@ st.set_page_config(page_title="TSTT | Amplia", page_icon="📶", layout="wide")
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data, get_month_order
 from utils.charts import (
-    inject_css, page_header,
+    inject_css, page_header, styled_metric,
     line_chart, grouped_bar, stacked_bar, donut_chart,
     GREEN, RED, BLUE, YELLOW, PURPLE, ORANGE, CYAN,
     BLUE_FAINT, GREEN_FAINT, BLUE_MED, GREEN_MED, dim,
@@ -23,18 +23,23 @@ latest_fin = amp_fin.iloc[-1]
 prev_fin   = amp_fin.iloc[-2] if len(amp_fin) > 1 else latest_fin
 
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("Revenue",
-          f"TT${latest_fin['Revenue']:,.0f}M",
-          f"TT${latest_fin['Revenue'] - latest_fin['Revenue_AOP']:+,.0f}M vs AOP")
-m2.metric("EBITDA",
-          f"TT${latest_fin['EBITDA']:,.0f}M",
-          f"TT${latest_fin['EBITDA'] - latest_fin['EBITDA_AOP']:+,.0f}M vs AOP")
-m3.metric("PAT",
-          f"TT${latest_fin['PAT']:,.0f}M",
-          f"TT${latest_fin['PAT'] - prev_fin['PAT']:+,.0f}M MoM")
-m4.metric("EBITDA Margin",
-          f"{latest_fin['EBITDA'] / latest_fin['Revenue'] * 100:.1f}%",
-          f"AOP: {latest_fin['EBITDA_AOP'] / latest_fin['Revenue_AOP'] * 100:.1f}%")
+with m1:
+    rev_d = latest_fin["Revenue"] - latest_fin["Revenue_AOP"]
+    styled_metric("Revenue", f"TT${latest_fin['Revenue']:,.0f}M",
+                  f"TT${rev_d:+,.0f}M vs AOP", rev_d >= 0, "#00d4a0")
+with m2:
+    ebi_d = latest_fin["EBITDA"] - latest_fin["EBITDA_AOP"]
+    styled_metric("EBITDA", f"TT${latest_fin['EBITDA']:,.0f}M",
+                  f"TT${ebi_d:+,.0f}M vs AOP", ebi_d >= 0, "#4a9eff")
+with m3:
+    pat_d = latest_fin["PAT"] - prev_fin["PAT"]
+    styled_metric("PAT", f"TT${latest_fin['PAT']:,.0f}M",
+                  f"TT${pat_d:+,.0f}M MoM", pat_d >= 0, "#aa44ff")
+with m4:
+    em_val = latest_fin["EBITDA"] / latest_fin["Revenue"] * 100
+    em_aop = latest_fin["EBITDA_AOP"] / latest_fin["Revenue_AOP"] * 100
+    styled_metric("EBITDA Margin", f"{em_val:.1f}%",
+                  f"AOP: {em_aop:.1f}%", None, "#FF8844")
 
 st.markdown("---")
 

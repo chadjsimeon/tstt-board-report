@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data, pivot_by_group, get_month_order
 from utils.charts import (
-    inject_css, page_header,
+    inject_css, page_header, styled_metric,
     line_chart, grouped_bar, stacked_bar, donut_chart, bar_chart,
     GREEN, RED, BLUE, YELLOW, PURPLE, ORANGE, CYAN,
 )
@@ -34,14 +34,19 @@ cos_month = dpdi_cos[dpdi_cos["Month"] == sel_month]["Plan"].sum() if not dpdi_c
 cos_ytd   = dpdi_cos["Plan"].sum() if not dpdi_cos.empty else 0
 
 m1, m2, m3, m4, m5 = st.columns(5)
-m1.metric("DPDI Revenue",  f"TT${total_rev:.2f}M",
-          f"{(total_rev - total_aop) / total_aop * 100:+.1f}% vs AOP" if total_aop else "—")
-m2.metric("Revenue AOP",   f"TT${total_aop:.2f}M")
-m3.metric("Cost of Sales (AOP)", f"TT${cos_month:.2f}M",
-          f"YTD AOP: TT${cos_ytd:.2f}M")
-m4.metric("Gross Profit",  f"TT${total_gp:.2f}M")
-m5.metric("EBITDA",        f"TT${total_ebitda:.2f}M",
-          delta_color="inverse" if total_ebitda < 0 else "normal")
+with m1:
+    rev_d = f"{(total_rev - total_aop) / total_aop * 100:+.1f}% vs AOP" if total_aop else "—"
+    styled_metric("DPDI Revenue", f"TT${total_rev:.2f}M",
+                  rev_d, (total_rev >= total_aop) if total_aop else None, "#00d4a0")
+with m2:
+    styled_metric("Revenue AOP", f"TT${total_aop:.2f}M", accent="#4a9eff")
+with m3:
+    styled_metric("Cost of Sales (AOP)", f"TT${cos_month:.2f}M",
+                  f"YTD AOP: TT${cos_ytd:.2f}M", None, "#aa44ff")
+with m4:
+    styled_metric("Gross Profit", f"TT${total_gp:.2f}M", accent="#FF8844")
+with m5:
+    styled_metric("EBITDA", f"TT${total_ebitda:.2f}M", accent="#44EEFF")
 
 st.markdown("---")
 

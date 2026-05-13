@@ -214,6 +214,30 @@ def page_header(title, subtitle="", period="Apr-26"):
     </div>""", unsafe_allow_html=True)
 
 
+def styled_metric(title, value_str, delta_str="", delta_positive=None, accent="#4488ff"):
+    """Drop-in st.metric() replacement with a unique top-border accent colour."""
+    if delta_str:
+        if delta_positive is True:
+            dc = "#00ff88"
+        elif delta_positive is False:
+            dc = "#FF4444"
+        else:
+            dc = "#7788aa"
+        dh = (f'<div style="font-size:0.76rem;color:{dc};font-weight:600;'
+              f'margin-top:4px">{delta_str}</div>')
+    else:
+        dh = ""
+    st.markdown(f"""
+<div style="background:#1a1a2e;border-radius:10px;padding:14px 16px;
+            border:1px solid #2a2a4a;border-top:3px solid {accent};
+            margin-bottom:0.5rem">
+    <div style="font-size:0.7rem;font-weight:600;color:#7788aa;text-transform:uppercase;
+                letter-spacing:0.9px;margin-bottom:4px">{title}</div>
+    <div style="font-size:1.4rem;font-weight:700;color:white;line-height:1.2">{value_str}</div>
+    {dh}
+</div>""", unsafe_allow_html=True)
+
+
 def kpi_card(name, actual, unit, vs_aop_pct, vs_py_pct, status_emoji="", accent_color=None):
     """Renders a styled KPI card using st.markdown.
 
