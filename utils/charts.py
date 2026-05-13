@@ -214,14 +214,15 @@ def page_header(title, subtitle="", period="Apr-26"):
     </div>""", unsafe_allow_html=True)
 
 
-def kpi_card(name, actual, unit, vs_aop_pct, vs_py_pct, status_emoji=""):
-    """Renders a styled KPI card using st.markdown."""
-    if "\U0001f7e2" in status_emoji or "\U0001f7e2" in str(status_emoji):
-        border = "green"
-    elif "\U0001f534" in status_emoji or "🔴" in str(status_emoji):
-        border = "red"
-    elif "\U0001f7e1" in status_emoji or "🟡" in str(status_emoji):
-        border = "yellow"
+def kpi_card(name, actual, unit, vs_aop_pct, vs_py_pct, status_emoji="", accent_color=None):
+    """Renders a styled KPI card using st.markdown.
+
+    accent_color: hex string (e.g. '#00d4a0') — overrides status-based border colour
+                  so each metric can have a unique visual identity.
+    """
+    if accent_color:
+        border_style = f"border-top: 3px solid {accent_color} !important;"
+        border_class = ""
     else:
         status = str(status_emoji)
         if "🟢" in status:
@@ -232,6 +233,8 @@ def kpi_card(name, actual, unit, vs_aop_pct, vs_py_pct, status_emoji=""):
             border = "yellow"
         else:
             border = "blue"
+        border_class = f"{border}-border"
+        border_style = ""
 
     aop_class = "green-text" if vs_aop_pct >= 0 else "red-text"
     py_class  = "green-text" if vs_py_pct  >= 0 else "red-text"
@@ -242,7 +245,7 @@ def kpi_card(name, actual, unit, vs_aop_pct, vs_py_pct, status_emoji=""):
         val_str = str(actual)
 
     st.markdown(f"""
-    <div class="kpi-card {border}-border">
+    <div class="kpi-card {border_class}" style="{border_style}">
         <div class="kpi-name">{name}</div>
         <div class="kpi-value">{val_str}<span class="kpi-unit"> {unit}</span></div>
         <div class="kpi-meta">

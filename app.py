@@ -33,6 +33,10 @@ page_header(
 # ── KPI Scorecards ────────────────────────────────────────────────────────────
 st.markdown("### Key Performance Indicators")
 
+# Unique accent palette for KPI cards — visually distinct per metric,
+# independent of RAG status (green/red text still signals good/bad variance)
+KPI_ACCENTS = ["#00d4a0", "#4a9eff", "#aa44ff", "#FF8844", "#44EEFF", "#FFD700", "#ff6b6b"]
+
 sections = [s for s in dict.fromkeys(kpi["Section"].dropna().tolist()) if str(s).strip()]
 for section in sections:
     section_df = kpi[kpi["Section"] == section].reset_index(drop=True)
@@ -40,13 +44,13 @@ for section in sections:
         continue
     st.markdown(f"<p class='section-label'>{section}</p>", unsafe_allow_html=True)
     cols = st.columns(len(section_df))
-    for i, row in section_df.iterrows():
+    for local_i, (_, row) in enumerate(section_df.iterrows()):
         aop = float(row["AOP"]) if pd.notna(row["AOP"]) and row["AOP"] != 0 else 1.0
         py  = float(row["PY"])  if pd.notna(row["PY"])  and row["PY"]  != 0 else 1.0
         vs_aop = (float(row["Actual"]) - aop) / abs(aop) * 100
         vs_py  = (float(row["Actual"]) - py)  / abs(py)  * 100
         unit = str(row["Unit"]) if pd.notna(row["Unit"]) else ""
-        with cols[i]:
+        with cols[local_i]:
             kpi_card(
                 name=row["KPI_Name"],
                 actual=row["Actual"],
@@ -54,6 +58,7 @@ for section in sections:
                 vs_aop_pct=vs_aop,
                 vs_py_pct=vs_py,
                 status_emoji=str(row["Status"]),
+                accent_color=KPI_ACCENTS[local_i % len(KPI_ACCENTS)],
             )
 
 st.markdown("---")
