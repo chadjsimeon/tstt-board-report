@@ -13,7 +13,10 @@ inject_css()
 data = load_all_data()
 fin  = data["Financial_Monthly"].copy()
 fin["EBITDA_Margin_AOP"] = (fin["EBITDA_AOP"] / fin["Revenue_AOP"] * 100)
-fin["EBITDA_Margin_PY"]  = (fin["EBITDA_PY"]  / fin["Revenue_PY"]  * 100)
+if "EBITDA_PY" in fin.columns and "Revenue_PY" in fin.columns:
+    fin["EBITDA_Margin_PY"] = fin["EBITDA_PY"] / fin["Revenue_PY"] * 100
+else:
+    fin["EBITDA_Margin_PY"] = pd.NA
 
 last12  = fin.tail(12).reset_index(drop=True)
 latest  = fin.iloc[-1]
