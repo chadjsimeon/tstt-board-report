@@ -160,7 +160,7 @@ def _base_layout(fig, title, height, y_range=None):
 # ═════════════════════════════════════════════════════════════════════════════
 # TABS
 # ═════════════════════════════════════════════════════════════════════════════
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab_v2 = st.tabs([
     "Consumer Sales Performance",
     "Prepaid Revenue",
     "Postpaid Revenue",
@@ -168,6 +168,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "Subscribers",
     "Churn",
     "ARPU",
+    "Consumer Sales V2",
 ])
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -734,3 +735,311 @@ with tab7:
             margin=dict(l=10,r=10,t=44,b=10), showlegend=False,
         )
         st.plotly_chart(fig, use_container_width=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TAB V2 — Consumer Sales V2 (summary overview)
+# ─────────────────────────────────────────────────────────────────────────────
+with tab_v2:
+    # ── Data prep ─────────────────────────────────────────────────────────
+    v2_latest  = consumer[consumer["Month"] == sel_month].copy()
+    v2_sel_dt  = pd.to_datetime(sel_month, format="%b-%y", errors="coerce")
+    v2_py_mon  = (v2_sel_dt - pd.DateOffset(months=12)).strftime("%b-%y") if pd.notna(v2_sel_dt) else months[0]
+    v2_py_snap = consumer[consumer["Month"] == v2_py_mon].copy()
+
+    def _v2rv(seg):
+        r = v2_latest[v2_latest["Segment"] == seg]["Revenue"]
+        return float(r.values[0]) if not r.empty else 0.0
+
+    def _v2ra(seg):
+        r = v2_latest[v2_latest["Segment"] == seg]["Revenue_AOP"]
+        if r.empty: return None
+        v = r.values[0]
+        return float(v) if pd.notna(v) and v != 0 else None
+
+    def _v2rpy(seg):
+        r = v2_py_snap[v2_py_snap["Segment"] == seg]["Revenue"]
+        return float(r.values[0]) if not r.empty else None
+
+    def _v2vp(rev, aop): return (rev - aop) / abs(aop) * 100 if aop else None
+    def _v2vm(rev, aop): return rev - aop if aop is not None else None
+
+    v2_t_rev = float(v2_latest["Revenue"].sum())
+    v2_t_aop = float(v2_latest["Revenue_AOP"].sum())
+    v2_t_py  = float(v2_py_snap["Revenue"].sum()) if not v2_py_snap.empty else None
+    v2_tv_pct = _v2vp(v2_t_rev, v2_t_aop)
+    v2_tv_m   = v2_t_rev - v2_t_aop
+
+    pp_rev = _v2rv("Postpaid"); pp_aop = _v2ra("Postpaid"); pp_py_v = _v2rpy("Postpaid")
+    pr_rev = _v2rv("Prepaid");  pr_aop = _v2ra("Prepaid");  pr_py_v = _v2rpy("Prepaid")
+    wx_rev = _v2rv("WTTx");     wx_aop = _v2ra("WTTx");     wx_py_v = _v2rpy("WTTx")
+
+    _v2_main       = ["Prepaid", "Postpaid", "WTTx"]
+    v2_other_cons  = consumer[~consumer["Segment"].isin(_v2_main)]
+    v2_other_by_mo = v2_other_cons.groupby("Month", sort=False)["Revenue"].sum()
+    v2_other_rev   = v2_other_by_mo.get(sel_month, 0.0)
+    v2_other_aop   = v2_other_cons[v2_other_cons["Month"] == sel_month]["Revenue_AOP"].sum()
+    v2_other_var   = (v2_other_rev - v2_other_aop) / v2_other_aop * 100 if v2_other_aop else None
+    v2_other_py    = v2_other_by_mo.get(v2_py_mon, None)
+
+    # EBITDA Margin from Financial_Monthly
+    v2_fin     = data["Financial_Monthly"]
+    v2_fin_sel = v2_fin[v2_fin["Month"] == sel_month]
+    ebi_m = ebi_m_aop = ebi_m_py = None
+    if not v2_fin_sel.empty:
+        fr = v2_fin_sel.iloc[0]
+        def _fn(col): v = fr.get(col, None); return float(v) if v is not None and pd.notna(v) else None
+        ebi_m     = _fn("EBITDA_Margin")
+        ebi_aop_v = _fn("EBITDA_AOP")
+        rev_aop_v = _fn("Revenue_AOP")
+        ebi_m_aop = ebi_aop_v / rev_aop_v * 100 if (ebi_aop_v and rev_aop_v) else None
+        ebi_py_v  = _fn("EBITDA_PY")
+        rev_py_v  = _fn("Revenue_PY")
+        ebi_m_py  = ebi_py_v / rev_py_v * 100 if (ebi_py_v and rev_py_v) else None
+
+    # Monthly totals for sparkline + donut
+    v2_monthly = (consumer.groupby("Month", sort=False)
+                  .agg(Revenue=("Revenue","sum"), Revenue_AOP=("Revenue_AOP","sum"))
+                  .reset_index())
+    v2_all_months  = list(consumer["Month"].unique())
+    v2_total_trend = v2_monthly.set_index("Month")["Revenue"].reindex(v2_all_months).fillna(0).tolist()
+
+    gp_est = v2_t_rev * 0.42
+    dc_est = v2_t_rev * 0.58
+    gp_aop = v2_t_aop * 0.42 if v2_t_aop else None
+    gp_vp  = _v2vp(gp_est, gp_aop)
+
+    seg_vars_cmt = {
+        "Postpaid": _v2vp(pp_rev, pp_aop),
+        "Prepaid":  _v2vp(pr_rev, pr_aop),
+        "WTTx":     _v2vp(wx_rev, wx_aop),
+    }
+    sv_clean = {k: v for k, v in seg_vars_cmt.items() if v is not None}
+    v2_best  = max(sv_clean, key=sv_clean.get) if sv_clean else "Postpaid"
+    v2_worst = min(sv_clean, key=sv_clean.get) if sv_clean else "Prepaid"
+
+    v2_wttx_mons = list(wttx["Month"].unique())
+    wx_prev_rev  = wttx[wttx["Month"] == v2_wttx_mons[-2]]["Revenue"].sum() if len(v2_wttx_mons) >= 2 else wx_rev
+    wx_mom       = wx_rev - wx_prev_rev
+
+    # ── Card builders ─────────────────────────────────────────────────────
+    def r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent):
+        col = "#22c55e" if (aop_pct is not None and aop_pct >= 0) else "#ef4444"
+        aop_html = (
+            f'<span style="color:{col}">{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP&nbsp;|&nbsp;{aop_m_str}</span>'
+            if aop_pct is not None
+            else '<span style="color:#445566">— vs AOP</span>'
+        )
+        yoy_html = (
+            f'<span style="color:#f59e0b;font-weight:700">{yoy_str}</span>'
+            if yoy_str else '<span style="color:#445566">— vs PY</span>'
+        )
+        return (
+            f'<div style="background:#151528;border-radius:10px;padding:14px 12px;'
+            f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
+            f'<div style="font-size:10px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'letter-spacing:1.5px;margin-bottom:8px">{label}</div>'
+            f'<div style="font-size:26px;font-weight:800;color:white;margin-bottom:8px;'
+            f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
+            f'<div style="font-size:11px;font-weight:600;margin-bottom:3px">{aop_html}</div>'
+            f'<div style="font-size:11px;font-weight:600">{yoy_html}</div>'
+            f'</div>'
+        )
+
+    _AMBER_DOT = (
+        '<span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;'
+        'display:inline-block;margin-left:6px;flex-shrink:0;vertical-align:middle" '
+        'title="Estimated — not sourced from live data"></span>'
+    )
+
+    def r2_card(label, val_str, trend_str, trend_col, is_ph=False, accent="#4a9eff", note=""):
+        dot = _AMBER_DOT if is_ph else ""
+        note_h = (f'<div style="font-size:10px;color:#f59e0b;margin-top:4px;font-style:italic">'
+                  f'{note}</div>') if note else ""
+        return (
+            f'<div style="background:#151528;border-radius:10px;padding:12px 14px;'
+            f'border:1px solid #252545;border-top:2px solid {accent};height:100%">'
+            f'<div style="font-size:10px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'letter-spacing:1.2px;margin-bottom:5px;display:flex;align-items:center">{label}{dot}</div>'
+            f'<div style="font-size:20px;font-weight:800;color:white;margin-bottom:4px">{val_str}</div>'
+            f'<div style="font-size:12px;color:{trend_col};font-weight:600">{trend_str}</div>'
+            f'{note_h}</div>'
+        )
+
+    # ════════════════════════════════════════════════════════════════════
+    # ROW 1 — 5 KPI cards
+    # ════════════════════════════════════════════════════════════════════
+    st.markdown("<div style='margin-bottom:10px'></div>", unsafe_allow_html=True)
+    c1, c2, c3, c4, c5 = st.columns(5)
+
+    c1.markdown(r1_card(
+        "Total Revenue", f"TT${v2_t_rev:.1f}M",
+        v2_tv_pct, f"TT${v2_tv_m:+.1f}M",
+        f"TT${v2_t_rev - v2_t_py:+.1f}M vs PY" if v2_t_py is not None else None,
+        "#00d4a0",
+    ), unsafe_allow_html=True)
+
+    c2.markdown(r1_card(
+        "Postpaid", f"TT${pp_rev:.1f}M",
+        _v2vp(pp_rev, pp_aop),
+        f"TT${_v2vm(pp_rev, pp_aop):+.1f}M" if _v2vm(pp_rev, pp_aop) is not None else "—",
+        f"TT${pp_rev - pp_py_v:+.1f}M vs PY" if pp_py_v is not None else None,
+        "#4a9eff",
+    ), unsafe_allow_html=True)
+
+    c3.markdown(r1_card(
+        "Prepaid", f"TT${pr_rev:.1f}M",
+        _v2vp(pr_rev, pr_aop),
+        f"TT${_v2vm(pr_rev, pr_aop):+.1f}M" if _v2vm(pr_rev, pr_aop) is not None else "—",
+        f"TT${pr_rev - pr_py_v:+.1f}M vs PY" if pr_py_v is not None else None,
+        "#a78bfa",
+    ), unsafe_allow_html=True)
+
+    c4.markdown(r1_card(
+        "WTTx", f"TT${wx_rev:.1f}M",
+        _v2vp(wx_rev, wx_aop),
+        f"TT${_v2vm(wx_rev, wx_aop):+.1f}M" if _v2vm(wx_rev, wx_aop) is not None else "—",
+        f"TT${wx_rev - wx_py_v:+.1f}M vs PY" if wx_py_v is not None else None,
+        "#f59e0b",
+    ), unsafe_allow_html=True)
+
+    c5.markdown(r1_card(
+        "Other Revenue", f"TT${v2_other_rev:.1f}M",
+        v2_other_var,
+        f"TT${v2_other_rev - v2_other_aop:+.1f}M" if v2_other_aop else "—",
+        f"TT${v2_other_rev - v2_other_py:+.1f}M vs PY" if v2_other_py is not None else None,
+        "#ff6b6b",
+    ), unsafe_allow_html=True)
+
+    # ════════════════════════════════════════════════════════════════════
+    # ROW 2 — Left metric grid (60%) + Right donut + sparkline (40%)
+    # ════════════════════════════════════════════════════════════════════
+    st.markdown("<div style='margin:14px 0 8px'></div>", unsafe_allow_html=True)
+    col_L, col_R = st.columns([60, 40])
+
+    with col_L:
+        # Row 2a
+        ra1, ra2, ra3 = st.columns(3)
+        ra1.markdown(r2_card(
+            "Direct Costs", f"TT${dc_est:.1f}M",
+            f"~{dc_est/v2_t_rev*100:.0f}% of revenue" if v2_t_rev else "—",
+            "#8899bb", is_ph=True, accent="#ef4444", note="est. (58% proxy)",
+        ), unsafe_allow_html=True)
+        ra2.markdown(r2_card(
+            "Postpaid MoU / Sub", "181 mins",
+            "−8.2% vs PY", "#ef4444",
+            is_ph=True, accent="#4a9eff", note="Placeholder",
+        ), unsafe_allow_html=True)
+        ra3.markdown(r2_card(
+            "Prepaid MoU / Sub", "94 mins",
+            "−5.1% vs PY", "#ef4444",
+            is_ph=True, accent="#a78bfa", note="Placeholder",
+        ), unsafe_allow_html=True)
+
+        st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
+
+        # Row 2b
+        rb1, rb2, rb3 = st.columns(3)
+        gp_col_str = "#22c55e" if (gp_vp is not None and gp_vp >= 0) else "#ef4444"
+        rb1.markdown(r2_card(
+            "Gross Profit", f"TT${gp_est:.1f}M",
+            f"{gp_vp:+.1f}% vs AOP" if gp_vp is not None else "—",
+            gp_col_str, is_ph=True, accent="#22c55e", note="est. (42% proxy)",
+        ), unsafe_allow_html=True)
+        rb2.markdown(r2_card(
+            "Postpaid GB / Sub", "4.8 GB",
+            "+22.5% vs PY", "#22c55e",
+            is_ph=True, accent="#4a9eff", note="Placeholder",
+        ), unsafe_allow_html=True)
+        rb3.markdown(r2_card(
+            "Prepaid GB / Sub", "2.1 GB",
+            "+18.3% vs PY", "#22c55e",
+            is_ph=True, accent="#a78bfa", note="Placeholder",
+        ), unsafe_allow_html=True)
+
+    with col_R:
+        # Revenue Mix donut
+        d_segs  = ["Prepaid","Postpaid","WTTx","TV","Residential Security","Other"]
+        d_clrs  = ["#a78bfa","#4a9eff","#f59e0b","#22c55e","#ff6b6b","#8888aa"]
+        d_vals  = [max(_v2rv(s), 0) for s in d_segs]
+        d_total = sum(d_vals)
+
+        fig_d = go.Figure(go.Pie(
+            labels=d_segs, values=d_vals, hole=0.58,
+            marker=dict(colors=d_clrs, line=dict(color="#0a0a18", width=2)),
+            textinfo="label+percent",
+            textfont=dict(color="white", size=10),
+        ))
+        fig_d.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="white"), height=280,
+            title=dict(text=f"<b>{sel_month} Revenue Mix</b>",
+                       font=dict(size=13, color="white"), x=0),
+            annotations=[dict(text=f"<b>TT${d_total:.1f}M</b>",
+                              x=0.5, y=0.5, font=dict(size=13, color="white"),
+                              showarrow=False)],
+            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=10),
+                        orientation="v", x=1.0, y=0.5),
+            margin=dict(l=10, r=80, t=44, b=6),
+        )
+        st.plotly_chart(fig_d, use_container_width=True)
+
+        # Sparkline — total revenue trend
+        spark_svg = _sparkline(v2_total_trend, "#00d4a0", height=46)
+        st.markdown(
+            f'<div style="background:#151528;border-radius:8px;padding:10px 14px;'
+            f'border:1px solid #252545;margin-top:-4px">'
+            f'<div style="font-size:10px;color:#6677aa;font-weight:600;text-transform:uppercase;'
+            f'letter-spacing:1.2px;margin-bottom:2px">Total Revenue Trend</div>'
+            f'{spark_svg}'
+            f'<div style="display:flex;justify-content:space-between;'
+            f'font-size:10px;color:#445566;margin-top:3px">'
+            f'<span>{v2_all_months[0]}</span><span>{v2_all_months[-1]}</span></div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    # ════════════════════════════════════════════════════════════════════
+    # ROW 3 — Auto-generated Commentary
+    # ════════════════════════════════════════════════════════════════════
+    st.markdown("<div style='margin:14px 0 6px'></div>", unsafe_allow_html=True)
+
+    rev_dir   = "above" if (v2_tv_pct or 0) >= 0 else "below"
+    yoy_abs   = abs(v2_t_rev - v2_t_py) if v2_t_py is not None else 0
+    yoy_sign  = "increase" if (v2_t_py is not None and v2_t_rev >= v2_t_py) else "decline"
+    best_v    = sv_clean.get(v2_best, 0)
+    worst_v   = sv_clean.get(v2_worst, 0)
+    wx_dir    = "accelerating" if wx_mom > 0 else "moderating"
+    best_why  = ("sustained subscriber growth and ARPU expansion"
+                 if v2_best == "Postpaid" else "strong network adoption and customer additions")
+    worst_why = ("voice substitution and SIM consolidation"
+                 if v2_worst == "Prepaid" else "market saturation and competitive pressure")
+    aop_col_cmt = "#22c55e" if (v2_tv_pct or 0) >= 0 else "#ef4444"
+
+    cmt_text = (
+        f"Consumer revenue of <strong style='color:white'>TT${v2_t_rev:.1f}M</strong> in {sel_month} "
+        f"is <strong style='color:{aop_col_cmt}'>{abs(v2_tv_pct or 0):.1f}% {rev_dir} AOP</strong>"
+        + (f" (TT${v2_tv_m:+.1f}M)" if v2_t_aop else "")
+        + (f", representing a year-on-year {yoy_sign} of "
+           f"<strong style='color:#f59e0b'>TT${yoy_abs:.1f}M</strong>." if v2_t_py is not None else ".")
+        + f" <strong style='color:white'>{v2_best}</strong> is the strongest performing segment "
+        f"at <strong style='color:#22c55e'>{best_v:+.1f}% vs AOP</strong>, driven by {best_why}. "
+        f"<strong style='color:white'>{v2_worst}</strong> remains the most challenged segment "
+        f"at <strong style='color:#ef4444'>{worst_v:+.1f}% vs AOP</strong>, with {worst_why} "
+        f"continuing to constrain growth. "
+        f"WTTx is {wx_dir} on a month-on-month basis "
+        f"(<strong style='color:{'#22c55e' if wx_mom >= 0 else '#ef4444'}'>"
+        f"TT${wx_mom:+.1f}M MoM</strong>), underpinned by residential broadband demand. "
+        f"Strategic priorities for the remainder of FY2026-27 include Prepaid data bundle "
+        f"conversion to defend revenue, Postpaid ARPU protection through bundle upsell, "
+        f"and accelerating WTTx commercial rollout to sustain the Consumer LoB's contribution "
+        f"to group EBITDA targets."
+    )
+    st.markdown(
+        f'<div style="background:#090f0a;border-radius:12px;padding:18px 22px;'
+        f'border:1px solid #1a3520;border-left:4px solid #22c55e">'
+        f'<div style="font-size:10px;color:#f59e0b;font-weight:700;text-transform:uppercase;'
+        f'letter-spacing:2px;margin-bottom:12px">&#x25A0;&nbsp;Commentary</div>'
+        f'<div style="font-size:13px;color:#aaccaa;line-height:1.75">{cmt_text}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
