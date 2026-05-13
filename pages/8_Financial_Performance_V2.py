@@ -13,22 +13,31 @@ inject_css()
 data = load_all_data()
 fin  = data["Financial_Monthly"].copy()
 fin["EBITDA_Margin_AOP"] = (fin["EBITDA_AOP"] / fin["Revenue_AOP"] * 100)
-if "EBITDA_PY" in fin.columns and "Revenue_PY" in fin.columns:
-    fin["EBITDA_Margin_PY"] = fin["EBITDA_PY"] / fin["Revenue_PY"] * 100
-else:
-    fin["EBITDA_Margin_PY"] = pd.NA
+
+# Gross Profit from PnL_Breakdown (Revenue - COS)
+pnl = data["PnL_Breakdown"].copy()
+pnl["Gross_Profit"]     = pnl["Total_Rev"]     - pnl["Total_COS"]
+pnl["Gross_Profit_AOP"] = pnl["Total_Rev_AOP"] - pnl["Total_COS_AOP"]
+pnl["_dt"] = pd.to_datetime(pnl["Month"], format="%b-%y", errors="coerce")
+gp_lk = pnl.dropna(subset=["_dt"]).set_index("_dt")["Gross_Profit"]
+pnl["Gross_Profit_PY"] = pnl["_dt"].apply(
+    lambda dt, lk=gp_lk: lk.get(dt - pd.DateOffset(months=12))
+)
+pnl.drop(columns=["_dt"], inplace=True)
+fin = fin.merge(pnl[["Month", "Gross_Profit", "Gross_Profit_AOP", "Gross_Profit_PY"]],
+                on="Month", how="left")
 
 last12  = fin.tail(13).reset_index(drop=True)
 latest  = fin.iloc[-1]
 
 # ── Colors ────────────────────────────────────────────────────────────────────
-REV_COLOR  = "#00d4a0"
-EBI_COLOR  = "#4a9eff"
-PAT_COLOR  = "#aa44ff"
-MARG_COLOR = "#FFD700"
-CARD_BG    = "#1a2234"
-MUTED      = "#8888aa"
-GRID       = "#1e2a3a"
+REV_COLOR = "#00d4a0"
+GP_COLOR  = "#FF8844"
+EBI_COLOR = "#4a9eff"
+PAT_COLOR = "#aa44ff"
+CARD_BG   = "#1a2234"
+MUTED     = "#8888aa"
+GRID      = "#1e2a3a"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -140,10 +149,10 @@ st.markdown(f"""
 
 # ── KPI Cards ─────────────────────────────────────────────────────────────────
 METRICS = [
-    ("Revenue",       "Revenue",       "Revenue_AOP",       "Revenue_PY",       REV_COLOR,  False),
-    ("EBITDA",        "EBITDA",        "EBITDA_AOP",        "EBITDA_PY",        EBI_COLOR,  False),
-    ("PAT",           "PAT",           "PAT_AOP",           "PAT_PY",           PAT_COLOR,  False),
-    ("EBITDA Margin", "EBITDA_Margin", "EBITDA_Margin_AOP", "EBITDA_Margin_PY", MARG_COLOR, True),
+    ("Revenue",      "Revenue",      "Revenue_AOP",      "Revenue_PY",      REV_COLOR, False),
+    ("Gross Profit", "Gross_Profit", "Gross_Profit_AOP", "Gross_Profit_PY", GP_COLOR,  False),
+    ("EBITDA",       "EBITDA",       "EBITDA_AOP",       "EBITDA_PY",       EBI_COLOR, False),
+    ("PAT",          "PAT",          "PAT_AOP",          "PAT_PY",          PAT_COLOR, False),
 ]
 
 c1, c2, c3, c4 = st.columns(4)
@@ -164,6 +173,12 @@ with chart_col:
         fill="tozeroy", fillcolor="rgba(0,212,160,0.07)",
     ))
     fig.add_trace(go.Scatter(
+        x=last12["Month"], y=last12["Gross_Profit"],
+        mode="lines", name="Gross Profit",
+        line=dict(color=GP_COLOR, width=2),
+        fill="tozeroy", fillcolor="rgba(255,136,68,0.07)",
+    ))
+    fig.add_trace(go.Scatter(
         x=last12["Month"], y=last12["EBITDA"],
         mode="lines", name="EBITDA",
         line=dict(color=EBI_COLOR, width=2.5),
@@ -173,7 +188,7 @@ with chart_col:
         height=380,
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"),
-        title=dict(text="<b>Revenue & EBITDA — 13-Month Trend (TT$M)</b>",
+        title=dict(text="<b>Revenue, Gross Profit & EBITDA — 13-Month Trend (TT$M)</b>",
                    font=dict(size=13, color="white"), x=0),
         xaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED), showline=False, tickangle=-30),
         yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED), showline=False, zeroline=False),
@@ -185,9 +200,10 @@ with chart_col:
 
 with driver_col:
     blocks = "".join([
-        driver_block("Revenue", REV_COLOR,  "Revenue", "Revenue_AOP", "Revenue_PY",  False),
-        driver_block("EBITDA",  EBI_COLOR,  "EBITDA",  "EBITDA_AOP",  "EBITDA_PY",  False),
-        driver_block("PAT",     PAT_COLOR,  "PAT",     "PAT_AOP",     "PAT_PY",     False, last_entry=True),
+        driver_block("Revenue",      REV_COLOR, "Revenue",      "Revenue_AOP",      "Revenue_PY",      False),
+        driver_block("Gross Profit", GP_COLOR,  "Gross_Profit", "Gross_Profit_AOP", "Gross_Profit_PY", False),
+        driver_block("EBITDA",       EBI_COLOR, "EBITDA",       "EBITDA_AOP",       "EBITDA_PY",       False),
+        driver_block("PAT",          PAT_COLOR, "PAT",          "PAT_AOP",          "PAT_PY",          False, last_entry=True),
     ])
     st.markdown(f"""
 <div style="background:{CARD_BG};border-radius:12px;padding:24px;
