@@ -18,7 +18,7 @@ if "EBITDA_PY" in fin.columns and "Revenue_PY" in fin.columns:
 else:
     fin["EBITDA_Margin_PY"] = pd.NA
 
-last12  = fin.tail(12).reset_index(drop=True)
+last12  = fin.tail(13).reset_index(drop=True)
 latest  = fin.iloc[-1]
 
 # ── Colors ────────────────────────────────────────────────────────────────────
