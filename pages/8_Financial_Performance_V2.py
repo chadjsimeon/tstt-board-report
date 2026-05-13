@@ -173,7 +173,7 @@ with chart_col:
         height=380,
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"),
-        title=dict(text="<b>Revenue & EBITDA — 12-Month Trend (TT$M)</b>",
+        title=dict(text="<b>Revenue & EBITDA — 13-Month Trend (TT$M)</b>",
                    font=dict(size=13, color="white"), x=0),
         xaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED), showline=False, tickangle=-30),
         yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED), showline=False, zeroline=False),
