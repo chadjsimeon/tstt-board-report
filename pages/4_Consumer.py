@@ -702,7 +702,7 @@ with tab3:
         st.plotly_chart(fig, use_container_width=True)
 
     with mr:
-        _pp_plan_colors = ["#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"]
+        _pp_plan_colors = ["#f59e0b", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"]
         _pp_plan_total  = sum(pp_plan_vals)
         _pp_dw = 0.56
         _pp_dh, _pp_dt, _pp_db = 290, 44, 6
