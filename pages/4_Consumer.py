@@ -802,6 +802,10 @@ with tab_v2:
                   .reset_index())
     v2_all_months  = list(consumer["Month"].unique())
     v2_total_trend = v2_monthly.set_index("Month")["Revenue"].reindex(v2_all_months).fillna(0).tolist()
+    v2_post_trend  = postpaid.set_index("Month")["Revenue"].reindex(v2_all_months).fillna(0).tolist()
+    v2_pre_trend   = prepaid.set_index("Month")["Revenue"].reindex(v2_all_months).fillna(0).tolist()
+    v2_wx_trend    = wttx.set_index("Month")["Revenue"].reindex(v2_all_months).fillna(0).tolist()
+    v2_other_trend = v2_other_by_mo.reindex(v2_all_months).fillna(0).tolist()
 
     gp_est = v2_t_rev * 0.42
     dc_est = v2_t_rev * 0.58
@@ -822,7 +826,7 @@ with tab_v2:
     wx_mom       = wx_rev - wx_prev_rev
 
     # ── Card builders ─────────────────────────────────────────────────────
-    def r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent):
+    def r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None):
         col = "#22c55e" if (aop_pct is not None and aop_pct >= 0) else "#ef4444"
         aop_html = (
             f'<span style="color:{col}">{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP&nbsp;|&nbsp;{aop_m_str}</span>'
@@ -833,6 +837,10 @@ with tab_v2:
             f'<span style="color:#f59e0b;font-weight:700">{yoy_str}</span>'
             if yoy_str else '<span style="color:#445566">— vs PY</span>'
         )
+        spark_html = (
+            f'<div style="margin-top:8px;opacity:0.85">{_sparkline(spark_series, accent)}</div>'
+            if spark_series else ""
+        )
         return (
             f'<div style="background:#151528;border-radius:10px;padding:14px 12px;'
             f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
@@ -842,6 +850,7 @@ with tab_v2:
             f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
             f'<div style="font-size:11px;font-weight:600;margin-bottom:3px">{aop_html}</div>'
             f'<div style="font-size:11px;font-weight:600">{yoy_html}</div>'
+            f'{spark_html}'
             f'</div>'
         )
 
@@ -875,7 +884,7 @@ with tab_v2:
         "Total Revenue", f"TT${v2_t_rev:.1f}M",
         v2_tv_pct, f"TT${v2_tv_m:+.1f}M",
         f"TT${v2_t_rev - v2_t_py:+.1f}M vs PY" if v2_t_py is not None else None,
-        "#00d4a0",
+        "#00d4a0", spark_series=v2_total_trend,
     ), unsafe_allow_html=True)
 
     c2.markdown(r1_card(
@@ -883,7 +892,7 @@ with tab_v2:
         _v2vp(pp_rev, pp_aop),
         f"TT${_v2vm(pp_rev, pp_aop):+.1f}M" if _v2vm(pp_rev, pp_aop) is not None else "—",
         f"TT${pp_rev - pp_py_v:+.1f}M vs PY" if pp_py_v is not None else None,
-        "#4a9eff",
+        "#4a9eff", spark_series=v2_post_trend,
     ), unsafe_allow_html=True)
 
     c3.markdown(r1_card(
@@ -891,7 +900,7 @@ with tab_v2:
         _v2vp(pr_rev, pr_aop),
         f"TT${_v2vm(pr_rev, pr_aop):+.1f}M" if _v2vm(pr_rev, pr_aop) is not None else "—",
         f"TT${pr_rev - pr_py_v:+.1f}M vs PY" if pr_py_v is not None else None,
-        "#a78bfa",
+        "#a78bfa", spark_series=v2_pre_trend,
     ), unsafe_allow_html=True)
 
     c4.markdown(r1_card(
@@ -899,7 +908,7 @@ with tab_v2:
         _v2vp(wx_rev, wx_aop),
         f"TT${_v2vm(wx_rev, wx_aop):+.1f}M" if _v2vm(wx_rev, wx_aop) is not None else "—",
         f"TT${wx_rev - wx_py_v:+.1f}M vs PY" if wx_py_v is not None else None,
-        "#f59e0b",
+        "#f59e0b", spark_series=v2_wx_trend,
     ), unsafe_allow_html=True)
 
     c5.markdown(r1_card(
@@ -907,7 +916,7 @@ with tab_v2:
         v2_other_var,
         f"TT${v2_other_rev - v2_other_aop:+.1f}M" if v2_other_aop else "—",
         f"TT${v2_other_rev - v2_other_py:+.1f}M vs PY" if v2_other_py is not None else None,
-        "#ff6b6b",
+        "#ff6b6b", spark_series=v2_other_trend,
     ), unsafe_allow_html=True)
 
     # ════════════════════════════════════════════════════════════════════
@@ -957,46 +966,65 @@ with tab_v2:
         ), unsafe_allow_html=True)
 
     with col_R:
-        # Revenue Mix donut
-        d_segs  = ["Prepaid","Postpaid","WTTx","TV","Residential Security","Other"]
-        d_clrs  = ["#a78bfa","#4a9eff","#f59e0b","#22c55e","#ff6b6b","#8888aa"]
-        d_vals  = [max(_v2rv(s), 0) for s in d_segs]
+        # Revenue Mix donut — 4 consolidated segments
+        d_segs  = ["Prepaid", "Postpaid", "WTTx", "Other"]
+        d_clrs  = ["#a78bfa", "#4a9eff", "#f59e0b", "#6b7280"]
+        d_vals  = [max(pr_rev, 0), max(pp_rev, 0), max(wx_rev, 0), max(v2_other_rev, 0)]
         d_total = sum(d_vals)
+        d_pcts  = [v / d_total * 100 if d_total else 0 for v in d_vals]
+        d_texts = [f"{p:.1f}%" if p >= 15 else "" for p in d_pcts]
+        d_legend_labels = [f"{s}  {p:.1f}%" for s, p in zip(d_segs, d_pcts)]
+
+        # Domain [0, 0.55] pins the pie to the left 55% of the plot area.
+        # With l=r=10 (symmetric), pie centre x ≈ domain_mid = 0.275 in paper coords.
+        # Pie centre y corrects for the top margin: (b + plot_h/2) / fig_h.
+        _fig_h  = 290
+        _t, _b  = 44, 6
+        _dom_x  = 0.55                                          # pie fills 0→55% of plot area
+        _pie_cx = _dom_x / 2                                    # 0.275 in plot-fraction → ≈ paper
+        _pie_cy = (_b + (_fig_h - _t - _b) / 2) / _fig_h      # ≈ 0.434
 
         fig_d = go.Figure(go.Pie(
-            labels=d_segs, values=d_vals, hole=0.58,
-            marker=dict(colors=d_clrs, line=dict(color="#0a0a18", width=2)),
-            textinfo="label+percent",
-            textfont=dict(color="white", size=10),
+            labels=d_legend_labels,
+            values=d_vals,
+            text=d_texts,
+            hole=0.45,
+            sort=False,
+            marker=dict(
+                colors=d_clrs,
+                line=dict(color="rgba(255,255,255,0.35)", width=2),
+            ),
+            textinfo="text",
+            textfont=dict(color="white", size=11),
+            textposition="inside",
+            domain=dict(x=[0, _dom_x]),
+            customdata=d_segs,
+            hovertemplate="<b>%{customdata}</b><br>TT$%{value:.1f}M (%{percent})<extra></extra>",
         ))
         fig_d.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=280,
+            font=dict(color="white"), height=_fig_h,
             title=dict(text=f"<b>{sel_month} Revenue Mix</b>",
                        font=dict(size=13, color="white"), x=0),
-            annotations=[dict(text=f"<b>TT${d_total:.1f}M</b>",
-                              x=0.5, y=0.5, font=dict(size=13, color="white"),
-                              showarrow=False)],
-            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=10),
-                        orientation="v", x=1.0, y=0.5),
-            margin=dict(l=10, r=80, t=44, b=6),
+            annotations=[dict(
+                text=f"<b>TT${d_total:.1f}M</b>",
+                x=_pie_cx, y=_pie_cy,
+                xanchor="center", yanchor="middle",
+                font=dict(size=12, color="white"),
+                showarrow=False,
+            )],
+            legend=dict(
+                bgcolor="rgba(0,0,0,0)",
+                font=dict(size=12, color="white"),
+                orientation="v",
+                x=_dom_x + 0.04, y=0.5,
+                xanchor="left",
+                yanchor="middle",
+            ),
+            margin=dict(l=10, r=10, t=_t, b=_b),
         )
         st.plotly_chart(fig_d, use_container_width=True)
 
-        # Sparkline — total revenue trend
-        spark_svg = _sparkline(v2_total_trend, "#00d4a0", height=46)
-        st.markdown(
-            f'<div style="background:#151528;border-radius:8px;padding:10px 14px;'
-            f'border:1px solid #252545;margin-top:-4px">'
-            f'<div style="font-size:10px;color:#6677aa;font-weight:600;text-transform:uppercase;'
-            f'letter-spacing:1.2px;margin-bottom:2px">Total Revenue Trend</div>'
-            f'{spark_svg}'
-            f'<div style="display:flex;justify-content:space-between;'
-            f'font-size:10px;color:#445566;margin-top:3px">'
-            f'<span>{v2_all_months[0]}</span><span>{v2_all_months[-1]}</span></div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
 
     # ════════════════════════════════════════════════════════════════════
     # ROW 3 — Auto-generated Commentary
