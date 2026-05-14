@@ -260,14 +260,16 @@ with col_right:
             hovertemplate=f"%{{y}}<br>{label}: TT$%{{x:,.1f}}M<extra></extra>",
         ))
 
+    _ar_x_max = max(non_gov["total"], gov["total"]) * 1.18
     fig_ar.update_layout(
         barmode="stack",
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white", family="Inter, sans-serif"),
         height=200,
-        margin=dict(l=8, r=100, t=36, b=10),
+        margin=dict(l=8, r=8, t=36, b=10),
         xaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=10),
-                   showline=False, zeroline=False, ticksuffix="M"),
+                   showline=False, zeroline=False, ticksuffix="M",
+                   range=[0, _ar_x_max]),
         yaxis=dict(tickfont=dict(color="white", size=11), showgrid=False),
         legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=9.5),
                     orientation="h", y=1.22, x=0, xanchor="left"),
@@ -276,12 +278,12 @@ with col_right:
                  text=f"<b>{non_gov['total']:,.0f}M</b>",
                  showarrow=False, font=dict(color="#aaaacc", size=10),
                  xanchor="left", yanchor="middle", xref="x", yref="y",
-                 xshift=6),
+                 xshift=5),
             dict(x=gov["total"], y="Government",
                  text=f"<b>{gov['total']:,.0f}M</b>",
                  showarrow=False, font=dict(color="#aaaacc", size=10),
                  xanchor="left", yanchor="middle", xref="x", yref="y",
-                 xshift=6),
+                 xshift=5),
         ],
     )
 
@@ -381,7 +383,7 @@ with col_right:
                    range=[0, x_max], showline=False, zeroline=False),
         yaxis=dict(tickfont=dict(color="white", size=11), showgrid=False,
                    autorange="reversed"),
-        margin=dict(l=8, r=80, t=38, b=10),
+        margin=dict(l=8, r=8, t=38, b=10),
     )
 
     st.markdown("""

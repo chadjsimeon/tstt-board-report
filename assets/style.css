@@ -193,6 +193,14 @@ div[data-testid="stPlotlyChart"] {
     border-radius: 10px;
     border: 1px solid #2a2a4a;
     padding: 4px;
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+/* Prevent any content bleeding horizontally outside the page */
+.main .block-container {
+    overflow-x: hidden;
 }
 
 /* Expander */
