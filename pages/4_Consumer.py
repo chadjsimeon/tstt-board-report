@@ -160,14 +160,11 @@ def _base_layout(fig, title, height, y_range=None):
 # ═════════════════════════════════════════════════════════════════════════════
 # TABS
 # ═════════════════════════════════════════════════════════════════════════════
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab_v2 = st.tabs([
+tab1, tab2, tab3, tab4, tab_v2 = st.tabs([
     "Consumer Sales Performance",
     "Prepaid Revenue",
     "Postpaid Revenue",
     "WTTx Revenue",
-    "Subscribers",
-    "Churn",
-    "ARPU",
     "Consumer Sales V2",
 ])
 
@@ -1228,93 +1225,6 @@ with tab4:
             f"to sustain ARPU growth as market penetration matures."
         )
         st.markdown(_commentary(wx_cmt), unsafe_allow_html=True)
-
-# ─────────────────────────────────────────────────────────────────────────────
-# TAB 5 — Subscribers
-# ─────────────────────────────────────────────────────────────────────────────
-with tab5:
-    subs_pivot = pivot_by_group(consumer, "Month", "Segment", "Subscribers")
-    subs_cols  = [c for c in subs_pivot.columns if c != "Month"]
-
-    col1, col2 = st.columns(2)
-    with col1:
-        fig = stacked_bar(subs_pivot, x="Month", y_cols=subs_cols,
-                          title="Subscribers by Segment", colors=ACCENT)
-        st.plotly_chart(fig, use_container_width=True)
-    with col2:
-        fig = line_chart(subs_pivot, x="Month", y_cols=subs_cols,
-                         title="Subscriber Trend by Segment", colors=ACCENT)
-        st.plotly_chart(fig, use_container_width=True)
-
-    col3, _ = st.columns([1,1])
-    with col3:
-        latest_subs = {seg: subs_pivot[subs_pivot["Month"]==sel_month][seg].values[0]
-                       for seg in subs_cols if seg in subs_pivot.columns}
-        fig = donut_chart(list(latest_subs.keys()), list(latest_subs.values()),
-                          title=f"{sel_month} Subscriber Mix", height=320)
-        st.plotly_chart(fig, use_container_width=True)
-
-# ─────────────────────────────────────────────────────────────────────────────
-# TAB 6 — Churn
-# ─────────────────────────────────────────────────────────────────────────────
-with tab6:
-    churn_pivot = pivot_by_group(consumer, "Month", "Segment", "Churn_Pct")
-    churn_cols  = [c for c in churn_pivot.columns if c != "Month"]
-
-    col1, col2 = st.columns(2)
-    with col1:
-        fig = line_chart(churn_pivot, x="Month", y_cols=churn_cols,
-                         title="Monthly Churn Rate by Segment (%)", colors=ACCENT)
-        st.plotly_chart(fig, use_container_width=True)
-    with col2:
-        churn_bar = consumer[consumer["Month"]==sel_month][["Segment","Churn_Pct"]].copy()
-        fig = go.Figure(go.Bar(
-            x=churn_bar["Segment"], y=churn_bar["Churn_Pct"],
-            marker_color=ACCENT[:len(churn_bar)],
-            text=[f"{v:.1f}%" for v in churn_bar["Churn_Pct"]],
-            textposition="outside", textfont=dict(color="white",size=11),
-        ))
-        fig.update_layout(
-            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=380,
-            title=dict(text=f"<b>{sel_month} Churn by Segment (%)</b>",
-                       font=dict(size=13,color="white"),x=0),
-            xaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="#8888aa")),
-            yaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="#8888aa"),ticksuffix="%"),
-            margin=dict(l=10,r=10,t=44,b=10), showlegend=False,
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-# ─────────────────────────────────────────────────────────────────────────────
-# TAB 7 — ARPU
-# ─────────────────────────────────────────────────────────────────────────────
-with tab7:
-    arpu_pivot = pivot_by_group(consumer, "Month", "Segment", "ARPU")
-    arpu_cols  = [c for c in arpu_pivot.columns if c != "Month"]
-
-    col1, col2 = st.columns(2)
-    with col1:
-        fig = line_chart(arpu_pivot, x="Month", y_cols=arpu_cols,
-                         title="ARPU by Segment (TT$)", colors=ACCENT)
-        st.plotly_chart(fig, use_container_width=True)
-    with col2:
-        arpu_bar = consumer[consumer["Month"]==sel_month][["Segment","ARPU"]].copy()
-        fig = go.Figure(go.Bar(
-            x=arpu_bar["Segment"], y=arpu_bar["ARPU"],
-            marker_color=ACCENT[:len(arpu_bar)],
-            text=[f"TT${v:,.0f}" for v in arpu_bar["ARPU"]],
-            textposition="outside", textfont=dict(color="white",size=11),
-        ))
-        fig.update_layout(
-            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=380,
-            title=dict(text=f"<b>{sel_month} ARPU by Segment (TT$)</b>",
-                       font=dict(size=13,color="white"),x=0),
-            xaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="#8888aa")),
-            yaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="#8888aa")),
-            margin=dict(l=10,r=10,t=44,b=10), showlegend=False,
-        )
-        st.plotly_chart(fig, use_container_width=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB V2 — Consumer Sales V2 (summary overview)
