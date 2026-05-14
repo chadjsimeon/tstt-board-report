@@ -435,70 +435,114 @@ with tab2:
 
     st.markdown("<div style='margin:14px 0'></div>", unsafe_allow_html=True)
 
-    # ── Row 2 — Revenue Trend + Product Breakdown ─────────────────────────────
+    # ── Avg daily revenue calc ────────────────────────────────────────────────
+    import calendar as _cal
+
+    def _month_days(mon_str):
+        abbr, yr2 = mon_str.split("-")
+        m_num = {"Jan":1,"Feb":2,"Mar":3,"Apr":4,"May":5,"Jun":6,
+                 "Jul":7,"Aug":8,"Sep":9,"Oct":10,"Nov":11,"Dec":12}[abbr]
+        return _cal.monthrange(2000 + int(yr2), m_num)[1]
+
+    pre_daily = prepaid[["Month", "Revenue", "Revenue_AOP"]].copy()
+    pre_daily["Days"]      = pre_daily["Month"].apply(_month_days)
+    pre_daily["Daily_Rev"] = pre_daily["Revenue"]     / pre_daily["Days"]
+    pre_daily["Daily_AOP"] = pre_daily["Revenue_AOP"] / pre_daily["Days"]
+
+    # ── DUMMY DATA ── Subscribers by ARPU Category ────────────────────────────
+    # Replace the counts below with actual data when available.
+    # Categories reflect monthly ARPU bands (TT$).
+    pre_arpu_cats = {
+        "Very Low":  220_000,   # < TT$50 / month
+        "Low":       185_000,   # TT$50 – 100 / month
+        "Medium":    130_000,   # TT$101 – 200 / month
+        "High":       60_000,   # TT$201 – 400 / month
+        "Very High":  25_000,   # > TT$400 / month
+    }
+    # ─────────────────────────────────────────────────────────────────────────
+
+    # ── Row 2 — Avg Daily Revenue + ARPU Category ─────────────────────────────
     ml, mr = st.columns([55, 45])
 
     with ml:
-        pre_rev_ser = prepaid.set_index("Month")["Revenue"].reindex(pre_mons)
-        pre_aop_ser = prepaid.set_index("Month")["Revenue_AOP"].reindex(pre_mons)
-        rv = pre_rev_ser.dropna().values
-        pad_r = (rv.max() - rv.min()) * 0.18 if len(rv) > 1 else 2
+        dvr     = pre_daily["Daily_Rev"].dropna().values
+        dvr_pad = (dvr.max() - dvr.min()) * 0.18 if len(dvr) > 1 else 0.05
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=pre_mons, y=pre_rev_ser.values, name="Actual",
-            line=dict(color="#22c55e", width=2.5),
-            mode="lines+markers", marker=dict(size=6),
-            fill="tozeroy", fillcolor="rgba(34,197,94,0.08)",
-            hovertemplate="%{x}<br>TT$%{y:.1f}M<extra></extra>",
+        fig.add_trace(go.Bar(
+            x=pre_daily["Month"], y=pre_daily["Daily_Rev"],
+            name="Actual", marker_color="#a78bfa",
+            hovertemplate="%{x}<br>TT$%{y:.3f}M / day<extra></extra>",
         ))
         fig.add_trace(go.Scatter(
-            x=pre_mons, y=pre_aop_ser.values, name="AOP",
-            line=dict(color="#555577", width=1.5, dash="dash"),
-            mode="lines",
-            hovertemplate="%{x}<br>AOP TT$%{y:.1f}M<extra></extra>",
+            x=pre_daily["Month"], y=pre_daily["Daily_AOP"],
+            name="AOP", mode="lines",
+            line=dict(color="#555577", width=1.8, dash="dash"),
+            hovertemplate="%{x}<br>AOP TT$%{y:.3f}M / day<extra></extra>",
         ))
-        yr = [max(0, rv.min() - pad_r), rv.max() + pad_r] if len(rv) > 0 else None
-        _base_layout(fig, "Prepaid Revenue Trend (TT$M)", 290, y_range=yr)
+        _base_layout(fig, "Avg Daily Prepaid Revenue (TT$M / day)", 290,
+                     y_range=([max(0, dvr.min() - dvr_pad), dvr.max() + dvr_pad]
+                               if len(dvr) > 0 else None))
         st.plotly_chart(fig, use_container_width=True)
 
     with mr:
+        _cat_names  = list(pre_arpu_cats.keys())
+        _cat_vals   = list(pre_arpu_cats.values())
+        _cat_colors = ["#6b7280", "#6366f1", "#a78bfa", "#f59e0b", "#22c55e"]
+        _cat_total  = sum(_cat_vals)
+        # domain + annotation geometry
+        _d_w = 0.56
+        _d_h, _d_t, _d_b = 290, 44, 6
+        _pie_cx = _d_w / 2
+        _pie_cy = (_d_b + (_d_h - _d_t - _d_b) / 2) / _d_h
+        fig = go.Figure(go.Pie(
+            labels=_cat_names, values=_cat_vals, hole=0.48, sort=False,
+            domain=dict(x=[0, _d_w]),
+            marker=dict(colors=_cat_colors,
+                        line=dict(color="rgba(255,255,255,0.3)", width=2)),
+            textinfo="percent", textfont=dict(color="white", size=11),
+            textposition="inside",
+            hovertemplate="<b>%{label}</b><br>%{value:,.0f} subs (%{percent})<extra></extra>",
+        ))
+        fig.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="white"), height=_d_h,
+            title=dict(
+                text="<b>Subscribers by ARPU Category</b>"
+                     " <span style='color:#f87171;font-size:11px'>⚠ dummy data</span>",
+                font=dict(size=13, color="white"), x=0,
+            ),
+            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=11, color="#aabbcc"),
+                        x=_d_w + 0.04, y=0.5, xanchor="left", yanchor="middle"),
+            margin=dict(l=10, r=10, t=_d_t, b=_d_b),
+            annotations=[dict(
+                text=f"<b>{_cat_total/1_000:.0f}K</b>",
+                x=_pie_cx, y=_pie_cy, xanchor="center", yanchor="middle",
+                font=dict(size=14, color="white"), showarrow=False,
+            )],
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    # ── Row 3 — Revenue by Product + Commentary ───────────────────────────────
+    bl, br = st.columns([55, 45])
+
+    with bl:
         products  = ["Data Bundles", "Airtime / Voice", "PAYGO / Top-up", "SMS & Other"]
         splits    = [0.63, 0.27, 0.09, 0.01]
         prod_vals = [ttm_pre * s for s in splits]
         fig = go.Figure(go.Bar(
             y=products[::-1], x=prod_vals[::-1], orientation="h",
-            marker_color=["#aad4ff", "#88c4ff", "#6ab0ff", "#4a9eff"],
+            marker_color=["#c4b5fd", "#a78bfa", "#8b5cf6", "#6d28d9"],
             text=[f"TT${v:.0f}M  ({s*100:.0f}%)"
                   for v, s in zip(prod_vals[::-1], splits[::-1])],
             textposition="outside", textfont=dict(color="white", size=11),
         ))
-        _base_layout(fig, "Revenue by Product — YTD (TT$M)", 290)
+        _base_layout(fig, "Revenue by Product — YTD (TT$M)", 280)
         fig.update_layout(
             showlegend=False,
             xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
                        range=[0, max(prod_vals) * 1.45]),
             yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=12)),
         )
-        st.plotly_chart(fig, use_container_width=True)
-
-    # ── Row 3 — Subscriber Trend + Commentary ─────────────────────────────────
-    bl, br = st.columns([55, 45])
-
-    with bl:
-        pre_subs_df = prepaid[prepaid["Subscribers"] > 0].copy()
-        vals_k = pre_subs_df["Subscribers"].values / 1000
-        pad_k  = (vals_k.max() - vals_k.min()) * 0.18 if len(vals_k) > 1 else 5
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=pre_subs_df["Month"], y=vals_k,
-            name="Subscribers", line=dict(color="#a78bfa", width=2.5),
-            mode="lines+markers", marker=dict(size=6),
-            fill="tozeroy", fillcolor="rgba(167,139,250,0.08)",
-            hovertemplate="%{x}<br>%{y:.1f}K subscribers<extra></extra>",
-        ))
-        _base_layout(fig, "Prepaid Subscriber Trend (000s)", 280,
-                     y_range=[max(0, vals_k.min() - pad_k), vals_k.max() + pad_k])
-        fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
 
     with br:
