@@ -314,51 +314,151 @@ with tab1:
 with tab2:
     st.markdown(_tab_hdr("Prepaid Revenue"), unsafe_allow_html=True)
 
-    ttm_pre    = _ttm(prepaid)
-    aop_pre    = _annual_aop(prepaid)
-    var_pre    = (ttm_pre - aop_pre) / aop_pre * 100 if aop_pre else None
-    latest_pre = prepaid[prepaid["Month"] == "Apr-26"].iloc[0]
+    # ── Data prep ────────────────────────────────────────────────────────────
+    pre_mons    = list(prepaid["Month"].unique())
+    pre_latest  = prepaid[prepaid["Month"] == "Apr-26"]
+    pre_apr25   = prepaid[prepaid["Month"] == "Apr-25"]
 
-    subs_row_pre  = _latest_row_with(prepaid, "Subscribers")
-    arpu_row_pre  = _latest_row_with(prepaid, "ARPU")
-    subs_pre      = subs_row_pre["Subscribers"] if subs_row_pre is not None else 0
-    arpu_pre      = arpu_row_pre["ARPU"]         if arpu_row_pre is not None else 0
-    churn_pre     = latest_pre["Churn_Pct"]
+    # Revenue
+    apr26_rev   = float(pre_latest["Revenue"].sum())  if not pre_latest.empty else 0.0
+    apr25_rev   = float(pre_apr25["Revenue"].sum())   if not pre_apr25.empty else 0.0
+    _r_aop_raw  = pre_latest["Revenue_AOP"].values[0] if not pre_latest.empty else None
+    apr26_aop_v = (float(_r_aop_raw)
+                   if _r_aop_raw is not None and pd.notna(_r_aop_raw) else None)
+    rev_aop_pct = (apr26_rev - apr26_aop_v) / apr26_aop_v * 100 if apr26_aop_v else None
+    rev_aop_m   = apr26_rev - apr26_aop_v if apr26_aop_v else None
+    rev_py_m    = apr26_rev - apr25_rev if apr25_rev else None
 
-    apr25_pre_rev = prepaid[prepaid["Month"]=="Apr-25"]["Revenue"].sum()
-    apr26_pre_rev = latest_pre["Revenue"]
-    yoy_pre_delta = apr26_pre_rev - apr25_pre_rev
-    yoy_pre_pct   = yoy_pre_delta / apr25_pre_rev * 100 if apr25_pre_rev else 0
+    # Subscribers
+    subs_row   = _latest_row_with(prepaid, "Subscribers")
+    subs_lat   = float(subs_row["Subscribers"]) if subs_row is not None else 0.0
+    subs_25    = float(pre_apr25["Subscribers"].sum()) if not pre_apr25.empty else 0.0
+    _churn_raw = pre_latest["Churn_Pct"].values[0] if not pre_latest.empty else None
+    churn_pre  = (float(_churn_raw)
+                  if _churn_raw is not None and pd.notna(_churn_raw) else None)
+    _saop      = "Subscribers_AOP"
+    subs_aop_v = (float(pre_latest[_saop].values[0])
+                  if not pre_latest.empty and _saop in pre_latest.columns
+                  and pd.notna(pre_latest[_saop].values[0]) else None)
+    subs_aop_pct = (subs_lat - subs_aop_v) / subs_aop_v * 100 if subs_aop_v else None
+    subs_py_pct  = (subs_lat - subs_25) / subs_25 * 100 if subs_25 else None
 
-    k1,k2,k3,k4 = st.columns(4)
-    k1.markdown(_card("Prepaid Revenue (TTM)", f"TT${ttm_pre:.0f}M",
-                      _vs(var_pre), _vc(var_pre), accent="#a78bfa"), unsafe_allow_html=True)
-    k2.markdown(_card("Subscribers", _fmt_k(subs_pre),
-                      f"Churn: {churn_pre:.1f}%" if churn_pre else "Churn: —",
-                      "#8899bb", accent="#22c55e"), unsafe_allow_html=True)
-    k3.markdown(_card("ARPU", f"TT${arpu_pre:.0f}",
-                      "Monthly avg", "#8899bb", accent="#f59e0b"), unsafe_allow_html=True)
-    yoy_pre_col = _vc(yoy_pre_pct)
-    yoy_pre_lbl = ("flat" if abs(yoy_pre_pct) < 0.05
-                   else f"TT${yoy_pre_delta:+.1f}M  ({yoy_pre_pct:+.1f}%)")
-    k4.markdown(_card("YoY Change", yoy_pre_lbl if abs(yoy_pre_pct) > 0.05 else "Flat YoY",
-                      f"Apr-25 vs Apr-26", yoy_pre_col, accent="#4a9eff"), unsafe_allow_html=True)
+    # ARPU
+    arpu_row   = _latest_row_with(prepaid, "ARPU")
+    arpu_lat   = float(arpu_row["ARPU"]) if arpu_row is not None else 0.0
+    arpu_25    = (float(pre_apr25["ARPU"].mean())
+                  if not pre_apr25.empty and pre_apr25["ARPU"].sum() > 0 else 0.0)
+    _aaop      = "ARPU_AOP"
+    arpu_aop_v = (float(pre_latest[_aaop].values[0])
+                  if not pre_latest.empty and _aaop in pre_latest.columns
+                  and pd.notna(pre_latest[_aaop].values[0]) else None)
+    arpu_aop_pct = (arpu_lat - arpu_aop_v) / arpu_aop_v * 100 if arpu_aop_v else None
+    arpu_py_pct  = (arpu_lat - arpu_25) / arpu_25 * 100 if arpu_25 else None
 
-    st.markdown("<div style='margin:12px 0'></div>", unsafe_allow_html=True)
-    ml, mr = st.columns([11, 9])
+    # Sparklines
+    rev_spark  = prepaid.set_index("Month")["Revenue"].reindex(pre_mons).fillna(0).tolist()
+    subs_spark = prepaid.set_index("Month")["Subscribers"].reindex(pre_mons).fillna(0).tolist()
+    arpu_spark = prepaid.set_index("Month")["ARPU"].reindex(pre_mons).fillna(0).tolist()
+
+    # TTM for product chart
+    ttm_pre = _ttm(prepaid)
+
+    # ── KPI card builder ─────────────────────────────────────────────────────
+    def _pre_kpi(label, value, line1, l1_col, line2, l2_col, accent, spark, badge=None):
+        b_html = (
+            f'<span style="display:inline-block;background:rgba(239,68,68,0.12);'
+            f'border:1px solid rgba(239,68,68,0.35);border-radius:20px;padding:2px 10px;'
+            f'font-size:10px;color:#f87171;font-weight:600;margin-top:6px">{badge}</span>'
+        ) if badge else ""
+        sp_html = (
+            f'<div style="margin-top:7px;opacity:0.9">{_sparkline(spark, accent, 36)}</div>'
+        ) if spark else ""
+        return (
+            f'<div style="background:#1a1a2e;border-radius:10px;padding:16px 16px;'
+            f'border:1px solid #2a2a4a;border-top:3px solid {accent};height:100%">'
+            f'<div style="font-size:10px;color:#7788aa;font-weight:600;text-transform:uppercase;'
+            f'letter-spacing:1px;margin-bottom:8px">{label}</div>'
+            f'<div style="font-size:26px;font-weight:800;color:white;line-height:1.1;'
+            f'margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+            f'{value}</div>'
+            f'<div style="font-size:11px;color:{l1_col};font-weight:600;margin-bottom:3px">'
+            f'{line1}</div>'
+            f'<div style="font-size:11px;color:{l2_col};font-weight:600">{line2}</div>'
+            f'{b_html}{sp_html}'
+            f'</div>'
+        )
+
+    # ── Row 1 — 3 KPI cards ──────────────────────────────────────────────────
+    k1, k2, k3 = st.columns(3)
+
+    # Card 1: Revenue
+    r_aop_col = "#22c55e" if (rev_aop_pct or 0) >= 0 else "#ef4444"
+    r_l1 = (f"{rev_aop_pct:+.1f}% vs AOP | TT${rev_aop_m:+.1f}M"
+            if rev_aop_pct is not None else "— vs AOP")
+    r_l2 = f"TT${rev_py_m:+.1f}M vs PY" if rev_py_m is not None else "— vs PY"
+    k1.markdown(_pre_kpi(
+        "Prepaid Revenue", f"TT${apr26_rev:.1f}M",
+        r_l1, r_aop_col, r_l2, "#f59e0b",
+        "#a78bfa", rev_spark,
+    ), unsafe_allow_html=True)
+
+    # Card 2: Subscribers
+    s_l1_col = ("#22c55e" if (subs_aop_pct or 0) >= 0
+                else "#ef4444" if subs_aop_pct is not None else "#7788aa")
+    s_l1 = (f"vs AOP: {subs_aop_pct:+.1f}%"
+            if subs_aop_pct is not None else "vs AOP: —")
+    s_l2_col = ("#22c55e" if (subs_py_pct or 0) >= 0
+                else "#ef4444" if subs_py_pct is not None else "#7788aa")
+    s_l2 = (f"vs PY: {subs_py_pct:+.1f}%"
+            if subs_py_pct is not None else "vs PY: —")
+    churn_badge = f"Churn: {churn_pre:.1f}%" if churn_pre is not None else None
+    k2.markdown(_pre_kpi(
+        "Subscribers", _fmt_k(subs_lat),
+        s_l1, s_l1_col, s_l2, s_l2_col,
+        "#22c55e", subs_spark, badge=churn_badge,
+    ), unsafe_allow_html=True)
+
+    # Card 3: ARPU
+    a_l1_col = ("#22c55e" if (arpu_aop_pct or 0) >= 0
+                else "#ef4444" if arpu_aop_pct is not None else "#7788aa")
+    a_l1 = (f"vs AOP: {arpu_aop_pct:+.1f}%"
+            if arpu_aop_pct is not None else "vs AOP: —")
+    a_l2_col = ("#22c55e" if (arpu_py_pct or 0) >= 0
+                else "#ef4444" if arpu_py_pct is not None else "#7788aa")
+    a_l2 = (f"vs PY: {arpu_py_pct:+.1f}%"
+            if arpu_py_pct is not None else "vs PY: —")
+    k3.markdown(_pre_kpi(
+        "ARPU", f"${arpu_lat:.0f}",
+        a_l1, a_l1_col, a_l2, a_l2_col,
+        "#f59e0b", arpu_spark,
+    ), unsafe_allow_html=True)
+
+    st.markdown("<div style='margin:14px 0'></div>", unsafe_allow_html=True)
+
+    # ── Row 2 — Revenue Trend + Product Breakdown ─────────────────────────────
+    ml, mr = st.columns([55, 45])
 
     with ml:
-        pre_mons = list(prepaid["Month"].unique())
-        pre_rev  = prepaid.set_index("Month")["Revenue"].reindex(pre_mons)
-        pre_days = pd.to_datetime(pd.Series(pre_mons), format="%b-%y").dt.days_in_month.values
-        pre_daily = [r / d if pd.notna(r) else None for r, d in zip(pre_rev.values, pre_days)]
+        pre_rev_ser = prepaid.set_index("Month")["Revenue"].reindex(pre_mons)
+        pre_aop_ser = prepaid.set_index("Month")["Revenue_AOP"].reindex(pre_mons)
+        rv = pre_rev_ser.dropna().values
+        pad_r = (rv.max() - rv.min()) * 0.18 if len(rv) > 1 else 2
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=pre_mons, y=pre_daily, name="Avg Daily Revenue",
-                                 line=dict(color="#22c55e",width=2.5), mode="lines+markers",
-                                 marker=dict(size=6),
-                                 hovertemplate="%{x}<br>TT$%{y:.2f}M/day<extra></extra>"))
-        _base_layout(fig, "Prepaid Avg Daily Revenue by Month (TT$M)", 290)
-        fig.update_layout(showlegend=False)
+        fig.add_trace(go.Scatter(
+            x=pre_mons, y=pre_rev_ser.values, name="Actual",
+            line=dict(color="#22c55e", width=2.5),
+            mode="lines+markers", marker=dict(size=6),
+            fill="tozeroy", fillcolor="rgba(34,197,94,0.08)",
+            hovertemplate="%{x}<br>TT$%{y:.1f}M<extra></extra>",
+        ))
+        fig.add_trace(go.Scatter(
+            x=pre_mons, y=pre_aop_ser.values, name="AOP",
+            line=dict(color="#555577", width=1.5, dash="dash"),
+            mode="lines",
+            hovertemplate="%{x}<br>AOP TT$%{y:.1f}M<extra></extra>",
+        ))
+        yr = [max(0, rv.min() - pad_r), rv.max() + pad_r] if len(rv) > 0 else None
+        _base_layout(fig, "Prepaid Revenue Trend (TT$M)", 290, y_range=yr)
         st.plotly_chart(fig, use_container_width=True)
 
     with mr:
@@ -366,50 +466,67 @@ with tab2:
         splits    = [0.63, 0.27, 0.09, 0.01]
         prod_vals = [ttm_pre * s for s in splits]
         fig = go.Figure(go.Bar(
-            y=products, x=prod_vals, orientation="h",
-            marker_color="#4a9eff",
-            text=[f"TT${v:.0f}M  ({s*100:.0f}%)" for v,s in zip(prod_vals,splits)],
-            textposition="outside", textfont=dict(color="white",size=11),
+            y=products[::-1], x=prod_vals[::-1], orientation="h",
+            marker_color=["#aad4ff", "#88c4ff", "#6ab0ff", "#4a9eff"],
+            text=[f"TT${v:.0f}M  ({s*100:.0f}%)"
+                  for v, s in zip(prod_vals[::-1], splits[::-1])],
+            textposition="outside", textfont=dict(color="white", size=11),
         ))
         _base_layout(fig, "Revenue by Product — YTD (TT$M)", 290)
-        fig.update_layout(showlegend=False,
-                          xaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="#8888aa"),
-                                     range=[0, max(prod_vals)*1.35]),
-                          yaxis=dict(gridcolor="#1e1e3a",tickfont=dict(color="white",size=12)))
+        fig.update_layout(
+            showlegend=False,
+            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
+                       range=[0, max(prod_vals) * 1.45]),
+            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=12)),
+        )
         st.plotly_chart(fig, use_container_width=True)
 
-    bl, br = st.columns([11, 9])
+    # ── Row 3 — Subscriber Trend + Commentary ─────────────────────────────────
+    bl, br = st.columns([55, 45])
 
     with bl:
         pre_subs_df = prepaid[prepaid["Subscribers"] > 0].copy()
+        vals_k = pre_subs_df["Subscribers"].values / 1000
+        pad_k  = (vals_k.max() - vals_k.min()) * 0.18 if len(vals_k) > 1 else 5
         fig = go.Figure()
         fig.add_trace(go.Scatter(
-            x=pre_subs_df["Month"], y=pre_subs_df["Subscribers"] / 1000,
-            name="Subscribers", line=dict(color="#a78bfa",width=2.5),
+            x=pre_subs_df["Month"], y=vals_k,
+            name="Subscribers", line=dict(color="#a78bfa", width=2.5),
             mode="lines+markers", marker=dict(size=6),
+            fill="tozeroy", fillcolor="rgba(167,139,250,0.08)",
             hovertemplate="%{x}<br>%{y:.1f}K subscribers<extra></extra>",
         ))
-        vals_k = pre_subs_df["Subscribers"].values / 1000
-        pad    = (vals_k.max() - vals_k.min()) * 0.2 or 5
         _base_layout(fig, "Prepaid Subscriber Trend (000s)", 280,
-                     y_range=[vals_k.min()-pad, vals_k.max()+pad])
+                     y_range=[max(0, vals_k.min() - pad_k), vals_k.max() + pad_k])
         fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
 
     with br:
+        _rev_dir  = "above" if (rev_aop_pct or 0) >= 0 else "below"
+        _aop_col  = "#22c55e" if (rev_aop_pct or 0) >= 0 else "#ef4444"
+        _py_cl    = (f", TT${abs(rev_py_m):.1f}M "
+                     f"{'above' if (rev_py_m or 0) >= 0 else 'below'} prior year"
+                     if rev_py_m is not None else "")
+        _s_dir    = "increased" if (subs_py_pct or 0) >= 0 else "declined"
+        _a_dir    = "above" if (arpu_py_pct or 0) >= 0 else "below"
+        _churn_n  = ("stable retention"
+                     if (churn_pre or 0) < 5
+                     else "elevated churn requiring targeted retention")
+        _churn_cl = (f"churn at {churn_pre:.1f}% indicating {_churn_n}"
+                     if churn_pre is not None else "churn data unavailable")
         pre_cmt = (
-            f"Prepaid revenue of TT${apr26_pre_rev:.1f}M in Apr-26 is "
-            f"{abs(var_pre):.1f}% {'above' if (var_pre or 0) >= 0 else 'below'} AOP, "
-            f"with TTM performance of TT${ttm_pre:.0f}M tracking ahead of "
-            f"the annualised plan of TT${aop_pre:.0f}M. "
-            f"Data Bundles are the dominant revenue driver at 63% of YTD revenue "
-            f"(TT${prod_vals[0]:.0f}M), reflecting accelerating migration from "
-            f"voice-only plans to data-led services. "
-            f"The subscriber base stood at {_fmt_k(subs_pre)} in {subs_row_pre['Month']}, "
-            f"with a gradual softening from the Apr-25 high of 418K signalling the "
-            f"need for targeted retention campaigns. "
-            f"Sustaining ARPU above TT$78 and converting PAYGO customers to recurring "
-            f"data bundles remain the key levers for protecting prepaid margin contribution."
+            f"Prepaid revenue of <strong style='color:white'>TT${apr26_rev:.1f}M</strong> "
+            f"in Apr-26 is <strong style='color:{_aop_col}'>"
+            f"{abs(rev_aop_pct or 0):.1f}% {_rev_dir} AOP</strong>{_py_cl}. "
+            f"Data Bundles remain the dominant driver at 63% of YTD revenue "
+            f"(TT${prod_vals[0]:.0f}M), reflecting continued migration from voice-only plans "
+            f"to data-led services. "
+            f"The subscriber base of <strong style='color:white'>{_fmt_k(subs_lat)}</strong> "
+            f"has {_s_dir} {abs(subs_py_pct or 0):.1f}% year-on-year, "
+            f"with {_churn_cl}. "
+            f"ARPU of <strong style='color:white'>${arpu_lat:.0f}</strong> is "
+            f"{abs(arpu_py_pct or 0):.1f}% {_a_dir} prior year; converting PAYGO customers "
+            f"to recurring data bundles remains the key lever for sustaining ARPU growth."
         )
         st.markdown(_commentary(pre_cmt), unsafe_allow_html=True)
 
