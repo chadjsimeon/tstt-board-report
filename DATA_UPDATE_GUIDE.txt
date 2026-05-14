@@ -1,0 +1,396 @@
+================================================================================
+  TSTT BOARD REPORT — DATA UPDATE GUIDE
+  Last updated: May 2026
+================================================================================
+
+HOW TO RUN THE DASHBOARD
+────────────────────────
+1. Open a terminal / PowerShell in this folder:
+     C:\Users\chadj\OneDrive - tstt.co.tt\Financial Analysis\TSTT_Board_Report\
+
+2. Run:
+     streamlit run app.py
+
+3. Open your browser to: http://localhost:8501
+
+   If the port is busy try: streamlit run app.py --server.port 8502
+
+
+================================================================================
+  THE MASTER DATA FILE
+================================================================================
+
+All dashboard data (except AR Aging and Receivables) comes from ONE file:
+
+    TSTT_Board_Data.xlsx   (in the project root folder)
+
+It contains the following sheets. Each sheet name must be spelled EXACTLY
+as shown — they are case-sensitive.
+
+  Sheet Name          Page it feeds
+  ─────────────────── ──────────────────────────────────────────────────────
+  Financial_Monthly   Home (app.py) + Financial Performance
+  Cash_CAPEX          Cash, Working Capital & CAPEX
+  Consumer_Sales      Consumer Sales
+  Business_Sales      Business Sales (Financial Performance tab)
+  Pipeline            Business Sales (Pipeline tab)
+  Renewals            Business Sales (Renewals at Risk tab)
+  DPDI                DPDI
+  AMPLIA_Financial    Amplia
+  OPEX                OPEX & Cost Management
+  EBITDA_Bridge       Financial Performance (waterfall chart)
+  PnL_Breakdown       Financial Performance (P&L table)
+  KPI_Summary         Home (app.py) + Enterprise Scorecard
+
+MONTH FORMAT: All "Month" columns must use the format  Apr-26  (Mon-YY).
+              Do NOT use full dates or different formats.
+
+
+================================================================================
+  SHEET-BY-SHEET UPDATE INSTRUCTIONS
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+1. FINANCIAL_MONTHLY
+   Page: Home / Financial Performance
+────────────────────────────────────────────────────────────────────────────────
+Add one new row per month. All monetary values enter in RAW TT$ (the dashboard
+divides by 1,000,000 automatically).
+
+  Column          Format    Description
+  ─────────────── ───────── ──────────────────────────────────────────────────
+  Month           Mon-YY    e.g. Apr-26
+  Revenue         Raw TT$   Total company revenue
+  Revenue_AOP     Raw TT$   Annual Operating Plan revenue target
+  EBITDA          Raw TT$   EBITDA actual
+  EBITDA_AOP      Raw TT$   EBITDA AOP target
+  EBITDA_Margin   Decimal   e.g. 0.28 for 28%  (NOT 28)
+  PAT             Raw TT$   Profit After Tax actual
+  PAT_AOP         Raw TT$   PAT AOP target
+
+  NOTE: Revenue_PY, EBITDA_PY, PAT_PY are auto-calculated by the dashboard
+  (it looks back 12 rows). Do NOT add PY columns — they are derived.
+
+────────────────────────────────────────────────────────────────────────────────
+2. CASH_CAPEX
+   Page: Cash, Working Capital & CAPEX
+────────────────────────────────────────────────────────────────────────────────
+Add one new row per month. Monetary values in RAW TT$.
+
+  Column          Format    Description
+  ─────────────── ───────── ──────────────────────────────────────────────────
+  Month           Mon-YY
+  Cash_Balance    Raw TT$   Closing cash balance
+  Net_Debt        Raw TT$   Net debt position
+  FCF             Raw TT$   Free Cash Flow for the month
+  CAPEX_Actual    Raw TT$   CAPEX spent this month
+  CAPEX_Plan      Raw TT$   CAPEX plan/budget for the month
+
+  NOTE: Collections_Pct column exists but is no longer displayed.
+  FCF Yield (FCF ÷ Revenue) is derived automatically.
+
+────────────────────────────────────────────────────────────────────────────────
+3. CONSUMER_SALES
+   Page: Consumer Sales
+────────────────────────────────────────────────────────────────────────────────
+One row per Segment per Month. Monetary values in RAW TT$.
+
+  Column          Format    Description
+  ─────────────── ───────── ──────────────────────────────────────────────────
+  Month           Mon-YY
+  Segment         Text      Prepaid / Postpaid / WTTx
+  Revenue         Raw TT$   Revenue for that segment
+  Revenue_AOP     Raw TT$   AOP target for that segment
+  Subscribers     Count     Closing subscriber count (raw number)
+  YoY_Change_Pct  Decimal   e.g. 0.05 for +5% YoY  (NOT 5)
+  ARPU            Raw TT$   If blank, calculated as Revenue÷Subscribers
+  Gross_Adds      Count     New subscribers added in the month
+  Disc            Count     Disconnections in the month
+  Plan            Count     Subscriber plan/target for the month
+
+  NOTE: Churn_Pct is auto-calculated by the dashboard from month-over-month
+  subscriber changes. Do NOT add a Churn_Pct column.
+
+────────────────────────────────────────────────────────────────────────────────
+4. BUSINESS_SALES
+   Page: Business Sales → Financial Performance tab
+────────────────────────────────────────────────────────────────────────────────
+One row per Segment per Month. Monetary values in RAW TT$.
+
+  CORE COLUMNS (existing data):
+  Column            Format    Description
+  ───────────────── ───────── ────────────────────────────────────────────────
+  Month             Mon-YY
+  Segment           Text      Business segment name (e.g. Large Enterprise)
+  Revenue           Raw TT$   Total segment revenue
+  Revenue_AOP       Raw TT$   Revenue AOP target
+  Gross_Profit      Raw TT$   Gross profit (if blank, derived as Revenue minus
+                              Direct_Costs)
+  GP_AOP            Raw TT$   Gross Profit AOP (if blank, derived as
+                              Revenue_AOP minus Direct_Costs_AOP)
+  Contribution      Raw TT$   Contribution margin
+  MRR               Raw TT$   Monthly Recurring Revenue
+  MRR_AOP           Raw TT$   MRR AOP target
+  Direct_Costs      Raw TT$   Direct/cost-of-sales costs
+  Direct_Costs_AOP  Raw TT$   Direct Costs AOP target
+  GP_Margin_Pct     Decimal   e.g. 0.45 for 45%  (NOT 45)
+
+  NEW COLUMNS (added for Financial Performance tab breakdown):
+  Column            Format    Description
+  ───────────────── ───────── ────────────────────────────────────────────────
+  Mobile            Raw TT$   Mobile revenue component
+  Mobile_AOP        Raw TT$   Mobile revenue AOP
+  USAGE             Raw TT$   Usage-based revenue
+  USAGE_AOP         Raw TT$   Usage AOP
+  OCC               Raw TT$   One-time / occasional charges revenue
+  OCC_AOP           Raw TT$   OCC AOP
+  Mobile_Subs       Count     Mobile subscriber count (raw number, NOT in M)
+  Subs_AOP          Count     Mobile subscriber AOP target (raw number)
+
+  NOTE: ARPU is auto-calculated as Mobile (TT$) ÷ Mobile_Subs.
+  PY comparisons are derived from the row 12 months prior.
+  If Mobile/USAGE/OCC columns are absent, those cards show "—" gracefully.
+
+────────────────────────────────────────────────────────────────────────────────
+5. PIPELINE
+   Page: Business Sales → Pipeline tab
+────────────────────────────────────────────────────────────────────────────────
+One row per pipeline Stage per Month. Monetary values in RAW TT$.
+
+  Column          Format    Description
+  ─────────────── ───────── ──────────────────────────────────────────────────
+  Month           Mon-YY
+  Stage           Text      Pipeline stage (Prospect, Proposal, Negotiation,
+                            Won, etc.)
+  Deal_Count      Count     Number of deals at this stage
+  Value_TTD_M     Raw TT$   Total value of deals at this stage
+  Avg_Deal_Size   Raw TT$   Average deal size
+  Win_Rate_Pct    Decimal   e.g. 0.35 for 35%  (NOT 35)
+
+────────────────────────────────────────────────────────────────────────────────
+6. RENEWALS
+   Page: Business Sales → Renewals at Risk tab
+────────────────────────────────────────────────────────────────────────────────
+One row per at-risk renewal contract. Monetary values in RAW TT$.
+Update this table as the renewal position changes (no Month column needed).
+
+  Column          Format    Description
+  ─────────────── ───────── ──────────────────────────────────────────────────
+  Customer        Text      Customer / company name
+  Product_Service Text      Product or service being renewed
+  ACV_TTD_M       Raw TT$   Annual Contract Value
+  Expiry_Date     Date      Contract expiry date
+  Risk_Level      Text      High / Medium / Low
+  Status          Text      Secured / In Progress
+  Action_Plan     Text      Brief note on action being taken
+
+────────────────────────────────────────────────────────────────────────────────
+7. DPDI
+   Page: DPDI
+────────────────────────────────────────────────────────────────────────────────
+One row per Product per Month. Monetary values in RAW TT$.
+
+  Column          Format    Description
+  ─────────────── ───────── ──────────────────────────────────────────────────
+  Month           Mon-YY
+  Product         Text      e.g. e-GOVTT / e-Tender / e-Health / e-Pay /
+                            e-Kiosk
+  Revenue         Raw TT$
+  Revenue_AOP     Raw TT$
+  Gross_Profit    Raw TT$
+  EBITDA          Raw TT$
+  Direct_Costs    Raw TT$
+  GP_Margin_Pct   Decimal   e.g. 0.40 for 40%  (NOT 40)
+
+────────────────────────────────────────────────────────────────────────────────
+8. AMPLIA_FINANCIAL
+   Page: Amplia
+────────────────────────────────────────────────────────────────────────────────
+One row per Month. Monetary values in RAW TT$.
+
+  Column          Format    Description
+  ─────────────── ───────── ──────────────────────────────────────────────────
+  Month           Mon-YY
+  Revenue         Raw TT$
+  Revenue_AOP     Raw TT$
+  Gross_Profit    Raw TT$
+  EBITDA          Raw TT$
+  EBITDA_AOP      Raw TT$
+  PAT             Raw TT$
+  OPEX            Raw TT$
+  Direct_Costs    Raw TT$
+
+────────────────────────────────────────────────────────────────────────────────
+9. OPEX
+   Page: OPEX & Cost Management
+────────────────────────────────────────────────────────────────────────────────
+One row per cost Category per Month. Monetary values in RAW TT$.
+
+  Column          Format    Description
+  ─────────────── ───────── ──────────────────────────────────────────────────
+  Month           Mon-YY
+  Category        Text      Cost category name
+  Actual          Raw TT$   Actual spend
+  Plan            Raw TT$   Planned/budget spend
+
+  IMPORTANT: The category "DIG. PROD DEV & INNOV" is automatically separated
+  out as DPDI Cost of Sales and does NOT appear in the OPEX page. Keep this
+  row in the sheet — it feeds the DPDI page.
+
+  NOTE: Variance and Variance_Pct are auto-calculated. Do NOT add them.
+
+────────────────────────────────────────────────────────────────────────────────
+10. EBITDA_BRIDGE
+    Page: Financial Performance (waterfall chart)
+────────────────────────────────────────────────────────────────────────────────
+Static or monthly waterfall bridge data.
+
+  Column          Format    Description
+  ─────────────── ───────── ──────────────────────────────────────────────────
+  Sort_Order      Integer   Controls order of bars in the waterfall
+  Label           Text      Bar label (e.g. "PY EBITDA", "Revenue Growth")
+  Value           Raw TT$   Positive = favourable, Negative = unfavourable
+  Type            Text      "Increase" / "Decrease" / "Total"
+
+  NOTE: The LAST row's Value is auto-replaced with the sum of all other rows.
+  Keep a placeholder value there — it will be overwritten.
+
+────────────────────────────────────────────────────────────────────────────────
+11. PNL_BREAKDOWN
+    Page: Financial Performance (P&L table)
+────────────────────────────────────────────────────────────────────────────────
+Each row is a P&L line item; each column (except "Month") is a month.
+All values in RAW TT$.
+
+  Expected row labels (in the "Month" column, used as row labels):
+    CONSUMER_SALES_Rev      CONSUMER_SALES_COS     CONSUMER_SALES_Rev_AOP
+    BUSINESS_SALES_Rev      BUSINESS_SALES_COS     BUSINESS_SALES_Rev_AOP
+    AMPLIA_Rev              AMPLIA_COS             AMPLIA_Rev_AOP
+    DPDI_Rev                DPDI_COS               DPDI_Rev_AOP
+    OTHER_Rev               OTHER_COS              OTHER_Rev_AOP
+    Total_Rev               Total_COS              Total_OPEX     EBITDA
+
+  To add a new month: add a new column with the month label (Mon-YY format)
+  and fill in all row values in RAW TT$.
+
+────────────────────────────────────────────────────────────────────────────────
+12. KPI_SUMMARY
+    Page: Home (app.py) + Enterprise Scorecard
+────────────────────────────────────────────────────────────────────────────────
+One row per KPI per Month.
+
+  Column          Format    Description
+  ─────────────── ───────── ──────────────────────────────────────────────────
+  Month           Mon-YY
+  Section         Text      Financial / Customer / Network / People
+  KPI_Name        Text      KPI label (must be consistent across months —
+                            PY is derived by matching KPI_Name 12 months back)
+  Actual          Number    Actual value (raw TT$ if Unit=TT$M, decimal if %)
+  AOP             Number    AOP target (same units as Actual)
+  Status          Text      On Track / At Risk / Off Track
+  Unit            Text      TT$M  or  %  or  #
+
+  NOTE: The PY column (8th column) is optional — the dashboard derives PY
+  from the Actual of the same KPI_Name 12 months earlier.
+
+
+================================================================================
+  AR AGING / RECEIVABLES (SEPARATE FILE)
+================================================================================
+
+The Cash & CAPEX page also reads AR aging data from a separate file:
+
+    Receivables Executive Summary.xlsx
+
+  Sheet:  "Exec. Summary Receivables"
+
+This file uses hardcoded row positions (confirmed for April 2026, column 74).
+When a new reporting month is available, the column index in the code may need
+updating. To change the month column, edit this line in pages/3_Cash_CAPEX.py:
+
+    APR = 74   ← change this to the correct column index for the new month
+               (0-based: column A = 0, column B = 1, etc.)
+
+Row positions used (0-based):
+  Rows 22–28  →  Fixed Enterprise Government aging buckets
+  Rows 40–46  →  Mobile Enterprise Government aging buckets
+  Rows  4–10  →  Total (all customers) aging buckets
+  Government = rows 22–28 + rows 40–46
+  Non-Government = Total minus Government
+
+  Aging buckets:
+    Row offset 0 → 0–30 days
+    Row offset 1 → 31–60 days
+    Row offset 2 → 61–90 days
+    Row offset 3 → 91–180 days   (merged into 90–360 display)
+    Row offset 4 → 181–360 days  (merged into 90–360 display)
+    Row offset 5 → 360+ days
+
+
+================================================================================
+  DATA RULES & COMMON MISTAKES
+================================================================================
+
+  ✓ DO:
+    - Use Mon-YY format for ALL Month columns (e.g. Apr-26, May-26)
+    - Enter all monetary values in RAW TT$ — the dashboard converts to TT$M
+    - Enter percentages as DECIMALS in most sheets (0.28 not 28) EXCEPT
+      Consumer_Sales.YoY_Change_Pct which is also decimal
+    - Keep sheet names exactly as listed — they are case-sensitive
+    - Add new months as new ROWS (not new columns), except PnL_Breakdown
+      which uses months as columns
+
+  ✗ DO NOT:
+    - Enter monetary values already in millions — the dashboard will
+      divide again and show values 1,000,000× too small
+    - Add PY columns (Revenue_PY, EBITDA_PY, etc.) — they are auto-derived
+    - Add Variance or Variance_Pct to OPEX — auto-calculated
+    - Add Churn_Pct to Consumer_Sales — auto-calculated
+    - Rename or delete any sheet
+    - Change the column order — add new columns at the end if needed
+
+
+================================================================================
+  MONTH-END UPDATE CHECKLIST
+================================================================================
+
+For each new reporting month (e.g. adding May-26):
+
+  [ ] 1. Open TSTT_Board_Data.xlsx
+
+  [ ] 2. Financial_Monthly    — add 1 row with Revenue, EBITDA, PAT actuals + AOP
+
+  [ ] 3. Cash_CAPEX           — add 1 row with Cash, Net Debt, FCF, CAPEX
+
+  [ ] 4. Consumer_Sales       — add 3 rows (one each for Prepaid, Postpaid, WTTx)
+                                with Revenue, Subscribers, Gross_Adds, Disc
+
+  [ ] 5. Business_Sales       — add rows (one per Segment) with Revenue, MRR,
+                                Direct_Costs, Gross_Profit, and the new columns:
+                                Mobile, USAGE, OCC, Mobile_Subs (if available)
+
+  [ ] 6. Pipeline             — add rows (one per Stage) with deal counts + values
+
+  [ ] 7. DPDI                 — add rows (one per Product) with Revenue, GP, EBITDA
+
+  [ ] 8. AMPLIA_Financial     — add 1 row with all financial metrics
+
+  [ ] 9. OPEX                 — add rows (one per Category) with Actual + Plan
+
+  [ ] 10. EBITDA_Bridge       — update values for the new month's waterfall
+
+  [ ] 11. PnL_Breakdown       — add a new column for the new month
+
+  [ ] 12. KPI_Summary         — add rows for each KPI with Actual, AOP, Status
+
+  [ ] 13. Renewals            — update statuses / add or remove contracts as needed
+
+  [ ] 14. Save TSTT_Board_Data.xlsx
+
+  [ ] 15. If AR Aging column has moved, update APR = XX in pages/3_Cash_CAPEX.py
+
+  [ ] 16. Run:  streamlit run app.py
+               Then clear the cache if data looks stale:
+               Click the ⋮ menu (top-right of browser) → Clear cache
+
+================================================================================
