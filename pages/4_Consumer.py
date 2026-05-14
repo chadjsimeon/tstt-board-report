@@ -375,7 +375,7 @@ with tab2:
         ) if spark else ""
         return (
             f'<div style="background:#1a1a2e;border-radius:10px;padding:16px 16px;'
-            f'border:1px solid #2a2a4a;border-top:3px solid {accent};min-height:195px">'
+            f'border:1px solid #2a2a4a;border-top:3px solid {accent};height:100%">'
             f'<div style="font-size:10px;color:#7788aa;font-weight:600;text-transform:uppercase;'
             f'letter-spacing:1px;margin-bottom:8px">{label}</div>'
             f'<div style="font-size:26px;font-weight:800;color:white;line-height:1.1;'
@@ -389,20 +389,11 @@ with tab2:
         )
 
     # ── Row 1 — 3 KPI cards ──────────────────────────────────────────────────
-    k1, k2, k3 = st.columns(3)
-
-    # Card 1: Revenue
     r_aop_col = "#22c55e" if (rev_aop_pct or 0) >= 0 else "#ef4444"
     r_l1 = (f"{rev_aop_pct:+.1f}% vs AOP | TT${rev_aop_m:+.1f}M"
             if rev_aop_pct is not None else "— vs AOP")
     r_l2 = f"TT${rev_py_m:+.1f}M vs PY" if rev_py_m is not None else "— vs PY"
-    k1.markdown(_pre_kpi(
-        "Prepaid Revenue", f"TT${apr26_rev:.1f}M",
-        r_l1, r_aop_col, r_l2, "#f59e0b",
-        "#a78bfa", rev_spark,
-    ), unsafe_allow_html=True)
 
-    # Card 2: Subscribers
     s_l1_col = ("#22c55e" if (subs_aop_pct or 0) >= 0
                 else "#ef4444" if subs_aop_pct is not None else "#7788aa")
     s_l1 = (f"vs AOP: {subs_aop_pct:+.1f}%"
@@ -412,13 +403,7 @@ with tab2:
     s_l2 = (f"vs PY: {subs_py_pct:+.1f}%"
             if subs_py_pct is not None else "vs PY: —")
     churn_badge = f"Churn: {churn_pre:.1f}%" if churn_pre is not None else None
-    k2.markdown(_pre_kpi(
-        "Subscribers", _fmt_k(subs_lat),
-        s_l1, s_l1_col, s_l2, s_l2_col,
-        "#22c55e", subs_spark, badge=churn_badge,
-    ), unsafe_allow_html=True)
 
-    # Card 3: ARPU
     a_l1_col = ("#22c55e" if (arpu_aop_pct or 0) >= 0
                 else "#ef4444" if arpu_aop_pct is not None else "#7788aa")
     a_l1 = (f"vs AOP: {arpu_aop_pct:+.1f}%"
@@ -427,13 +412,21 @@ with tab2:
                 else "#ef4444" if arpu_py_pct is not None else "#7788aa")
     a_l2 = (f"vs PY: {arpu_py_pct:+.1f}%"
             if arpu_py_pct is not None else "vs PY: —")
-    k3.markdown(_pre_kpi(
-        "ARPU", f"${arpu_lat:.0f}",
-        a_l1, a_l1_col, a_l2, a_l2_col,
-        "#f59e0b", arpu_spark,
-    ), unsafe_allow_html=True)
 
-    st.markdown("<div style='margin:14px 0'></div>", unsafe_allow_html=True)
+    _c1 = _pre_kpi("Prepaid Revenue", f"TT${apr26_rev:.1f}M",
+                   r_l1, r_aop_col, r_l2, "#f59e0b", "#a78bfa", rev_spark)
+    _c2 = _pre_kpi("Subscribers", _fmt_k(subs_lat),
+                   s_l1, s_l1_col, s_l2, s_l2_col, "#22c55e", subs_spark, badge=churn_badge)
+    _c3 = _pre_kpi("ARPU", f"${arpu_lat:.0f}",
+                   a_l1, a_l1_col, a_l2, a_l2_col, "#f59e0b", arpu_spark)
+    st.markdown(
+        f'<div style="display:flex;gap:16px;align-items:stretch;margin-bottom:14px">'
+        f'<div style="flex:1">{_c1}</div>'
+        f'<div style="flex:1">{_c2}</div>'
+        f'<div style="flex:1">{_c3}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
     # ── Avg daily revenue calc ────────────────────────────────────────────────
     import calendar as _cal
@@ -630,17 +623,10 @@ with tab3:
     ttm_pp = _ttm(postpaid)
 
     # ── Row 1 — 3 KPI cards ──────────────────────────────────────────────────
-    k1, k2, k3 = st.columns(3)
-
     pp_r_aop_col = "#22c55e" if (pp_aop_pct or 0) >= 0 else "#ef4444"
     pp_r_l1 = (f"{pp_aop_pct:+.1f}% vs AOP | TT${pp_aop_m:+.1f}M"
                if pp_aop_pct is not None else "— vs AOP")
     pp_r_l2 = f"TT${pp_py_m:+.1f}M vs PY" if pp_py_m is not None else "— vs PY"
-    k1.markdown(_pre_kpi(
-        "Postpaid Revenue", f"TT${pp26_rev:.1f}M",
-        pp_r_l1, pp_r_aop_col, pp_r_l2, "#f59e0b",
-        "#4a9eff", pp_rev_spark,
-    ), unsafe_allow_html=True)
 
     pp_s_l1_col = ("#22c55e" if (pp_subs_aop_pct or 0) >= 0
                    else "#ef4444" if pp_subs_aop_pct is not None else "#7788aa")
@@ -651,11 +637,6 @@ with tab3:
     pp_s_l2 = (f"vs PY: {pp_subs_py_pct:+.1f}%"
                if pp_subs_py_pct is not None else "vs PY: —")
     pp_churn_badge = f"Churn: {pp_churn:.1f}%" if pp_churn is not None else None
-    k2.markdown(_pre_kpi(
-        "Subscribers", _fmt_k(pp_subs_lat),
-        pp_s_l1, pp_s_l1_col, pp_s_l2, pp_s_l2_col,
-        "#22c55e", pp_subs_spark, badge=pp_churn_badge,
-    ), unsafe_allow_html=True)
 
     pp_a_l1_col = ("#22c55e" if (pp_arpu_aop_pct or 0) >= 0
                    else "#ef4444" if pp_arpu_aop_pct is not None else "#7788aa")
@@ -665,13 +646,22 @@ with tab3:
                    else "#ef4444" if pp_arpu_py_pct is not None else "#7788aa")
     pp_a_l2 = (f"vs PY: {pp_arpu_py_pct:+.1f}%"
                if pp_arpu_py_pct is not None else "vs PY: —")
-    k3.markdown(_pre_kpi(
-        "ARPU", f"${pp_arpu_lat:.0f}",
-        pp_a_l1, pp_a_l1_col, pp_a_l2, pp_a_l2_col,
-        "#f59e0b", pp_arpu_spark,
-    ), unsafe_allow_html=True)
 
-    st.markdown("<div style='margin:14px 0'></div>", unsafe_allow_html=True)
+    _pp_c1 = _pre_kpi("Postpaid Revenue", f"TT${pp26_rev:.1f}M",
+                      pp_r_l1, pp_r_aop_col, pp_r_l2, "#f59e0b", "#4a9eff", pp_rev_spark)
+    _pp_c2 = _pre_kpi("Subscribers", _fmt_k(pp_subs_lat),
+                      pp_s_l1, pp_s_l1_col, pp_s_l2, pp_s_l2_col,
+                      "#22c55e", pp_subs_spark, badge=pp_churn_badge)
+    _pp_c3 = _pre_kpi("ARPU", f"${pp_arpu_lat:.0f}",
+                      pp_a_l1, pp_a_l1_col, pp_a_l2, pp_a_l2_col, "#f59e0b", pp_arpu_spark)
+    st.markdown(
+        f'<div style="display:flex;gap:16px;align-items:stretch;margin-bottom:14px">'
+        f'<div style="flex:1">{_pp_c1}</div>'
+        f'<div style="flex:1">{_pp_c2}</div>'
+        f'<div style="flex:1">{_pp_c3}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
     # ── Row 2 — Revenue Trend + Product Breakdown ─────────────────────────────
     ml, mr = st.columns([55, 45])
@@ -826,17 +816,10 @@ with tab4:
     ttm_wx = _ttm(wttx)
 
     # ── Row 1 — 3 KPI cards ──────────────────────────────────────────────────
-    k1, k2, k3 = st.columns(3)
-
     wx_r_aop_col = "#22c55e" if (wx_aop_pct or 0) >= 0 else "#ef4444"
     wx_r_l1 = (f"{wx_aop_pct:+.1f}% vs AOP | TT${wx_aop_m:+.1f}M"
                if wx_aop_pct is not None else "— vs AOP")
     wx_r_l2 = f"TT${wx_py_m:+.1f}M vs PY" if wx_py_m is not None else "— vs PY"
-    k1.markdown(_pre_kpi(
-        "WTTx Revenue", f"TT${wx26_rev:.1f}M",
-        wx_r_l1, wx_r_aop_col, wx_r_l2, "#f59e0b",
-        "#00d4a0", wx_rev_spark,
-    ), unsafe_allow_html=True)
 
     wx_s_l1_col = ("#22c55e" if (wx_subs_aop_pct or 0) >= 0
                    else "#ef4444" if wx_subs_aop_pct is not None else "#7788aa")
@@ -847,11 +830,6 @@ with tab4:
     wx_s_l2 = (f"vs PY: {wx_subs_py_pct:+.1f}%"
                if wx_subs_py_pct is not None else "vs PY: —")
     wx_churn_badge = f"Churn: {wx_churn:.1f}%" if wx_churn is not None else None
-    k2.markdown(_pre_kpi(
-        "Subscribers", _fmt_k(wx_subs_lat),
-        wx_s_l1, wx_s_l1_col, wx_s_l2, wx_s_l2_col,
-        "#22c55e", wx_subs_spark, badge=wx_churn_badge,
-    ), unsafe_allow_html=True)
 
     wx_a_l1_col = ("#22c55e" if (wx_arpu_aop_pct or 0) >= 0
                    else "#ef4444" if wx_arpu_aop_pct is not None else "#7788aa")
@@ -861,13 +839,22 @@ with tab4:
                    else "#ef4444" if wx_arpu_py_pct is not None else "#7788aa")
     wx_a_l2 = (f"vs PY: {wx_arpu_py_pct:+.1f}%"
                if wx_arpu_py_pct is not None else "vs PY: —")
-    k3.markdown(_pre_kpi(
-        "ARPU", f"${wx_arpu_lat:.0f}",
-        wx_a_l1, wx_a_l1_col, wx_a_l2, wx_a_l2_col,
-        "#f59e0b", wx_arpu_spark,
-    ), unsafe_allow_html=True)
 
-    st.markdown("<div style='margin:14px 0'></div>", unsafe_allow_html=True)
+    _wx_c1 = _pre_kpi("WTTx Revenue", f"TT${wx26_rev:.1f}M",
+                      wx_r_l1, wx_r_aop_col, wx_r_l2, "#f59e0b", "#00d4a0", wx_rev_spark)
+    _wx_c2 = _pre_kpi("Subscribers", _fmt_k(wx_subs_lat),
+                      wx_s_l1, wx_s_l1_col, wx_s_l2, wx_s_l2_col,
+                      "#22c55e", wx_subs_spark, badge=wx_churn_badge)
+    _wx_c3 = _pre_kpi("ARPU", f"${wx_arpu_lat:.0f}",
+                      wx_a_l1, wx_a_l1_col, wx_a_l2, wx_a_l2_col, "#f59e0b", wx_arpu_spark)
+    st.markdown(
+        f'<div style="display:flex;gap:16px;align-items:stretch;margin-bottom:14px">'
+        f'<div style="flex:1">{_wx_c1}</div>'
+        f'<div style="flex:1">{_wx_c2}</div>'
+        f'<div style="flex:1">{_wx_c3}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
     # ── Row 2 — Revenue Trend + Product Breakdown ─────────────────────────────
     ml, mr = st.columns([55, 45])
