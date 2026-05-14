@@ -705,7 +705,7 @@ with tab3:
         _pp_plan_colors = ["#f59e0b", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"]
         _pp_plan_total  = sum(pp_plan_vals)
         _pp_dw = 0.56
-        _pp_dh, _pp_dt, _pp_db = 290, 44, 6
+        _pp_dh, _pp_dt, _pp_db = 420, 44, 6
         _pp_cx = _pp_dw / 2
         _pp_cy = (_pp_db + (_pp_dh - _pp_dt - _pp_db) / 2) / _pp_dh
         fig = go.Figure(go.Pie(
