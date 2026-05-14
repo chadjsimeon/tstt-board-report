@@ -103,14 +103,6 @@ except Exception:
 
 first_month = str(cc["Month"].iloc[0]) if len(cc) > 0 else "May"
 
-SPLITS = [
-    ("Access",    0.45),
-    ("Core",      0.22),
-    ("IT / BSS",  0.19),
-    ("Buildings", 0.08),
-    ("Other",     0.06),
-]
-
 # AR data — fall back to known Apr-26 values if file unavailable
 if ar:
     gov     = ar["gov"]
@@ -169,7 +161,7 @@ with col_left:
     fig_cash.update_layout(
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white", family="Inter, sans-serif"),
-        height=230, showlegend=False,
+        height=320, showlegend=False,
         margin=dict(l=8, r=8, t=6, b=20),
         xaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=10),
                    showline=False),
@@ -265,7 +257,7 @@ with col_right:
         barmode="stack",
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white", family="Inter, sans-serif"),
-        height=200,
+        height=300,
         margin=dict(l=8, r=8, t=36, b=10),
         xaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=10),
                    showline=False, zeroline=False, ticksuffix="M",
@@ -354,24 +346,6 @@ with col_right:
     cap_rem_label = "over budget" if capex_remaining < 0 else "remaining"
     cap_rem_sign  = "+" if capex_remaining < 0 else ""
 
-    _split_rows = []
-    for _sname, _spct in SPLITS:
-        _sact  = capex_act  * _spct
-        _splan = capex_plan * _spct
-        _sprog = min(_sact / _splan * 100, 100) if _splan else 0
-        _scol  = "#ef4444" if _sact > _splan else "#4a9eff"
-        _split_rows.append(f"""
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-    <span style="font-size:0.78rem;color:#aaaacc">{_sname}</span>
-    <span style="font-size:0.78rem;color:{_scol};font-weight:600">TT${_sact:,.1f}M</span>
-  </div>
-  <div style="background:#1e1e3a;border-radius:4px;height:6px;overflow:hidden">
-    <div style="background:{_scol};width:{_sprog:.1f}%;height:100%;border-radius:4px"></div>
-  </div>
-</div>""")
-    _splits_html = "".join(_split_rows)
-
     st.markdown(f"""
 <div style="background:#161b22;border-radius:8px;padding:18px 20px;
             border:1px solid #21262d;margin-top:4px">
@@ -385,7 +359,7 @@ with col_right:
   <div style="background:#1e1e3a;border-radius:8px;height:20px;overflow:hidden;margin-bottom:14px">
     <div style="background:{cap_bar_color};width:{capex_progress:.1f}%;height:100%;border-radius:8px"></div>
   </div>
-  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
     <div>
       <div style="color:{cap_pct_color};font-size:18px;font-weight:700">TT${capex_act:,.1f}M</div>
       <div style="color:#6688aa;font-size:12px;margin-top:2px">spent YTD</div>
@@ -398,12 +372,6 @@ with col_right:
       <div style="color:#aaaacc;font-size:18px;font-weight:700">TT${capex_plan:,.1f}M</div>
       <div style="color:#6688aa;font-size:12px;margin-top:2px">annual budget</div>
     </div>
-  </div>
-
-  <div style="border-top:1px solid #21262d;padding-top:14px">
-    <div style="font-size:0.65rem;font-weight:700;color:#556677;text-transform:uppercase;
-                letter-spacing:1.4px;margin-bottom:12px">Split by Category</div>
-    {_splits_html}
   </div>
 </div>""", unsafe_allow_html=True)
 
