@@ -128,20 +128,10 @@ tot_360p_pct  = total["360p"]   / AR_TOTAL * 100 if AR_TOTAL else 0
 
 # ── Page header ────────────────────────────────────────────────────────────────
 st.markdown(f"""
-<div class="page-header">
-  <div class="header-title">
-    <div style="background:#00e676;color:#000;font-size:13px;font-weight:900;
-                width:38px;height:38px;border-radius:6px;
-                display:flex;align-items:center;justify-content:center;flex-shrink:0">02</div>
-    <div>
-      <h1 class="header-h1">Cash, Working Capital &amp; CAPEX</h1>
-      <p class="subtitle">YTD {period_label}</p>
-    </div>
-  </div>
-  <div class="header-meta">
-    <span class="period-badge">All figures TT$'M</span>
-    <p class="subtitle" style="margin-top:4px;text-align:right">FY2026–27</p>
-  </div>
+<div style="width:100%;background:#0d1117;padding:16px 24px;margin-bottom:16px;display:block;">
+  <div style="font-size:0.75rem;color:#00e676;font-weight:600;margin-bottom:4px;">02</div>
+  <div style="font-size:1.4rem;font-weight:700;color:white;">Cash, Working Capital &amp; CAPEX</div>
+  <div style="font-size:0.8rem;color:#8b949e;margin-top:4px;">YTD {period_label} &nbsp;·&nbsp; All figures TT$'M</div>
 </div>
 """, unsafe_allow_html=True)
 
