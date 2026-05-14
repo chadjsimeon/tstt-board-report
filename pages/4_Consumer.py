@@ -891,17 +891,18 @@ with tab4:
     wx_daily["Daily_Rev"] = wx_daily["Revenue"]     / wx_daily["Days"]
     wx_daily["Daily_AOP"] = wx_daily["Revenue_AOP"] / wx_daily["Days"]
 
-    # ── ARPU Category — WTTx_ARPU_Cats sheet in TSTT_Board_Data.xlsx ────────
+    # ── Plan type — WTTx_Plans sheet in TSTT_Board_Data.xlsx ────────────────
     # Edit the Subscribers column in that sheet to replace dummy values.
-    _wx_arpu_raw = data.get("WTTx_ARPU_Cats", pd.DataFrame())
-    if not _wx_arpu_raw.empty and "Category" in _wx_arpu_raw.columns:
-        wx_arpu_cats = dict(zip(_wx_arpu_raw["Category"], _wx_arpu_raw["Subscribers"]))
+    _wx_plans_raw = data.get("WTTx_Plans", pd.DataFrame())
+    if not _wx_plans_raw.empty and "Plan" in _wx_plans_raw.columns:
+        wx_plan_names = _wx_plans_raw["Plan"].tolist()
+        wx_plan_vals  = _wx_plans_raw["Subscribers"].tolist()
     else:
-        wx_arpu_cats = {"Very Low": 25_000, "Low": 35_000, "Medium": 28_000,
-                        "High": 12_000, "Very High": 5_000}
+        wx_plan_names = ["Voice Only", "Bundles", "Data Only"]
+        wx_plan_vals  = [8_000, 35_000, 62_000]
     # ─────────────────────────────────────────────────────────────────────────
 
-    # ── Row 2 — Avg Daily Revenue + ARPU Category ─────────────────────────────
+    # ── Row 2 — Avg Daily Revenue + Plan Type ─────────────────────────────────
     ml, mr = st.columns([55, 45])
 
     with ml:
@@ -925,18 +926,16 @@ with tab4:
         st.plotly_chart(fig, use_container_width=True)
 
     with mr:
-        _wx_cat_names  = list(wx_arpu_cats.keys())
-        _wx_cat_vals   = list(wx_arpu_cats.values())
-        _wx_cat_colors = ["#6b7280", "#6366f1", "#a78bfa", "#f59e0b", "#22c55e"]
-        _wx_cat_total  = sum(_wx_cat_vals)
+        _wx_plan_colors = ["#f59e0b", "#a78bfa", "#00d4a0"]
+        _wx_plan_total  = sum(wx_plan_vals)
         _wx_dw = 0.56
-        _wx_dh, _wx_dt, _wx_db = 290, 44, 6
+        _wx_dh, _wx_dt, _wx_db = 420, 44, 6
         _wx_pie_cx = _wx_dw / 2
         _wx_pie_cy = (_wx_db + (_wx_dh - _wx_dt - _wx_db) / 2) / _wx_dh
         fig = go.Figure(go.Pie(
-            labels=_wx_cat_names, values=_wx_cat_vals, hole=0.48, sort=False,
+            labels=wx_plan_names, values=wx_plan_vals, hole=0.48, sort=False,
             domain=dict(x=[0, _wx_dw]),
-            marker=dict(colors=_wx_cat_colors,
+            marker=dict(colors=_wx_plan_colors,
                         line=dict(color="rgba(255,255,255,0.3)", width=2)),
             textinfo="percent", textfont=dict(color="white", size=11),
             textposition="inside",
@@ -946,7 +945,7 @@ with tab4:
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="white"), height=_wx_dh,
             title=dict(
-                text="<b>Subscribers by ARPU Category</b>"
+                text="<b>Subscribers by Plan Type</b>"
                      " <span style='color:#f87171;font-size:11px'>⚠ dummy data</span>",
                 font=dict(size=13, color="white"), x=0,
             ),
@@ -954,7 +953,7 @@ with tab4:
                         x=_wx_dw + 0.04, y=0.5, xanchor="left", yanchor="middle"),
             margin=dict(l=10, r=10, t=_wx_dt, b=_wx_db),
             annotations=[dict(
-                text=f"<b>{_wx_cat_total/1_000:.0f}K</b>",
+                text=f"<b>{_wx_plan_total/1_000:.0f}K</b>",
                 x=_wx_pie_cx, y=_wx_pie_cy, xanchor="center", yanchor="middle",
                 font=dict(size=14, color="white"), showarrow=False,
             )],
