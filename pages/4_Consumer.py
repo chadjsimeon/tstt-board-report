@@ -375,7 +375,7 @@ with tab2:
         ) if spark else ""
         return (
             f'<div style="background:#1a1a2e;border-radius:10px;padding:16px 16px;'
-            f'border:1px solid #2a2a4a;border-top:3px solid {accent};height:100%">'
+            f'border:1px solid #2a2a4a;border-top:3px solid {accent};min-height:195px">'
             f'<div style="font-size:10px;color:#7788aa;font-weight:600;text-transform:uppercase;'
             f'letter-spacing:1px;margin-bottom:8px">{label}</div>'
             f'<div style="font-size:26px;font-weight:800;color:white;line-height:1.1;'
