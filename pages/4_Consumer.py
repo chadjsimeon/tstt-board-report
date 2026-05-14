@@ -662,10 +662,46 @@ with tab3:
     )
 
     # ── Avg daily revenue calc ────────────────────────────────────────────────
-    pp_daily = postpaid[["Month", "Revenue", "Revenue_AOP"]].copy()
-    pp_daily["Days"]      = pp_daily["Month"].apply(_month_days)
-    pp_daily["Daily_Rev"] = pp_daily["Revenue"]     / pp_daily["Days"]
-    pp_daily["Daily_AOP"] = pp_daily["Revenue_AOP"] / pp_daily["Days"]
+    # ── Subscriber Net Movement data ──────────────────────────────────────────
+    pp_sorted = postpaid.copy()
+    pp_sorted["_dt"] = pd.to_datetime(pp_sorted["Month"], format="%b-%y", errors="coerce")
+    pp_sorted = pp_sorted.sort_values("_dt").reset_index(drop=True)
+
+    _mov_rows = []
+    for _i in range(1, len(pp_sorted)):
+        _prev = pp_sorted.iloc[_i - 1]
+        _curr = pp_sorted.iloc[_i]
+        _open = float(_prev["Subscribers"])
+        _clos = float(_curr["Subscribers"])
+        _chv  = _curr["Churn_Pct"]
+        _chrt = (float(_chv) if pd.notna(_chv) and float(_chv) > 0 else 1.5)
+        _disc = _open * _chrt / 100
+        _gros = max(0.0, (_clos - _open) + _disc)
+        _mov_rows.append({
+            "Month":   _curr["Month"],
+            "Opening": _open,
+            "Gross":   _gros,
+            "Disc":    _disc,
+            "Closing": _clos,
+            "Net":     _clos - _open,
+        })
+    mov_df   = pd.DataFrame(_mov_rows)
+    mov_mons = mov_df["Month"].tolist()
+    _op_v    = mov_df["Opening"].tolist()
+    _gr_v    = mov_df["Gross"].tolist()
+    _dc_v    = mov_df["Disc"].tolist()
+    _cl_v    = mov_df["Closing"].tolist()
+
+    # AOP implied subscriber base: Revenue_AOP (TT$M) × 1M ÷ ARPU (TT$)
+    pp_aop_subs = (pp_aop_v * 1_000_000 / pp_arpu_lat
+                   if pp_aop_v is not None and pp_arpu_lat > 0 else None)
+
+    # Y range: zoom to subscriber range so movement bars are visible
+    _all_y = _op_v + _cl_v + [o + g for o, g in zip(_op_v, _gr_v)] + [o - d for o, d in zip(_op_v, _dc_v)]
+    if pp_aop_subs:
+        _all_y.append(pp_aop_subs)
+    _mov_ymin = min(_all_y) * 0.996
+    _mov_ymax = max(_all_y) * 1.014
 
     # ── Active Plans — PP_Plans sheet in TSTT_Board_Data.xlsx ────────────────
     # Edit the Subscribers column in that sheet to replace dummy values.
@@ -678,28 +714,99 @@ with tab3:
         pp_plan_vals  = [45_000, 38_000, 22_000, 15_000, 8_000]
     # ─────────────────────────────────────────────────────────────────────────
 
-    # ── Row 2 — Avg Daily Revenue + Active Plans ──────────────────────────────
+    # ── Row 2 — Subscriber Net Movement + Active Plans ────────────────────────
     ml, mr = st.columns([55, 45])
 
     with ml:
-        pp_dvr     = pp_daily["Daily_Rev"].dropna().values
-        pp_dvr_pad = (pp_dvr.max() - pp_dvr.min()) * 0.18 if len(pp_dvr) > 1 else 0.05
         fig = go.Figure()
+
+        # Grey: Opening Base bars from 0 (semi-transparent bulk background)
         fig.add_trace(go.Bar(
-            x=pp_daily["Month"], y=pp_daily["Daily_Rev"],
-            name="Actual", marker_color="#4a9eff",
-            hovertemplate="%{x}<br>TT$%{y:.3f}M / day<extra></extra>",
+            x=mov_mons, y=_op_v,
+            name="Opening Base",
+            marker_color="rgba(120,130,165,0.40)",
+            marker_line_width=0,
+            hovertemplate="<b>%{x}</b><br>Opening Base: %{y:,.0f}<extra></extra>",
         ))
-        fig.add_trace(go.Scatter(
-            x=pp_daily["Month"], y=pp_daily["Daily_AOP"],
-            name="AOP", mode="lines",
-            line=dict(color="#555577", width=1.8, dash="dash"),
-            hovertemplate="%{x}<br>AOP TT$%{y:.3f}M / day<extra></extra>",
+        # Green: Gross Adds extending up from Opening
+        fig.add_trace(go.Bar(
+            x=mov_mons, y=_gr_v, base=_op_v,
+            name="Gross Adds",
+            marker_color="rgba(34,197,94,0.90)",
+            marker_line_width=0,
+            hovertemplate="<b>%{x}</b><br>Gross Adds: %{y:,.0f}<extra></extra>",
         ))
-        _base_layout(fig, "Avg Daily Postpaid Revenue (TT$M / day)", 290,
-                     y_range=([max(0, pp_dvr.min() - pp_dvr_pad), pp_dvr.max() + pp_dvr_pad]
-                               if len(pp_dvr) > 0 else None))
+        # Red: Disconnections hanging down from Opening
+        fig.add_trace(go.Bar(
+            x=mov_mons, y=[-d for d in _dc_v], base=_op_v,
+            name="Disconnections",
+            marker_color="rgba(239,68,68,0.90)",
+            marker_line_width=0,
+            hovertemplate="<b>%{x}</b><br>Disconnections: %{y:,.0f}<extra></extra>",
+        ))
+        # Dark blue: Closing Base total bar from 0
+        fig.add_trace(go.Bar(
+            x=mov_mons, y=_cl_v,
+            name="Closing Base",
+            marker_color="rgba(30,64,175,0.65)",
+            marker_line_width=0,
+            text=[f"{v/1000:.1f}K" for v in _cl_v],
+            textposition="outside",
+            textfont=dict(color="white", size=9),
+            hovertemplate="<b>%{x}</b><br>Closing Base: %{y:,.0f}<extra></extra>",
+        ))
+
+        if pp_aop_subs:
+            fig.add_hline(y=pp_aop_subs, line_dash="dash", line_color="#f59e0b",
+                          annotation_text=f"AOP target  {pp_aop_subs/1000:.0f}K",
+                          annotation_font=dict(color="#f59e0b", size=10),
+                          annotation_position="top right")
+
+        fig.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="white"), height=340, barmode="overlay",
+            title=dict(text="<b>Postpaid Subscriber Net Movement</b>",
+                       font=dict(size=13, color="white"), x=0),
+            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
+            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
+                       range=[_mov_ymin, _mov_ymax], tickformat=","),
+            legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h",
+                        y=1.02, x=1, xanchor="right", font=dict(size=10)),
+            margin=dict(l=10, r=10, t=44, b=10),
+        )
         st.plotly_chart(fig, use_container_width=True)
+
+        # Amber estimation badge
+        st.markdown(
+            '<div style="margin-top:2px">'
+            '<span style="background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.35);'
+            'border-radius:20px;padding:2px 12px;font-size:10px;color:#f59e0b;font-weight:600">'
+            '⚠ Disconnections estimated from Churn %</span></div>',
+            unsafe_allow_html=True,
+        )
+
+        # Summary stats row
+        _avg_g   = mov_df["Gross"].mean()
+        _avg_d   = mov_df["Disc"].mean()
+        _net_ytd = mov_df["Net"].sum()
+        _ytd_col = "#22c55e" if _net_ytd >= 0 else "#ef4444"
+        st.markdown(
+            f'<div style="display:flex;gap:20px;margin-top:8px;padding:10px 14px;'
+            f'background:#080d1a;border-radius:8px;border:1px solid #1a2540">'
+            f'<div><div style="font-size:9px;color:#7788aa;text-transform:uppercase;'
+            f'letter-spacing:1px;margin-bottom:3px">Avg Monthly Gross Adds</div>'
+            f'<div style="font-size:17px;font-weight:700;color:#22c55e">{_avg_g/1000:.1f}K</div></div>'
+            f'<div style="border-left:1px solid #1e2a4a;padding-left:20px">'
+            f'<div style="font-size:9px;color:#7788aa;text-transform:uppercase;'
+            f'letter-spacing:1px;margin-bottom:3px">Avg Monthly Disconnections</div>'
+            f'<div style="font-size:17px;font-weight:700;color:#ef4444">{_avg_d/1000:.1f}K</div></div>'
+            f'<div style="border-left:1px solid #1e2a4a;padding-left:20px">'
+            f'<div style="font-size:9px;color:#7788aa;text-transform:uppercase;'
+            f'letter-spacing:1px;margin-bottom:3px">Net Movement YTD</div>'
+            f'<div style="font-size:17px;font-weight:700;color:{_ytd_col}">{_net_ytd/1000:+.1f}K</div></div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     with mr:
         _pp_plan_colors = ["#f59e0b", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"]
