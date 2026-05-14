@@ -342,57 +342,70 @@ with col_right:
 </div>
 """, unsafe_allow_html=True)
 
-    # ── 2. CAPEX Burn Rate ────────────────────────────────────────────────────
-    cat_rows   = [("Total", capex_act, capex_plan)] + [
-        (name, capex_act * split, capex_plan * split) for name, split in SPLITS
-    ]
-    cat_names  = [r[0] for r in cat_rows]
-    cat_act_v  = [r[1] for r in cat_rows]
-    cat_plan_v = [r[2] for r in cat_rows]
-    x_max      = max(cat_plan_v) * 1.45 if any(v > 0 for v in cat_plan_v) else 100
+    # ── 2. CAPEX Spend to Date ────────────────────────────────────────────────
+    capex_remaining = capex_plan - capex_act
+    capex_progress  = min(capex_act / capex_plan * 100, 100) if capex_plan else 0
+    capex_over      = capex_act > capex_plan
 
-    fig_cap = go.Figure()
-    fig_cap.add_trace(go.Bar(
-        y=cat_names, x=cat_plan_v,
-        name="AOP",
-        orientation="h",
-        marker=dict(color="rgba(0,180,100,0.10)", line=dict(color="#00aa55", width=1.5)),
-        width=0.62,
-        hovertemplate="%{y}<br>AOP: TT$%{x:,.0f}M<extra></extra>",
-    ))
-    fig_cap.add_trace(go.Bar(
-        y=cat_names, x=cat_act_v,
-        name="Actual",
-        orientation="h",
-        marker_color="#00e676",
-        width=0.38,
-        text=[f"{v:,.0f}" for v in cat_act_v],
-        textposition="outside",
-        textfont=dict(color="#aaaacc", size=10),
-        hovertemplate="%{y}<br>Actual: TT$%{x:,.0f}M<extra></extra>",
-    ))
-    fig_cap.update_layout(
-        barmode="overlay",
-        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white", family="Inter, sans-serif"),
-        height=290,
-        legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h",
-                    y=1.07, x=0, xanchor="left",
-                    font=dict(size=11, color="#aaaaaa")),
-        xaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=10),
-                   range=[0, x_max], showline=False, zeroline=False),
-        yaxis=dict(tickfont=dict(color="white", size=11), showgrid=False,
-                   autorange="reversed"),
-        margin=dict(l=8, r=8, t=38, b=10),
-    )
+    cap_bar_color = ("linear-gradient(90deg,#ef4444,#ff6b6b)" if capex_over
+                     else "linear-gradient(90deg,#1d4ed8,#4a9eff)")
+    cap_pct_color = "#ef4444" if capex_over else "#4a9eff"
+    cap_rem_color = "#ef4444" if capex_remaining < 0 else "#6688aa"
+    cap_rem_label = "over budget" if capex_remaining < 0 else "remaining"
+    cap_rem_sign  = "+" if capex_remaining < 0 else ""
 
-    st.markdown("""
-<div style="background:#161b22;border-radius:8px 8px 0 0;padding:14px 16px 6px;
-            border:1px solid #21262d;border-bottom:none;margin-top:4px">
-  <span style="font-size:0.7rem;font-weight:700;color:#00e676;text-transform:uppercase;
-               letter-spacing:2px">CAPEX Burn Rate</span>
+    _split_rows = []
+    for _sname, _spct in SPLITS:
+        _sact  = capex_act  * _spct
+        _splan = capex_plan * _spct
+        _sprog = min(_sact / _splan * 100, 100) if _splan else 0
+        _scol  = "#ef4444" if _sact > _splan else "#4a9eff"
+        _split_rows.append(f"""
+<div style="margin-bottom:10px">
+  <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+    <span style="font-size:0.78rem;color:#aaaacc">{_sname}</span>
+    <span style="font-size:0.78rem;color:{_scol};font-weight:600">TT${_sact:,.1f}M</span>
+  </div>
+  <div style="background:#1e1e3a;border-radius:4px;height:6px;overflow:hidden">
+    <div style="background:{_scol};width:{_sprog:.1f}%;height:100%;border-radius:4px"></div>
+  </div>
+</div>""")
+    _splits_html = "".join(_split_rows)
+
+    st.markdown(f"""
+<div style="background:#161b22;border-radius:8px;padding:18px 20px;
+            border:1px solid #21262d;margin-top:4px">
+  <div style="font-size:0.7rem;font-weight:700;color:#00e676;text-transform:uppercase;
+              letter-spacing:2px;margin-bottom:14px">CAPEX Spend to Date</div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <span style="color:#aaaacc;font-size:14px;font-weight:500">YTD Spend vs Annual Budget</span>
+    <span style="color:{cap_pct_color};font-weight:800;font-size:22px">{capex_progress:.1f}%</span>
+  </div>
+  <div style="background:#1e1e3a;border-radius:8px;height:20px;overflow:hidden;margin-bottom:14px">
+    <div style="background:{cap_bar_color};width:{capex_progress:.1f}%;height:100%;border-radius:8px"></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px">
+    <div>
+      <div style="color:{cap_pct_color};font-size:18px;font-weight:700">TT${capex_act:,.1f}M</div>
+      <div style="color:#6688aa;font-size:12px;margin-top:2px">spent YTD</div>
+    </div>
+    <div style="text-align:center">
+      <div style="color:{cap_rem_color};font-size:18px;font-weight:700">{cap_rem_sign}TT${abs(capex_remaining):,.1f}M</div>
+      <div style="color:#6688aa;font-size:12px;margin-top:2px">{cap_rem_label}</div>
+    </div>
+    <div style="text-align:right">
+      <div style="color:#aaaacc;font-size:18px;font-weight:700">TT${capex_plan:,.1f}M</div>
+      <div style="color:#6688aa;font-size:12px;margin-top:2px">annual budget</div>
+    </div>
+  </div>
+
+  <div style="border-top:1px solid #21262d;padding-top:14px">
+    <div style="font-size:0.65rem;font-weight:700;color:#556677;text-transform:uppercase;
+                letter-spacing:1.4px;margin-bottom:12px">Split by Category</div>
+    {_splits_html}
+  </div>
 </div>""", unsafe_allow_html=True)
-    st.plotly_chart(fig_cap, use_container_width=True)
 
 
 # ── Footer ─────────────────────────────────────────────────────────────────────
