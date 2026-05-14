@@ -70,7 +70,9 @@ def load_all_data():
 
     if "Business_Sales" in data:
         data["Business_Sales"] = _scale(data["Business_Sales"], [
-            "Revenue", "Revenue_AOP", "Gross_Profit", "Contribution", "MRR", "Direct_Costs",
+            "Revenue", "Revenue_AOP", "Gross_Profit", "GP_AOP", "Contribution",
+            "MRR", "MRR_AOP", "Direct_Costs", "Direct_Costs_AOP",
+            "Mobile", "Mobile_AOP", "USAGE", "USAGE_AOP", "OCC", "OCC_AOP",
         ])
         data["Business_Sales"] = _pct(data["Business_Sales"], ["GP_Margin_Pct"])
 
