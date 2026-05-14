@@ -2,228 +2,242 @@ import streamlit as st
 
 st.set_page_config(page_title="TSTT | DPDI", page_icon="💻", layout="wide")
 
-import pandas as pd
 import plotly.graph_objects as go
-from utils.data_loader import load_all_data, pivot_by_group, get_month_order
-from utils.charts import (
-    inject_css, page_header, styled_metric,
-    line_chart, grouped_bar, stacked_bar, donut_chart, bar_chart,
-    GREEN, RED, BLUE, YELLOW, PURPLE, ORANGE, CYAN,
-)
+from utils.data_loader import load_all_data, get_month_order
+from utils.charts import inject_css
 
 inject_css()
 data = load_all_data()
 dpdi = data["DPDI"]
-dpdi_cos = data.get("DPDI_CoS", pd.DataFrame())
+months = get_month_order(dpdi)
 
-page_header("DPDI — Digital Products", "e-Tender · e-GOVTT · e-Cashbook · e-Health · PAYPR")
+# ── YTD aggregates ────────────────────────────────────────────────────────────
+ytd = dpdi.groupby("Product")[
+    ["Revenue", "Revenue_AOP", "Gross_Profit", "EBITDA", "Direct_Costs"]
+].sum()
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-months    = get_month_order(dpdi)
-products  = dpdi["Product"].unique().tolist()
-sel_month = st.sidebar.selectbox("Focus Month", months, index=len(months) - 1)
+total_rev    = ytd["Revenue"].sum()
+total_aop    = ytd["Revenue_AOP"].sum()
+total_gp     = ytd["Gross_Profit"].sum()
+total_dc     = ytd["Direct_Costs"].sum()
+total_ebitda = ytd["EBITDA"].sum()
 
-# ── Summary metrics ───────────────────────────────────────────────────────────
-latest = dpdi[dpdi["Month"] == sel_month]
-total_rev    = latest["Revenue"].sum()
-total_aop    = latest["Revenue_AOP"].sum()
-total_gp     = latest["Gross_Profit"].sum()
-total_ebitda = latest["EBITDA"].sum()
+has_egovtt      = "e-GOVTT" in ytd.index
+egovtt_rev      = ytd.loc["e-GOVTT", "Revenue"]     if has_egovtt else 0.0
+egovtt_aop      = ytd.loc["e-GOVTT", "Revenue_AOP"] if has_egovtt else 0.0
+excl_rev        = total_rev  - egovtt_rev
+excl_aop        = total_aop  - egovtt_aop
+egovtt_pipeline = egovtt_aop
 
-cos_month = dpdi_cos[dpdi_cos["Month"] == sel_month]["Plan"].sum() if not dpdi_cos.empty else 0
-cos_ytd   = dpdi_cos["Plan"].sum() if not dpdi_cos.empty else 0
+rev_var_pct  = (total_rev - total_aop) / abs(total_aop) * 100 if total_aop else 0
+excl_var_pct = (excl_rev  - excl_aop)  / abs(excl_aop)  * 100 if excl_aop  else 0
+gp_margin    = total_gp / total_rev * 100 if total_rev else 0
 
-m1, m2, m3, m4, m5 = st.columns(5)
-with m1:
-    rev_d = f"{(total_rev - total_aop) / total_aop * 100:+.1f}% vs AOP" if total_aop else "—"
-    styled_metric("DPDI Revenue", f"TT${total_rev:.2f}M",
-                  rev_d, (total_rev >= total_aop) if total_aop else None, "#00d4a0")
-with m2:
-    styled_metric("Revenue AOP", f"TT${total_aop:.2f}M", accent="#4a9eff")
-with m3:
-    styled_metric("Cost of Sales (AOP)", f"TT${cos_month:.2f}M",
-                  f"YTD AOP: TT${cos_ytd:.2f}M", None, "#aa44ff")
-with m4:
-    styled_metric("Gross Profit", f"TT${total_gp:.2f}M", accent="#FF8844")
-with m5:
-    styled_metric("EBITDA", f"TT${total_ebitda:.2f}M", accent="#44EEFF")
+ebitda_display = f"({abs(total_ebitda):.1f}M)" if total_ebitda < 0 else f"{total_ebitda:.1f}M"
+dc_below_aop   = total_dc < total_aop
+dc_sub_text    = "Below AOP ↓" if dc_below_aop else f"{(total_dc - total_aop) / abs(total_aop) * 100:+.1f}% vs AOP"
+dc_sub_color   = "#00ff88" if dc_below_aop else "#FF4444"
 
-st.markdown("---")
+# ── Page header ───────────────────────────────────────────────────────────────
+st.markdown("""
+<div style="padding:1.2rem 0 0.5rem 0">
+  <div style="font-size:0.65rem;font-weight:700;color:#445566;text-transform:uppercase;
+              letter-spacing:2.5px;margin-bottom:0.5rem">
+    TSTT &nbsp;|&nbsp; BOARD OF DIRECTORS REPORT
+  </div>
+  <div style="font-size:2rem;font-weight:700;color:#ffffff;line-height:1.1;margin-bottom:0.4rem">
+    DPDI Financial Overview
+  </div>
+  <div style="font-size:0.8rem;color:#7788aa">
+    YTD March 2026 &nbsp;&nbsp;|&nbsp;&nbsp; All figures in TT$M unless stated
+  </div>
+</div>
+<hr style="border:none;border-top:1px solid #1a1a2a;margin:0.9rem 0 1.2rem 0">
+""", unsafe_allow_html=True)
 
-# Note about DPDI maturity
-st.info(
-    "**Portfolio in development stage** — Most DPDI products are pre-revenue or in early "
-    "adoption. Revenue and EBITDA are expected to ramp as government contracts activate.",
-    icon="ℹ️",
-)
+# ── KPI cards ─────────────────────────────────────────────────────────────────
+st.markdown(f"""
+<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:1.5rem">
 
-# ── Charts ────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3 = st.tabs(["Revenue & AOP", "Profitability", "Product Detail"])
+  <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #cc2222">
+    <div style="font-size:0.59rem;font-weight:700;color:#445566;text-transform:uppercase;
+                letter-spacing:1.4px;margin-bottom:7px">TOTAL REVENUE</div>
+    <div style="font-size:1.4rem;font-weight:700;color:#FF4444;line-height:1.1">
+        TT${total_rev:.1f}M</div>
+    <div style="font-size:0.7rem;color:#FF4444;margin-top:5px;font-weight:600">
+        {rev_var_pct:+.1f}% vs AOP</div>
+  </div>
 
-with tab1:
-    col1, col2 = st.columns(2)
-    with col1:
-        rev_pivot = pivot_by_group(dpdi, "Month", "Product", "Revenue")
-        prod_cols = [c for c in rev_pivot.columns if c != "Month"]
-        fig = stacked_bar(
-            rev_pivot, x="Month", y_cols=prod_cols,
-            title="Revenue by Product (TT$M)",
-            colors=[BLUE, GREEN, PURPLE, ORANGE, CYAN],
+  <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #cc2222">
+    <div style="font-size:0.59rem;font-weight:700;color:#445566;text-transform:uppercase;
+                letter-spacing:1.4px;margin-bottom:7px">EXCL. E-GOVTT REV</div>
+    <div style="font-size:1.4rem;font-weight:700;color:#FF4444;line-height:1.1">
+        TT${excl_rev:.1f}M</div>
+    <div style="font-size:0.7rem;color:#FF4444;margin-top:5px;font-weight:600">
+        {excl_var_pct:+.1f}% vs AOP</div>
+  </div>
+
+  <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #444444">
+    <div style="font-size:0.59rem;font-weight:700;color:#445566;text-transform:uppercase;
+                letter-spacing:1.4px;margin-bottom:7px">GROSS PROFIT</div>
+    <div style="font-size:1.4rem;font-weight:700;color:#ffffff;line-height:1.1">
+        TT${total_gp:.1f}M</div>
+    <div style="font-size:0.7rem;color:#aaaaaa;margin-top:5px">GP Margin: {gp_margin:.1f}%</div>
+  </div>
+
+  <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #444444">
+    <div style="font-size:0.59rem;font-weight:700;color:#445566;text-transform:uppercase;
+                letter-spacing:1.4px;margin-bottom:7px">DIRECT COSTS</div>
+    <div style="font-size:1.4rem;font-weight:700;color:#ffffff;line-height:1.1">
+        TT${total_dc:.1f}M</div>
+    <div style="font-size:0.7rem;color:{dc_sub_color};margin-top:5px;font-weight:600">
+        {dc_sub_text}</div>
+  </div>
+
+  <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #cc2222">
+    <div style="font-size:0.59rem;font-weight:700;color:#445566;text-transform:uppercase;
+                letter-spacing:1.4px;margin-bottom:7px">EBITDA</div>
+    <div style="font-size:1.4rem;font-weight:700;color:#FF4444;line-height:1.1">
+        {ebitda_display}</div>
+    <div style="font-size:0.7rem;color:#556677;margin-top:5px">OpEx-heavy BU</div>
+  </div>
+
+  <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #00aa55">
+    <div style="font-size:0.59rem;font-weight:700;color:#445566;text-transform:uppercase;
+                letter-spacing:1.4px;margin-bottom:7px">E-GOVTT PIPELINE</div>
+    <div style="font-size:1.4rem;font-weight:700;color:#00ff88;line-height:1.1">
+        TT${egovtt_pipeline:.1f}M</div>
+    <div style="font-size:0.7rem;color:#00ff88;margin-top:5px;font-weight:600">
+        Key opportunity →</div>
+  </div>
+
+</div>
+""", unsafe_allow_html=True)
+
+# ── Two-column charts ─────────────────────────────────────────────────────────
+col_left, col_right = st.columns(2)
+
+with col_left:
+    products_list = ytd.index.tolist()
+    actual_vals   = [ytd.loc[p, "Revenue"]     for p in products_list]
+    aop_vals      = [ytd.loc[p, "Revenue_AOP"] for p in products_list]
+
+    safe_max = max(max(actual_vals + [0.001]), max(aop_vals + [0.001]))
+    max_x    = safe_max * 1.6
+
+    annotations = [
+        dict(
+            x=max(av, bv) + safe_max * 0.06,
+            y=prod,
+            text=f"<b>{av:.1f}M</b> / {bv:.1f}M",
+            showarrow=False,
+            font=dict(color="#aaaacc", size=10, family="Inter, sans-serif"),
+            xanchor="left",
+            yanchor="middle",
         )
-        st.plotly_chart(fig, use_container_width=True)
+        for prod, av, bv in zip(products_list, actual_vals, aop_vals)
+    ]
 
-    with col2:
-        aop_pivot = pivot_by_group(dpdi, "Month", "Product", "Revenue_AOP")
-        aop_cols  = [c for c in aop_pivot.columns if c != "Month"]
-        fig = stacked_bar(
-            aop_pivot, x="Month", y_cols=aop_cols,
-            title="Revenue AOP by Product (TT$M)",
-            colors=[BLUE, GREEN, PURPLE, ORANGE, CYAN],
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    # Revenue vs AOP by product for selected month
-    col3, col4 = st.columns(2)
-    with col3:
-        latest_comp = latest[["Product", "Revenue", "Revenue_AOP"]].copy()
-        fig = grouped_bar(
-            latest_comp, x="Product", y_cols=["Revenue", "Revenue_AOP"],
-            title=f"{sel_month} Revenue vs AOP by Product (TT$M)",
-            colors=[BLUE, "#334466"],
-            height=340,
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col4:
-        # YTD revenue per product
-        ytd_rev = dpdi.groupby("Product", sort=False)["Revenue"].sum().reset_index()
-        ytd_rev = ytd_rev.sort_values("Revenue", ascending=False)
-        colors_list = [GREEN if v > 0 else RED for v in ytd_rev["Revenue"]]
-        fig = go.Figure(go.Bar(
-            x=ytd_rev["Product"], y=ytd_rev["Revenue"],
-            marker_color=colors_list,
-            text=[f"TT${v:.2f}M" for v in ytd_rev["Revenue"]],
-            textposition="outside", textfont=dict(color="white", size=10),
-        ))
-        fig.update_layout(
-            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=340,
-            title=dict(text="<b>YTD Revenue by Product (TT$M)</b>",
-                       font=dict(size=13, color="white"), x=0),
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-            margin=dict(l=10, r=10, t=44, b=10), showlegend=False,
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-with tab2:
-    col1, col2 = st.columns(2)
-    with col1:
-        ebitda_pivot = pivot_by_group(dpdi, "Month", "Product", "EBITDA")
-        eb_cols      = [c for c in ebitda_pivot.columns if c != "Month"]
-        fig = line_chart(
-            ebitda_pivot, x="Month", y_cols=eb_cols,
-            title="EBITDA by Product (TT$M)",
-            colors=[BLUE, GREEN, PURPLE, ORANGE, CYAN],
-        )
-        fig.add_hline(y=0, line_dash="solid", line_color="#3a3a5a")
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col2:
-        gp_pivot = pivot_by_group(dpdi, "Month", "Product", "GP_Margin_Pct")
-        gp_cols  = [c for c in gp_pivot.columns if c != "Month"]
-        fig = line_chart(
-            gp_pivot, x="Month", y_cols=gp_cols,
-            title="Gross Profit Margin % by Product",
-            colors=[BLUE, GREEN, PURPLE, ORANGE, CYAN],
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    # EBITDA vs GP for selected month
-    col3, col4 = st.columns(2)
-    with col3:
-        ebitda_bar = latest[["Product", "EBITDA", "Gross_Profit"]].copy()
-        fig = grouped_bar(
-            ebitda_bar, x="Product", y_cols=["Gross_Profit", "EBITDA"],
-            title=f"{sel_month} GP vs EBITDA by Product (TT$M)",
-            colors=[GREEN, YELLOW],
-            height=340,
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col4:
-        # Direct costs
-        costs_bar = latest[["Product", "Direct_Costs"]].copy()
-        fig = go.Figure(go.Bar(
-            x=costs_bar["Product"], y=costs_bar["Direct_Costs"],
-            marker_color=ORANGE,
-            text=[f"TT${v:.2f}M" for v in costs_bar["Direct_Costs"]],
-            textposition="outside", textfont=dict(color="white", size=10),
-        ))
-        fig.update_layout(
-            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=340,
-            title=dict(text=f"<b>{sel_month} Direct Costs by Product (TT$M)</b>",
-                       font=dict(size=13, color="white"), x=0),
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-            margin=dict(l=10, r=10, t=44, b=10), showlegend=False,
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    # ── Cost of Sales AOP (from OPEX reclassification) ────────────────────────
-    if not dpdi_cos.empty:
-        st.markdown("---")
-        st.markdown("#### Cost of Sales — AOP (FY2025/26)")
-        st.caption(
-            "Planned cost to deliver DPDI products (Dig. Prod. Dev. & Innovation budget). "
-            "No actuals recorded yet — plan values reflect the FY2025/26 AOP."
-        )
-        cos_plot = dpdi_cos[dpdi_cos["Plan"].notna()][["Month", "Plan"]].copy()
-        fig = go.Figure(go.Bar(
-            x=cos_plot["Month"], y=cos_plot["Plan"],
-            marker_color=ORANGE,
-            text=[f"TT${v:.2f}M" for v in cos_plot["Plan"]],
-            textposition="outside", textfont=dict(color="white", size=10),
-        ))
-        fig.update_layout(
-            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=340,
-            title=dict(text="<b>Monthly Cost of Sales — AOP (TT$M)</b>",
-                       font=dict(size=13, color="white"), x=0),
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-            margin=dict(l=10, r=10, t=44, b=10), showlegend=False,
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-with tab3:
-    st.markdown("##### Per-Product Monthly Data")
-    sel_product = st.selectbox("Select Product", products)
-    prod_df = dpdi[dpdi["Product"] == sel_product].copy()
-
-    c1, c2, c3 = st.columns(3)
-    c1.metric("YTD Revenue",  f"TT${prod_df['Revenue'].sum():.2f}M",
-              f"AOP: TT${prod_df['Revenue_AOP'].sum():.2f}M")
-    c2.metric("YTD GP",       f"TT${prod_df['Gross_Profit'].sum():.2f}M")
-    c3.metric("YTD EBITDA",   f"TT${prod_df['EBITDA'].sum():.2f}M")
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(x=prod_df["Month"], y=prod_df["Revenue"],
-                         name="Revenue", marker_color=BLUE))
-    fig.add_trace(go.Bar(x=prod_df["Month"], y=prod_df["Revenue_AOP"],
-                         name="AOP", marker_color="#334466"))
-    fig.add_trace(go.Scatter(x=prod_df["Month"], y=prod_df["EBITDA"],
-                              name="EBITDA", line=dict(color=GREEN, width=2),
-                              mode="lines+markers", marker=dict(size=6)))
-    fig.update_layout(
-        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"), height=380, barmode="group",
-        title=dict(text=f"<b>{sel_product} — Revenue / AOP / EBITDA</b>",
+    fig_bar = go.Figure()
+    fig_bar.add_trace(go.Bar(
+        y=products_list, x=aop_vals, name="AOP Target",
+        orientation="h",
+        marker=dict(color="rgba(100,220,100,0.10)", line=dict(color="#55aa66", width=1.5)),
+    ))
+    fig_bar.add_trace(go.Bar(
+        y=products_list, x=actual_vals, name="YTD Actual",
+        orientation="h",
+        marker_color="#00cc55",
+    ))
+    fig_bar.update_layout(
+        barmode="overlay",
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white", family="Inter, sans-serif", size=11),
+        height=380,
+        title=dict(text="<b>Revenue by Product — YTD vs AOP (TT$M)</b>",
                    font=dict(size=13, color="white"), x=0),
-        xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-        yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-        legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h", y=1.02, x=1, xanchor="right"),
-        margin=dict(l=10, r=10, t=44, b=10),
+        xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=10),
+                   range=[0, max_x], showline=False, zeroline=False),
+        yaxis=dict(tickfont=dict(color="white", size=11), showgrid=False,
+                   autorange="reversed"),
+        margin=dict(l=10, r=130, t=44, b=30),
+        annotations=annotations,
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=10),
+                    orientation="h", y=-0.1, x=0),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+with col_right:
+    excl = dpdi[dpdi["Product"] != "e-GOVTT"].groupby("Month")[
+        ["Revenue", "Revenue_AOP"]
+    ].sum().reset_index()
+    excl["_ord"] = excl["Month"].apply(lambda m: months.index(m) if m in months else 99)
+    excl = excl.sort_values("_ord").drop(columns=["_ord"])
+
+    fig_line = go.Figure()
+    fig_line.add_trace(go.Scatter(
+        x=excl["Month"], y=excl["Revenue"],
+        name="Actual excl. e-GOVTT",
+        mode="lines+markers",
+        line=dict(color="#00ff88", width=2.5),
+        marker=dict(size=6, color="#00ff88"),
+    ))
+    fig_line.add_trace(go.Scatter(
+        x=excl["Month"], y=excl["Revenue_AOP"],
+        name="AOP excl. e-GOVTT",
+        mode="lines+markers",
+        line=dict(color="#FFD700", width=2, dash="dash"),
+        marker=dict(size=5, color="#FFD700"),
+    ))
+    fig_line.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white", family="Inter, sans-serif", size=11),
+        height=380,
+        title=dict(text="<b>Monthly Revenue — Actual vs AOP excl. e-GOVTT (TT$M)</b>",
+                   font=dict(size=13, color="white"), x=0),
+        xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=10)),
+        yaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=10),
+                   ticksuffix="M"),
+        margin=dict(l=10, r=10, t=44, b=30),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=10),
+                    orientation="h", y=-0.1, x=0),
+    )
+    st.plotly_chart(fig_line, use_container_width=True)
+
+# ── Key commentary ────────────────────────────────────────────────────────────
+st.markdown("""
+<div style="background:#030f0f;border:1px solid #0d2a2a;border-radius:6px;
+            padding:1.2rem 1.6rem;margin-top:0.4rem">
+  <div style="font-size:0.62rem;font-weight:700;color:#00aaaa;text-transform:uppercase;
+              letter-spacing:2.2px;margin-bottom:0.85rem;border-left:3px solid #00aaaa;
+              padding-left:8px">KEY COMMENTARY</div>
+  <ul style="list-style:none;padding:0;margin:0;font-size:0.83rem;line-height:2">
+    <li><span style="color:#00ff88;margin-right:10px">●</span>
+      <b style="color:white">e-GOVTT</b>
+      <span style="color:#cccccc"> — Primary revenue opportunity; AOP pipeline value represents
+      key FY2026 activation target pending government contract finalization.</span></li>
+    <li><span style="color:#FF8844;margin-right:10px">●</span>
+      <b style="color:white">e-Tender</b>
+      <span style="color:#cccccc"> — Most mature product, generating the largest share of YTD
+      revenue with active deployment at Ministry of Finance.</span></li>
+    <li><span style="color:#FF4444;margin-right:10px">●</span>
+      <b style="color:white">EBITDA</b>
+      <span style="color:#cccccc"> — Portfolio-wide EBITDA remains negative due to investment
+      and go-to-market costs; positive run-rate expected from FY2027.</span></li>
+    <li><span style="color:#4488ff;margin-right:10px">●</span>
+      <b style="color:white">e-Health · e-Pay · e-Kiosk</b>
+      <span style="color:#cccccc"> — In pilot or pre-revenue stage. Commercial launches
+      targeted Q3–Q4 FY2026 to drive subscriber and revenue growth.</span></li>
+  </ul>
+</div>
+""", unsafe_allow_html=True)
+
+# ── Confidential footer ───────────────────────────────────────────────────────
+st.markdown("""
+<div style="text-align:center;font-size:0.62rem;color:#333344;margin-top:2rem;
+            padding-top:0.9rem;border-top:1px solid #111122;letter-spacing:2px">
+  CONFIDENTIAL — FOR BOARD OF DIRECTORS USE ONLY
+</div>
+""", unsafe_allow_html=True)
