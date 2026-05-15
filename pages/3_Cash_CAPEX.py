@@ -153,9 +153,9 @@ with col_left:
         font=dict(color="white", family="Inter, sans-serif"),
         height=320, showlegend=False,
         margin=dict(l=8, r=8, t=6, b=20),
-        xaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=10),
+        xaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=13),
                    showline=False),
-        yaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=10),
+        yaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=13),
                    range=[y_min - y_rng, y_max + y_rng], zeroline=False),
     )
 
@@ -184,7 +184,7 @@ with col_left:
             st.markdown(
                 f'<div style="background:#161b22;padding:16px 18px 14px;border:1px solid #21262d;'
                 f'border-radius:8px;text-align:center;margin-bottom:10px">'
-                f'<div style="font-size:0.58rem;font-weight:700;color:#556677;text-transform:uppercase;'
+                f'<div style="font-size:0.75rem;font-weight:700;color:#556677;text-transform:uppercase;'
                 f'letter-spacing:1.3px;margin-bottom:7px">{_label}</div>'
                 f'<div style="font-size:1.65rem;font-weight:800;color:white;line-height:1">{_value}</div>'
                 f'<div style="font-size:0.7rem;color:{_sub_color};font-weight:600;margin-top:6px">{_sub}</div>'
@@ -204,7 +204,7 @@ with col_left:
         bar_col = color if pct_val is not None else "#21262d"
         return f"""
 <div style="flex:1;background:#0d1117;border-radius:8px;padding:14px 16px;border:1px solid #21262d">
-  <div style="font-size:0.6rem;font-weight:700;color:{accent};text-transform:uppercase;
+  <div style="font-size:0.75rem;font-weight:700;color:{accent};text-transform:uppercase;
               letter-spacing:1.4px;margin-bottom:8px">{label}</div>
   <div style="font-size:1.6rem;font-weight:800;color:{color};line-height:1;margin-bottom:10px">{val_str}</div>
   <div style="background:#1e1e3a;border-radius:4px;height:6px;overflow:hidden">
@@ -262,11 +262,11 @@ with col_right:
         font=dict(color="white", family="Inter, sans-serif"),
         height=300,
         margin=dict(l=8, r=8, t=36, b=10),
-        xaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=10),
+        xaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=13),
                    showline=False, zeroline=False, ticksuffix="M",
                    range=[0, _ar_x_max]),
         yaxis=dict(tickfont=dict(color="white", size=11), showgrid=False),
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=9.5),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=12),
                     orientation="h", y=1.22, x=0, xanchor="left"),
         annotations=[
             dict(x=non_gov["total"], y="Non-Government",
@@ -300,7 +300,7 @@ with col_right:
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px;margin-bottom:8px">
 
   <div style="background:#1a1200;border:1px solid #FF8844;border-radius:6px;padding:12px 14px">
-    <div style="font-size:0.6rem;font-weight:700;color:#FF8844;text-transform:uppercase;
+    <div style="font-size:0.75rem;font-weight:700;color:#FF8844;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:6px">90 – 360 Days</div>
     <div style="font-size:1.35rem;font-weight:800;color:white;line-height:1">
         {total['90_360']:,.1f}M</div>
@@ -313,7 +313,7 @@ with col_right:
   </div>
 
   <div style="background:#1a0808;border:1px solid #ef4444;border-radius:6px;padding:12px 14px">
-    <div style="font-size:0.6rem;font-weight:700;color:#ef4444;text-transform:uppercase;
+    <div style="font-size:0.75rem;font-weight:700;color:#ef4444;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:6px">360+ Days</div>
     <div style="font-size:1.35rem;font-weight:800;color:white;line-height:1">
         {total['360p']:,.1f}M</div>

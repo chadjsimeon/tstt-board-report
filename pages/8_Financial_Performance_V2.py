@@ -66,7 +66,7 @@ def _badge(label, delta, pos_color, neg_color):
     color = pos_color if delta >= 0 else neg_color
     r, g, b = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
     return (
-        f'<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:3px;'
+        f'<span style="font-size:14px;font-weight:600;padding:2px 8px;border-radius:3px;'
         f'background:rgba({r},{g},{b},0.15);color:{color};">{label}</span>'
     )
 
@@ -98,7 +98,7 @@ def kpi_card(label, col, aop_col, ly_col, color, is_margin=False):
     return f"""
 <div style="background:{CARD_BG};border-radius:12px;padding:20px 16px;
             border:1px solid rgba(74,158,255,0.08);border-top:3px solid {color};height:100%;">
-    <div style="color:{MUTED};font-size:13px;font-weight:500;margin-bottom:4px;">{label}</div>
+    <div style="color:{MUTED};font-size:14px;font-weight:500;margin-bottom:4px;">{label}</div>
     <div style="color:white;font-size:64px;font-weight:800;line-height:1;margin:4px 0 10px 0;">{val_str}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;">{badges_html}</div>
     {sparkline}
@@ -130,8 +130,8 @@ def driver_block(label, color, col, aop_col, ly_col, is_margin=False, last_entry
     return f"""
 <div style="margin-bottom:18px;padding-bottom:16px;{divider}">
     <div style="font-size:14px;font-weight:700;color:{color};margin-bottom:6px;">{label}</div>
-    <div style="color:#c0c8d8;font-size:13px;line-height:1.6;">{line1}</div>
-    {"<div style='color:#8888aa;font-size:12px;line-height:1.6;'>" + line2 + "</div>" if line2 else ""}
+    <div style="color:#c0c8d8;font-size:14px;line-height:1.6;">{line1}</div>
+    {"<div style='color:#8888aa;font-size:13px;line-height:1.6;'>" + line2 + "</div>" if line2 else ""}
 </div>"""
 
 
@@ -185,13 +185,13 @@ with chart_col:
         fill="tozeroy", fillcolor="rgba(74,158,255,0.07)",
     ))
     fig.update_layout(
-        height=470,
+        height=560,
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"),
         title=dict(text="<b>Revenue, Gross Profit & EBITDA — 13-Month Trend (TT$M)</b>",
                    font=dict(size=13, color="white"), x=0),
-        xaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED), showline=False, tickangle=-30),
-        yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED), showline=False, zeroline=False),
+        xaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=13), showline=False, tickangle=-30),
+        yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=13), showline=False, zeroline=False),
         legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="white"),
                     orientation="h", y=1.02, x=1, xanchor="right"),
         margin=dict(l=10, r=10, t=44, b=30),

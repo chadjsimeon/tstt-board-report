@@ -40,11 +40,11 @@ _BASE = dict(
     paper_bgcolor=BG,
     font=dict(color=TEXT, family="Inter, sans-serif", size=12),
     xaxis=dict(gridcolor=GRID, color=MUTED, showline=True, linecolor=GRID,
-               tickfont=dict(color=MUTED, size=11)),
+               tickfont=dict(color=MUTED, size=13)),
     yaxis=dict(gridcolor=GRID, color=MUTED, showline=False,
-               tickfont=dict(color=MUTED, size=11)),
+               tickfont=dict(color=MUTED, size=13)),
     margin=dict(l=10, r=10, t=44, b=10),
-    legend=dict(bgcolor=BG, font=dict(color=TEXT, size=11),
+    legend=dict(bgcolor=BG, font=dict(color=TEXT, size=12),
                 orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     hoverlabel=dict(bgcolor="#111128", font_color=TEXT, bordercolor="#333366"),
 )
@@ -87,11 +87,11 @@ def bar_chart(df, x, y, title="", color=BLUE, height=380, text=True, orientation
         fig = go.Figure(go.Bar(y=df[x], x=df[y], orientation="h",
                                marker_color=color,
                                text=vals if text else None, textposition="outside",
-                               textfont=dict(color=TEXT, size=10)))
+                               textfont=dict(color=TEXT, size=12)))
     else:
         fig = go.Figure(go.Bar(x=df[x], y=df[y], marker_color=color,
                                text=vals if text else None, textposition="outside",
-                               textfont=dict(color=TEXT, size=10)))
+                               textfont=dict(color=TEXT, size=12)))
     _layout(fig, title, height)
     return fig
 
@@ -135,7 +135,7 @@ def waterfall_chart(df, x_col, y_col, type_col, title="", height=440):
         y=df[y_col],
         text=texts,
         textposition="outside",
-        textfont=dict(color=TEXT, size=10),
+        textfont=dict(color=TEXT, size=12),
         connector=dict(line=dict(color="#2a2a5a", width=1, dash="dot")),
         increasing=dict(marker=dict(color=GREEN)),
         decreasing=dict(marker=dict(color=RED)),
@@ -223,7 +223,7 @@ def styled_metric(title, value_str, delta_str="", delta_positive=None, accent="#
             dc = "#FF4444"
         else:
             dc = "#7788aa"
-        dh = (f'<div style="font-size:0.76rem;color:{dc};font-weight:600;'
+        dh = (f'<div style="font-size:0.875rem;color:{dc};font-weight:600;'
               f'margin-top:4px">{delta_str}</div>')
     else:
         dh = ""
@@ -231,7 +231,7 @@ def styled_metric(title, value_str, delta_str="", delta_positive=None, accent="#
 <div style="background:#1a1a2e;border-radius:10px;padding:14px 16px;
             border:1px solid #2a2a4a;border-top:3px solid {accent};
             margin-bottom:0.5rem">
-    <div style="font-size:0.7rem;font-weight:600;color:#7788aa;text-transform:uppercase;
+    <div style="font-size:0.82rem;font-weight:600;color:#7788aa;text-transform:uppercase;
                 letter-spacing:0.9px;margin-bottom:4px">{title}</div>
     <div style="font-size:1.4rem;font-weight:700;color:white;line-height:1.2">{value_str}</div>
     {dh}

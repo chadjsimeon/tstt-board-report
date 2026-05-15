@@ -4,7 +4,7 @@ st.set_page_config(page_title="TSTT | Consumer", page_icon="📱", layout="wide"
 
 import pandas as pd
 import plotly.graph_objects as go
-from utils.data_loader import load_all_data, pivot_by_group, get_month_order
+from utils.data_loader import load_all_data, load_prepaid_arpu, load_prepaid_data_usage, pivot_by_group, get_month_order
 from utils.charts import (
     inject_css, page_header,
     line_chart, stacked_bar, grouped_bar, donut_chart, dim,
@@ -103,7 +103,7 @@ def _tab_hdr(title, period="YTD April 2026 | TTM"):
         '<div style="display:flex;justify-content:space-between;align-items:center;'
         'margin-bottom:16px">'
         f'<div style="font-size:1.15rem;font-weight:700;color:white">{title}</div>'
-        f'<div style="font-size:0.82rem;color:#7788aa">{period}</div>'
+        f'<div style="font-size:0.9rem;color:#7788aa">{period}</div>'
         '</div>'
     )
 
@@ -316,6 +316,28 @@ with tab2:
     pre_latest  = prepaid[prepaid["Month"] == "Apr-26"]
     pre_apr25   = prepaid[prepaid["Month"] == "Apr-25"]
 
+    # ── Prepaid subscriber totals — source of truth from ARPU buckets file ──
+    _arpu_df = load_prepaid_arpu()
+    if not _arpu_df.empty:
+        # Sum all 5 buckets per month to get total subscribers
+        _arpu_totals = (
+            _arpu_df.groupby("Month")["Subscribers"].sum()
+        )
+        # Latest valid month (skip months with obviously incomplete subs, <300K)
+        _arpu_dt_idx = pd.to_datetime(_arpu_totals.index, format="%b-%y", errors="coerce")
+        _valid_mask  = (_arpu_totals.values > 300_000) & pd.notnull(_arpu_dt_idx)
+        _arpu_latest_month = (
+            _arpu_dt_idx[_valid_mask].max().strftime("%b-%y")
+            if _valid_mask.any() else _arpu_totals.index[-1]
+        )
+        _arpu_py_month = (
+            pd.to_datetime(_arpu_latest_month, format="%b-%y") - pd.DateOffset(months=12)
+        ).strftime("%b-%y")
+    else:
+        _arpu_totals       = pd.Series(dtype=float)
+        _arpu_latest_month = "Apr-26"
+        _arpu_py_month     = "Apr-25"
+
     # Revenue
     apr26_rev   = float(pre_latest["Revenue"].sum())  if not pre_latest.empty else 0.0
     apr25_rev   = float(pre_apr25["Revenue"].sum())   if not pre_apr25.empty else 0.0
@@ -326,10 +348,9 @@ with tab2:
     rev_aop_m   = apr26_rev - apr26_aop_v if apr26_aop_v else None
     rev_py_m    = apr26_rev - apr25_rev if apr25_rev else None
 
-    # Subscribers
-    subs_row   = _latest_row_with(prepaid, "Subscribers")
-    subs_lat   = float(subs_row["Subscribers"]) if subs_row is not None else 0.0
-    subs_25    = float(pre_apr25["Subscribers"].sum()) if not pre_apr25.empty else 0.0
+    # Subscribers — from ARPU buckets file (source of truth)
+    subs_lat   = float(_arpu_totals.get(_arpu_latest_month, 0.0))
+    subs_25    = float(_arpu_totals.get(_arpu_py_month, 0.0))
     _churn_raw = pre_latest["Churn_Pct"].values[0] if not pre_latest.empty else None
     churn_pre  = (float(_churn_raw)
                   if _churn_raw is not None and pd.notna(_churn_raw) else None)
@@ -340,11 +361,9 @@ with tab2:
     subs_aop_pct = (subs_lat - subs_aop_v) / subs_aop_v * 100 if subs_aop_v else None
     subs_py_pct  = (subs_lat - subs_25) / subs_25 * 100 if subs_25 else None
 
-    # ARPU
-    arpu_row   = _latest_row_with(prepaid, "ARPU")
-    arpu_lat   = float(arpu_row["ARPU"]) if arpu_row is not None else 0.0
-    arpu_25    = (float(pre_apr25["ARPU"].mean())
-                  if not pre_apr25.empty and pre_apr25["ARPU"].sum() > 0 else 0.0)
+    # ARPU — derived from revenue / subscribers (subscribers from ARPU buckets file)
+    arpu_lat   = (apr26_rev * 1_000_000 / subs_lat)  if subs_lat  > 0 else 0.0
+    arpu_25    = (apr25_rev * 1_000_000 / subs_25)   if subs_25   > 0 else 0.0
     _aaop      = "ARPU_AOP"
     arpu_aop_v = (float(pre_latest[_aaop].values[0])
                   if not pre_latest.empty and _aaop in pre_latest.columns
@@ -354,7 +373,7 @@ with tab2:
 
     # Sparklines
     rev_spark  = prepaid.set_index("Month")["Revenue"].reindex(pre_mons).fillna(0).tolist()
-    subs_spark = prepaid.set_index("Month")["Subscribers"].reindex(pre_mons).fillna(0).tolist()
+    subs_spark = _arpu_totals.reindex(pre_mons).fillna(0).tolist()
     arpu_spark = prepaid.set_index("Month")["ARPU"].reindex(pre_mons).fillna(0).tolist()
 
     # TTM for product chart
@@ -373,14 +392,14 @@ with tab2:
         return (
             f'<div style="background:#1a1a2e;border-radius:10px;padding:16px 16px;'
             f'border:1px solid #2a2a4a;border-top:3px solid {accent};height:100%">'
-            f'<div style="font-size:10px;color:#7788aa;font-weight:600;text-transform:uppercase;'
+            f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
             f'letter-spacing:1px;margin-bottom:8px">{label}</div>'
             f'<div style="font-size:26px;font-weight:800;color:white;line-height:1.1;'
             f'margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
             f'{value}</div>'
-            f'<div style="font-size:11px;color:{l1_col};font-weight:600;margin-bottom:3px">'
+            f'<div style="font-size:14px;color:{l1_col};font-weight:600;margin-bottom:3px">'
             f'{line1}</div>'
-            f'<div style="font-size:11px;color:{l2_col};font-weight:600">{line2}</div>'
+            f'<div style="font-size:14px;color:{l2_col};font-weight:600">{line2}</div>'
             f'{b_html}{sp_html}'
             f'</div>'
         )
@@ -439,14 +458,25 @@ with tab2:
     pre_daily["Daily_Rev"] = pre_daily["Revenue"]     / pre_daily["Days"]
     pre_daily["Daily_AOP"] = pre_daily["Revenue_AOP"] / pre_daily["Days"]
 
-    # ── ARPU Category — Pre_ARPU_Cats sheet in TSTT_Board_Data.xlsx ─────────
-    # Edit the Subscribers column in that sheet to replace dummy values.
-    _pre_arpu_raw = data.get("Pre_ARPU_Cats", pd.DataFrame())
-    if not _pre_arpu_raw.empty and "Category" in _pre_arpu_raw.columns:
-        pre_arpu_cats = dict(zip(_pre_arpu_raw["Category"], _pre_arpu_raw["Subscribers"]))
+    # ── ARPU Category — Prepaid Subs and REV by ARPU buckets.xlsx ───────────
+    _BUCKET_ORDER = [
+        "Very Low (0-5)", "Low (5-30)", "Medium (30-120)",
+        "High (120-300)", "Very High (>300)",
+    ]
+    if not _arpu_df.empty:
+        _snap = (
+            _arpu_df[_arpu_df["Month"] == _arpu_latest_month]
+            .set_index("Category")["Subscribers"]
+            .reindex(_BUCKET_ORDER)
+            .fillna(0)
+        )
+        pre_arpu_cats    = _snap.to_dict()
+        _arpu_data_label = _arpu_latest_month
     else:
-        pre_arpu_cats = {"Very Low": 220_000, "Low": 185_000, "Medium": 130_000,
-                         "High": 60_000, "Very High": 25_000}
+        pre_arpu_cats    = {"Very Low (0-5)": 220_000, "Low (5-30)": 185_000,
+                            "Medium (30-120)": 130_000, "High (120-300)": 60_000,
+                            "Very High (>300)": 25_000}
+        _arpu_data_label = None
     # ─────────────────────────────────────────────────────────────────────────
 
     # ── Row 2 — Avg Daily Revenue + ARPU Category ─────────────────────────────
@@ -477,36 +507,27 @@ with tab2:
         _cat_vals   = list(pre_arpu_cats.values())
         _cat_colors = ["#6b7280", "#6366f1", "#a78bfa", "#f59e0b", "#22c55e"]
         _cat_total  = sum(_cat_vals)
-        # domain + annotation geometry
-        _d_w = 0.56
-        _d_h, _d_t, _d_b = 290, 44, 6
-        _pie_cx = _d_w / 2
-        _pie_cy = (_d_b + (_d_h - _d_t - _d_b) / 2) / _d_h
-        fig = go.Figure(go.Pie(
-            labels=_cat_names, values=_cat_vals, hole=0.48, sort=False,
-            domain=dict(x=[0, _d_w]),
-            marker=dict(colors=_cat_colors,
-                        line=dict(color="rgba(255,255,255,0.3)", width=2)),
-            textinfo="percent", textfont=dict(color="white", size=11),
-            textposition="inside",
-            hovertemplate="<b>%{label}</b><br>%{value:,.0f} subs (%{percent})<extra></extra>",
+        _cat_pcts   = [v / _cat_total * 100 if _cat_total else 0 for v in _cat_vals]
+        fig = go.Figure(go.Bar(
+            y=_cat_names, x=_cat_vals, orientation="h",
+            marker_color=_cat_colors,
+            text=[f"{v/1_000:.1f}K  ({p:.0f}%)"
+                  for v, p in zip(_cat_vals, _cat_pcts)],
+            textposition="outside", textfont=dict(color="white", size=11),
+            hovertemplate="<b>%{y}</b><br>%{x:,.0f} subs<extra></extra>",
         ))
+        _base_layout(
+            fig,
+            f"<b>Subscribers by ARPU Category</b>"
+            + (f" — {_arpu_data_label}" if _arpu_data_label else ""),
+            290,
+        )
         fig.update_layout(
-            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=_d_h,
-            title=dict(
-                text="<b>Subscribers by ARPU Category</b>"
-                     " <span style='color:#f87171;font-size:11px'>⚠ dummy data</span>",
-                font=dict(size=13, color="white"), x=0,
-            ),
-            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=11, color="#aabbcc"),
-                        x=_d_w + 0.04, y=0.5, xanchor="left", yanchor="middle"),
-            margin=dict(l=10, r=10, t=_d_t, b=_d_b),
-            annotations=[dict(
-                text=f"<b>{_cat_total/1_000:.0f}K</b>",
-                x=_pie_cx, y=_pie_cy, xanchor="center", yanchor="middle",
-                font=dict(size=14, color="white"), showarrow=False,
-            )],
+            showlegend=False,
+            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
+                       range=[0, max(_cat_vals) * 1.45]),
+            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=11),
+                       categoryorder="array", categoryarray=_cat_names),
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -514,22 +535,38 @@ with tab2:
     bl, br = st.columns([55, 45])
 
     with bl:
-        products  = ["Data Bundles", "Airtime / Voice", "PAYGO / Top-up", "SMS & Other"]
-        splits    = [0.63, 0.27, 0.09, 0.01]
-        prod_vals = [ttm_pre * s for s in splits]
-        fig = go.Figure(go.Bar(
-            y=products[::-1], x=prod_vals[::-1], orientation="h",
-            marker_color=["#c4b5fd", "#a78bfa", "#8b5cf6", "#6d28d9"],
-            text=[f"TT${v:.0f}M  ({s*100:.0f}%)"
-                  for v, s in zip(prod_vals[::-1], splits[::-1])],
-            textposition="outside", textfont=dict(color="white", size=11),
+        products   = ["Data Bundles", "Airtime / Voice", "PAYGO / Top-up", "SMS & Other"]
+        splits     = [0.63, 0.27, 0.09, 0.01]
+        prod_cols  = ["#c4b5fd", "#a78bfa", "#8b5cf6", "#6d28d9"]
+        prod_vals  = [apr26_rev * s for s in splits]
+        _pd_w = 0.54
+        _pd_h, _pd_t, _pd_b = 280, 44, 6
+        _pd_cx = _pd_w / 2
+        _pd_cy = (_pd_b + (_pd_h - _pd_t - _pd_b) / 2) / _pd_h
+        fig = go.Figure(go.Pie(
+            labels=products, values=prod_vals, hole=0.48, sort=False,
+            domain=dict(x=[0, _pd_w]),
+            marker=dict(colors=prod_cols,
+                        line=dict(color="rgba(255,255,255,0.3)", width=2)),
+            textinfo="percent", textfont=dict(color="white", size=11),
+            textposition="inside",
+            hovertemplate="<b>%{label}</b><br>TT$%{value:.1f}M (%{percent})<extra></extra>",
         ))
-        _base_layout(fig, "Revenue by Product — YTD (TT$M)", 280)
         fig.update_layout(
-            showlegend=False,
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
-                       range=[0, max(prod_vals) * 1.45]),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=12)),
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="white"), height=_pd_h,
+            title=dict(
+                text=f"<b>Revenue by Product — {_arpu_latest_month} (TT$M)</b>",
+                font=dict(size=13, color="white"), x=0,
+            ),
+            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=11, color="#aabbcc"),
+                        x=_pd_w + 0.04, y=0.5, xanchor="left", yanchor="middle"),
+            margin=dict(l=10, r=10, t=_pd_t, b=_pd_b),
+            annotations=[dict(
+                text=f"<b>TT${apr26_rev:.1f}M</b>",
+                x=_pd_cx, y=_pd_cy, xanchor="center", yanchor="middle",
+                font=dict(size=13, color="white"), showarrow=False,
+            )],
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -550,8 +587,8 @@ with tab2:
             f"Prepaid revenue of <strong style='color:white'>TT${apr26_rev:.1f}M</strong> "
             f"in Apr-26 is <strong style='color:{_aop_col}'>"
             f"{abs(rev_aop_pct or 0):.1f}% {_rev_dir} AOP</strong>{_py_cl}. "
-            f"Data Bundles remain the dominant driver at 63% of YTD revenue "
-            f"(TT${prod_vals[0]:.0f}M), reflecting continued migration from voice-only plans "
+            f"Data Bundles remain the dominant driver at 63% of {_arpu_latest_month} revenue "
+            f"(TT${prod_vals[0]:.1f}M), reflecting continued migration from voice-only plans "
             f"to data-led services. "
             f"The subscriber base of <strong style='color:white'>{_fmt_k(subs_lat)}</strong> "
             f"has {_s_dir} {abs(subs_py_pct or 0):.1f}% year-on-year, "
@@ -1334,12 +1371,12 @@ with tab_v2:
         return (
             f'<div style="background:#151528;border-radius:10px;padding:14px 12px;'
             f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
-            f'<div style="font-size:10px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'<div style="font-size:13px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.5px;margin-bottom:8px">{label}</div>'
             f'<div style="font-size:26px;font-weight:800;color:white;margin-bottom:8px;'
             f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
-            f'<div style="font-size:11px;font-weight:600;margin-bottom:3px">{aop_html}</div>'
-            f'<div style="font-size:11px;font-weight:600">{yoy_html}</div>'
+            f'<div style="font-size:14px;font-weight:600;margin-bottom:3px">{aop_html}</div>'
+            f'<div style="font-size:14px;font-weight:600">{yoy_html}</div>'
             f'{spark_html}'
             f'</div>'
         )
@@ -1357,10 +1394,10 @@ with tab_v2:
         return (
             f'<div style="background:#151528;border-radius:10px;padding:12px 14px;'
             f'border:1px solid #252545;border-top:2px solid {accent};height:100%">'
-            f'<div style="font-size:10px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'<div style="font-size:13px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.2px;margin-bottom:5px;display:flex;align-items:center">{label}{dot}</div>'
             f'<div style="font-size:20px;font-weight:800;color:white;margin-bottom:4px">{val_str}</div>'
-            f'<div style="font-size:12px;color:{trend_col};font-weight:600">{trend_str}</div>'
+            f'<div style="font-size:14px;color:{trend_col};font-weight:600">{trend_str}</div>'
             f'{note_h}</div>'
         )
 
@@ -1436,6 +1473,35 @@ with tab_v2:
 
         st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
 
+        # ── Prepaid data usage ────────────────────────────────────────────
+        _usage_df = load_prepaid_data_usage()
+        if not _usage_df.empty:
+            _u_latest = _usage_df.iloc[-1]
+            _u_month  = _u_latest["Month"]
+            _u_gb     = _u_latest["gb_per_user"]
+            # YoY: find the row 12 months prior
+            _u_dt_latest = pd.to_datetime(_u_month, format="%b-%y", errors="coerce")
+            _u_dt_py     = _u_dt_latest - pd.DateOffset(months=12)
+            _u_py_row    = _usage_df[
+                pd.to_datetime(_usage_df["Month"], format="%b-%y", errors="coerce") == _u_dt_py
+            ]
+            if not _u_py_row.empty and _u_py_row.iloc[0]["gb_per_user"] > 0:
+                _u_yoy  = (_u_gb - _u_py_row.iloc[0]["gb_per_user"]) / _u_py_row.iloc[0]["gb_per_user"] * 100
+                _u_trend_str = f"{_u_yoy:+.1f}% vs PY ({_u_month})"
+                _u_trend_col = "#22c55e" if _u_yoy >= 0 else "#ef4444"
+            else:
+                _u_trend_str = f"Latest: {_u_month}"
+                _u_trend_col = "#7788aa"
+            _gb_val_str  = f"{_u_gb:.1f} GB"
+            _gb_is_ph    = False
+            _gb_note     = f"Data to {_u_month}"
+        else:
+            _gb_val_str  = "2.1 GB"
+            _u_trend_str = "+18.3% vs PY"
+            _u_trend_col = "#22c55e"
+            _gb_is_ph    = True
+            _gb_note     = "Placeholder"
+
         # Row 2b
         rb1, rb2, rb3 = st.columns(3)
         gp_col_str = "#22c55e" if (gp_vp is not None and gp_vp >= 0) else "#ef4444"
@@ -1450,9 +1516,9 @@ with tab_v2:
             is_ph=True, accent="#4a9eff", note="Placeholder",
         ), unsafe_allow_html=True)
         rb3.markdown(r2_card(
-            "Prepaid GB / Sub", "2.1 GB",
-            "+18.3% vs PY", "#22c55e",
-            is_ph=True, accent="#a78bfa", note="Placeholder",
+            "Prepaid GB / Sub", _gb_val_str,
+            _u_trend_str, _u_trend_col,
+            is_ph=_gb_is_ph, accent="#a78bfa", note=_gb_note,
         ), unsafe_allow_html=True)
 
     with col_R:

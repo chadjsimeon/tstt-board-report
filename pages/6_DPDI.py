@@ -60,7 +60,7 @@ st.markdown(f"""
 <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:1.5rem">
 
   <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #cc2222">
-    <div style="font-size:0.59rem;font-weight:700;color:#445566;text-transform:uppercase;
+    <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">TOTAL REVENUE</div>
     <div style="font-size:1.4rem;font-weight:700;color:#FF4444;line-height:1.1">
         TT${total_rev:.1f}M</div>
@@ -69,7 +69,7 @@ st.markdown(f"""
   </div>
 
   <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #cc2222">
-    <div style="font-size:0.59rem;font-weight:700;color:#445566;text-transform:uppercase;
+    <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">EXCL. E-GOVTT REV</div>
     <div style="font-size:1.4rem;font-weight:700;color:#FF4444;line-height:1.1">
         TT${excl_rev:.1f}M</div>
@@ -78,7 +78,7 @@ st.markdown(f"""
   </div>
 
   <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #444444">
-    <div style="font-size:0.59rem;font-weight:700;color:#445566;text-transform:uppercase;
+    <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">GROSS PROFIT</div>
     <div style="font-size:1.4rem;font-weight:700;color:#ffffff;line-height:1.1">
         TT${total_gp:.1f}M</div>
@@ -86,7 +86,7 @@ st.markdown(f"""
   </div>
 
   <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #444444">
-    <div style="font-size:0.59rem;font-weight:700;color:#445566;text-transform:uppercase;
+    <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">DIRECT COSTS</div>
     <div style="font-size:1.4rem;font-weight:700;color:#ffffff;line-height:1.1">
         TT${total_dc:.1f}M</div>
@@ -95,7 +95,7 @@ st.markdown(f"""
   </div>
 
   <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #cc2222">
-    <div style="font-size:0.59rem;font-weight:700;color:#445566;text-transform:uppercase;
+    <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">EBITDA</div>
     <div style="font-size:1.4rem;font-weight:700;color:#FF4444;line-height:1.1">
         {ebitda_display}</div>
@@ -103,7 +103,7 @@ st.markdown(f"""
   </div>
 
   <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #00aa55">
-    <div style="font-size:0.59rem;font-weight:700;color:#445566;text-transform:uppercase;
+    <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">E-GOVTT PIPELINE</div>
     <div style="font-size:1.4rem;font-weight:700;color:#00ff88;line-height:1.1">
         TT${egovtt_pipeline:.1f}M</div>
@@ -157,13 +157,13 @@ with col_left:
         height=380,
         title=dict(text="<b>Revenue by Product — YTD vs AOP (TT$M)</b>",
                    font=dict(size=13, color="white"), x=0),
-        xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=10),
+        xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=13),
                    range=[0, max_x], showline=False, zeroline=False),
         yaxis=dict(tickfont=dict(color="white", size=11), showgrid=False,
                    autorange="reversed"),
         margin=dict(l=10, r=130, t=44, b=30),
         annotations=annotations,
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=10),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=12),
                     orientation="h", y=-0.1, x=0),
     )
     st.plotly_chart(fig_bar, use_container_width=True)
@@ -197,11 +197,11 @@ with col_right:
         height=380,
         title=dict(text="<b>Monthly Revenue — Actual vs AOP excl. e-GOVTT (TT$M)</b>",
                    font=dict(size=13, color="white"), x=0),
-        xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=10)),
-        yaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=10),
+        xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=13)),
+        yaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=13),
                    ticksuffix="M"),
         margin=dict(l=10, r=10, t=44, b=30),
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=10),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=12),
                     orientation="h", y=-0.1, x=0),
     )
     st.plotly_chart(fig_line, use_container_width=True)

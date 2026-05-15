@@ -363,12 +363,12 @@ with tab_fp:
         return (
             f'<div style="background:#151528;border-radius:10px;padding:14px 12px;'
             f'border:1px solid #252545;border-top:3px solid {accent}">'
-            f'<div style="font-size:10px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'<div style="font-size:13px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.5px;margin-bottom:8px">{label}</div>'
             f'<div style="font-size:26px;font-weight:800;color:white;margin-bottom:8px;'
             f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
-            f'<div style="font-size:11px;font-weight:600;margin-bottom:3px">{aop_html}</div>'
-            f'<div style="font-size:11px;font-weight:600">{yoy_html}</div>'
+            f'<div style="font-size:14px;font-weight:600;margin-bottom:3px">{aop_html}</div>'
+            f'<div style="font-size:14px;font-weight:600">{yoy_html}</div>'
             f'{spark_html}</div>'
         )
 
@@ -376,11 +376,11 @@ with tab_fp:
         return (
             f'<div style="background:#151528;border-radius:10px;padding:12px 14px;'
             f'border:1px solid #252545;border-top:2px solid {accent};height:100%">'
-            f'<div style="font-size:10px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'<div style="font-size:13px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.2px;margin-bottom:5px">{label}</div>'
             f'<div style="font-size:20px;font-weight:800;color:white;margin-bottom:4px">{val_str}</div>'
-            f'<div style="font-size:12px;color:{aop_col};font-weight:600;margin-bottom:2px">{aop_str}</div>'
-            f'<div style="font-size:12px;color:#f59e0b;font-weight:600">{py_str}</div>'
+            f'<div style="font-size:14px;color:{aop_col};font-weight:600;margin-bottom:2px">{aop_str}</div>'
+            f'<div style="font-size:14px;color:#f59e0b;font-weight:600">{py_str}</div>'
             f'</div>'
         )
 
@@ -505,9 +505,9 @@ with tab_fp:
             font=dict(color="white"), height=210,
             title=dict(text="<b>MRR / OCC / USAGE Trend (TT$M)</b>",
                        font=dict(size=13, color="white"), x=0),
-            xaxis=dict(showgrid=False, tickfont=dict(size=10), tickangle=-30),
+            xaxis=dict(showgrid=False, tickfont=dict(size=13), tickangle=-30),
             yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)",
-                       tickfont=dict(size=10), tickprefix="$"),
+                       tickfont=dict(size=13), tickprefix="$"),
             legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=11, color="white"),
                         orientation="h", x=0, y=1.15, yanchor="bottom"),
             margin=dict(l=10, r=10, t=44, b=10),

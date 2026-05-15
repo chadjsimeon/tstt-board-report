@@ -103,7 +103,7 @@ with col_left:
             y=1.05, x=0, xanchor="left", font=dict(size=13),
         ),
         xaxis=dict(
-            gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=11),
+            gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=13),
             title=dict(text="TT$M", font=dict(color="#8888aa", size=11)),
             zeroline=True, zerolinecolor="#3a3a5a",
         ),
@@ -154,7 +154,7 @@ with col_right:
     <div style="flex:1;min-width:0">
         <div style="font-weight:700;font-size:15px;color:white;
                     margin-bottom:5px">{row['Category']}</div>
-        <div style="font-size:12px;color:#8888aa;line-height:1.4">
+        <div style="font-size:13px;color:#8888aa;line-height:1.4">
             {abs(vpct):.1f}% {label} — TT${abs(row['Plan']):,.2f}M planned
         </div>
     </div>
@@ -205,15 +205,15 @@ with col_right:
     <div style="display:flex;justify-content:space-between;align-items:baseline">
         <div>
             <div style="color:{pct_color};font-size:18px;font-weight:700">TT${ytd_spend:,.2f}M</div>
-            <div style="color:#6688aa;font-size:12px;margin-top:2px">spent YTD</div>
+            <div style="color:#6688aa;font-size:13px;margin-top:2px">spent YTD</div>
         </div>
         <div style="text-align:center">
             <div style="color:{rem_color};font-size:18px;font-weight:700">{rem_sign}TT${abs(remaining):,.2f}M</div>
-            <div style="color:#6688aa;font-size:12px;margin-top:2px">{rem_label}</div>
+            <div style="color:#6688aa;font-size:13px;margin-top:2px">{rem_label}</div>
         </div>
         <div style="text-align:right">
             <div style="color:#aaaacc;font-size:18px;font-weight:700">TT${annual_plan:,.2f}M</div>
-            <div style="color:#6688aa;font-size:12px;margin-top:2px">annual budget</div>
+            <div style="color:#6688aa;font-size:13px;margin-top:2px">annual budget</div>
         </div>
     </div>
 </div>""", unsafe_allow_html=True)
