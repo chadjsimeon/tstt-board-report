@@ -403,8 +403,6 @@ with tab2:
         prod_vals  = [apr26_rev * s for s in splits]
         _pd_w = 0.54
         _pd_h, _pd_t, _pd_b = 280, 44, 6
-        _pd_cx = _pd_w / 2
-        _pd_cy = (_pd_b + (_pd_h - _pd_t - _pd_b) / 2) / _pd_h
         fig = go.Figure(go.Pie(
             labels=products, values=prod_vals, hole=0.48, sort=False,
             domain=dict(x=[0, _pd_w]),
@@ -413,6 +411,11 @@ with tab2:
             textinfo="percent", textfont=dict(color="white", size=11),
             textposition="inside",
             hovertemplate="<b>%{label}</b><br>TT$%{value:.1f}M (%{percent})<extra></extra>",
+            title=dict(
+                text=f"<b>TT${apr26_rev:.1f}M</b>",
+                font=dict(size=13, color="white"),
+                position="middle center",
+            ),
         ))
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
@@ -424,11 +427,6 @@ with tab2:
             legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=11, color="#aabbcc"),
                         x=_pd_w + 0.04, y=0.5, xanchor="left", yanchor="middle"),
             margin=dict(l=10, r=10, t=_pd_t, b=_pd_b),
-            annotations=[dict(
-                text=f"<b>TT${apr26_rev:.1f}M</b>",
-                x=_pd_cx, y=_pd_cy, xanchor="center", yanchor="middle",
-                font=dict(size=13, color="white"), showarrow=False,
-            )],
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -709,8 +707,6 @@ with tab3:
         _pp_plan_total  = sum(pp_plan_vals)
         _pp_dw = 0.56
         _pp_dh, _pp_dt, _pp_db = 420, 44, 6
-        _pp_cx = _pp_dw / 2
-        _pp_cy = (_pp_db + (_pp_dh - _pp_dt - _pp_db) / 2) / _pp_dh
         fig = go.Figure(go.Pie(
             labels=pp_plan_names, values=pp_plan_vals, hole=0.48, sort=False,
             domain=dict(x=[0, _pp_dw]),
@@ -719,6 +715,11 @@ with tab3:
             textinfo="percent", textfont=dict(color="white", size=11),
             textposition="inside",
             hovertemplate="<b>%{label}</b><br>%{value:,.0f} subs (%{percent})<extra></extra>",
+            title=dict(
+                text=f"<b>{_pp_plan_total/1_000:.0f}K</b>",
+                font=dict(size=14, color="white"),
+                position="middle center",
+            ),
         ))
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
@@ -731,11 +732,6 @@ with tab3:
             legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=11, color="#aabbcc"),
                         x=_pp_dw + 0.04, y=0.5, xanchor="left", yanchor="middle"),
             margin=dict(l=10, r=10, t=_pp_dt, b=_pp_db),
-            annotations=[dict(
-                text=f"<b>{_pp_plan_total/1_000:.0f}K</b>",
-                x=_pp_cx, y=_pp_cy, xanchor="center", yanchor="middle",
-                font=dict(size=14, color="white"), showarrow=False,
-            )],
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -1039,8 +1035,6 @@ with tab4:
         _wx_plan_total  = sum(wx_plan_vals)
         _wx_dw = 0.56
         _wx_dh, _wx_dt, _wx_db = 420, 44, 6
-        _wx_pie_cx = _wx_dw / 2
-        _wx_pie_cy = (_wx_db + (_wx_dh - _wx_dt - _wx_db) / 2) / _wx_dh
         fig = go.Figure(go.Pie(
             labels=wx_plan_names, values=wx_plan_vals, hole=0.48, sort=False,
             domain=dict(x=[0, _wx_dw]),
@@ -1049,6 +1043,11 @@ with tab4:
             textinfo="percent", textfont=dict(color="white", size=11),
             textposition="inside",
             hovertemplate="<b>%{label}</b><br>%{value:,.0f} subs (%{percent})<extra></extra>",
+            title=dict(
+                text=f"<b>{_wx_plan_total/1_000:.0f}K</b>",
+                font=dict(size=14, color="white"),
+                position="middle center",
+            ),
         ))
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
@@ -1061,11 +1060,6 @@ with tab4:
             legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=11, color="#aabbcc"),
                         x=_wx_dw + 0.04, y=0.5, xanchor="left", yanchor="middle"),
             margin=dict(l=10, r=10, t=_wx_dt, b=_wx_db),
-            annotations=[dict(
-                text=f"<b>{_wx_plan_total/1_000:.0f}K</b>",
-                x=_wx_pie_cx, y=_wx_pie_cy, xanchor="center", yanchor="middle",
-                font=dict(size=14, color="white"), showarrow=False,
-            )],
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -1393,14 +1387,9 @@ with tab_v2:
         d_texts = [f"{p:.1f}%" if p >= 15 else "" for p in d_pcts]
         d_legend_labels = [f"{s}  {p:.1f}%" for s, p in zip(d_segs, d_pcts)]
 
-        # Domain [0, 0.55] pins the pie to the left 55% of the plot area.
-        # With l=r=10 (symmetric), pie centre x ≈ domain_mid = 0.275 in paper coords.
-        # Pie centre y corrects for the top margin: (b + plot_h/2) / fig_h.
-        _fig_h  = 290
-        _t, _b  = 44, 6
-        _dom_x  = 0.55                                          # pie fills 0→55% of plot area
-        _pie_cx = _dom_x / 2                                    # 0.275 in plot-fraction → ≈ paper
-        _pie_cy = (_b + (_fig_h - _t - _b) / 2) / _fig_h      # ≈ 0.434
+        _fig_h = 290
+        _t, _b = 44, 6
+        _dom_x = 0.55
 
         fig_d = go.Figure(go.Pie(
             labels=d_legend_labels,
@@ -1418,19 +1407,17 @@ with tab_v2:
             domain=dict(x=[0, _dom_x]),
             customdata=d_segs,
             hovertemplate="<b>%{customdata}</b><br>TT$%{value:.1f}M (%{percent})<extra></extra>",
+            title=dict(
+                text=f"<b>TT${d_total:.1f}M</b>",
+                font=dict(size=12, color="white"),
+                position="middle center",
+            ),
         ))
         fig_d.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="white"), height=_fig_h,
             title=dict(text=f"<b>{sel_month} Revenue Mix</b>",
                        font=dict(size=13, color="white"), x=0),
-            annotations=[dict(
-                text=f"<b>TT${d_total:.1f}M</b>",
-                x=_pie_cx, y=_pie_cy,
-                xanchor="center", yanchor="middle",
-                font=dict(size=12, color="white"),
-                showarrow=False,
-            )],
             legend=dict(
                 bgcolor="rgba(0,0,0,0)",
                 font=dict(size=12, color="white"),

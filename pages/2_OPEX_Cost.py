@@ -60,8 +60,8 @@ with col_left:
 
     cats       = latest.sort_values("Plan", ascending=True).copy()
     n          = len(cats)
-    # 84 px per slot + 40 px fixed overhead gives ~33 px bars at 0.42 width
-    fig_height = max(560, n * 84 + 40)
+    # slot height scaled to align chart bottom with the Cost Movements / Spend to Date separator
+    fig_height = max(620, n * 93 + 10)
     bar_colors = ["#22c55e" if v <= 0 else "#ef4444" for v in cats["Variance"]]
 
     fig = go.Figure()
@@ -88,7 +88,7 @@ with col_left:
         width=0.42,
         text=[f"TT${v:,.2f}M" for v in cats["Actual"]],
         textposition="outside",
-        textfont=dict(color="white", size=12),
+        textfont=dict(color="white", size=18),
         cliponaxis=False,
         hovertemplate="%{y}<br>Actual: TT$%{x:,.2f}M<extra></extra>",
     ))
@@ -101,18 +101,18 @@ with col_left:
         height=fig_height,
         legend=dict(
             bgcolor="rgba(0,0,0,0)", orientation="h",
-            y=1.05, x=0, xanchor="left", font=dict(size=13),
+            y=-0.04, x=1.0, xanchor="right", yanchor="top", font=dict(size=14),
         ),
         xaxis=dict(
-            gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=13),
-            title=dict(text="TT$M", font=dict(color="#8888aa", size=11)),
+            gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=18),
+            title=dict(text="TT$M", font=dict(color="#8888aa", size=14)),
             zeroline=True, zerolinecolor="#3a3a5a",
         ),
         yaxis=dict(
             gridcolor="#1e1e3a",
-            tickfont=dict(color="white", size=13),
+            tickfont=dict(color="white", size=17),
         ),
-        margin=dict(l=10, r=160, t=44, b=30),
+        margin=dict(l=10, r=200, t=10, b=50),
     )
 
     st.plotly_chart(fig, use_container_width=True)
@@ -121,7 +121,7 @@ with col_left:
     sign    = "+" if var_pct > 0 else ""
     var_col = "#ef4444" if total_var > 0 else "#22c55e"
     st.markdown(
-        f'<p style="font-size:16px;font-weight:700;color:#f59e0b;margin-top:2px">'
+        f'<p style="font-size:18px;font-weight:700;color:#f59e0b;margin-top:2px">'
         f'Total OPEX: TT${total_actual:,.2f}M &nbsp;vs Plan&nbsp; TT${total_plan:,.2f}M'
         f'&nbsp;(<span style="color:{var_col}">{sign}{var_pct:.1f}%</span>)'
         f'</p>',
@@ -132,7 +132,7 @@ with col_left:
 # RIGHT — Top 5 movements + Cost-Out Programme
 # ════════════════════════════════════════════════════════════════════════════════
 with col_right:
-    st.markdown("#### Cost Movements")
+    st.markdown("#### Cost Movements (MoM)")
 
     # Sort descending by Plan to match top-to-bottom order of the bullet chart
     movements = latest.sort_values("Plan", ascending=False)
@@ -146,20 +146,20 @@ with col_right:
         sign     = "+" if var > 0 else ""
 
         st.markdown(f"""
-<div style="display:flex;align-items:center;margin-bottom:14px;padding:14px 16px;
+<div style="display:flex;align-items:center;margin-bottom:14px;padding:16px 18px;
             background:rgba(255,255,255,0.04);border-radius:10px;
             border-left:4px solid {color}">
-    <div style="background:{badge_bg};color:{color};font-weight:800;font-size:13px;
-                padding:5px 10px;border-radius:50%;min-width:30px;text-align:center;
-                margin-right:14px;border:1px solid {color};flex-shrink:0">{rank}</div>
+    <div style="background:{badge_bg};color:{color};font-weight:800;font-size:16px;
+                padding:6px 12px;border-radius:50%;min-width:36px;text-align:center;
+                margin-right:16px;border:1px solid {color};flex-shrink:0">{rank}</div>
     <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:15px;color:white;
-                    margin-bottom:5px">{row['Category']}</div>
-        <div style="font-size:13px;color:#8888aa;line-height:1.4">
+        <div style="font-weight:700;font-size:18px;color:white;
+                    margin-bottom:6px">{row['Category']}</div>
+        <div style="font-size:15px;color:#8888aa;line-height:1.4">
             {abs(vpct):.1f}% {label} — TT${abs(row['Plan']):,.2f}M planned
         </div>
     </div>
-    <div style="font-weight:800;font-size:15px;color:{color};
+    <div style="font-weight:800;font-size:18px;color:{color};
                 text-align:right;white-space:nowrap;margin-left:12px">
         {sign}TT${var:,.2f}M
     </div>
@@ -194,27 +194,27 @@ with col_right:
     rem_sign     = "+" if remaining < 0 else ""
 
     st.markdown(f"""
-<div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:20px 20px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="color:#aaaacc;font-size:14px;font-weight:500">YTD Spend vs Annual Budget</span>
-        <span style="color:{pct_color};font-weight:800;font-size:22px">{progress:.1f}%</span>
+<div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:24px 24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="color:#aaaacc;font-size:17px;font-weight:500">YTD Spend vs Annual Budget</span>
+        <span style="color:{pct_color};font-weight:800;font-size:26px">{progress:.1f}%</span>
     </div>
-    <div style="background:#1e1e3a;border-radius:8px;height:20px;overflow:hidden;margin-bottom:14px">
+    <div style="background:#1e1e3a;border-radius:8px;height:22px;overflow:hidden;margin-bottom:18px">
         <div style="background:{bar_color};
                     width:{progress:.1f}%;height:100%;border-radius:8px"></div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:baseline">
         <div>
-            <div style="color:{pct_color};font-size:18px;font-weight:700">TT${ytd_spend:,.2f}M</div>
-            <div style="color:#6688aa;font-size:13px;margin-top:2px">spent YTD</div>
+            <div style="color:{pct_color};font-size:20px;font-weight:700">TT${ytd_spend:,.2f}M</div>
+            <div style="color:#6688aa;font-size:15px;margin-top:4px">spent YTD</div>
         </div>
         <div style="text-align:center">
-            <div style="color:{rem_color};font-size:18px;font-weight:700">{rem_sign}TT${abs(remaining):,.2f}M</div>
-            <div style="color:#6688aa;font-size:13px;margin-top:2px">{rem_label}</div>
+            <div style="color:{rem_color};font-size:20px;font-weight:700">{rem_sign}TT${abs(remaining):,.2f}M</div>
+            <div style="color:#6688aa;font-size:15px;margin-top:4px">{rem_label}</div>
         </div>
         <div style="text-align:right">
-            <div style="color:#aaaacc;font-size:18px;font-weight:700">TT${annual_plan:,.2f}M</div>
-            <div style="color:#6688aa;font-size:13px;margin-top:2px">annual budget</div>
+            <div style="color:#aaaacc;font-size:20px;font-weight:700">TT${annual_plan:,.2f}M</div>
+            <div style="color:#6688aa;font-size:15px;margin-top:4px">annual budget</div>
         </div>
     </div>
 </div>""", unsafe_allow_html=True)

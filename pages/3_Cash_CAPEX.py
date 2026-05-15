@@ -197,12 +197,12 @@ _ar_legend = "".join(
 
 def _mc(label, value, sub, sub_color):
     return (
-        f'<div style="flex:1;background:#161b22;padding:16px 14px 14px;'
-        f'border:1px solid #21262d;border-left:3px solid {sub_color};border-radius:8px;text-align:center">'
+        f'<div style="flex:1;background:#161b22;padding:20px 18px;'
+        f'border:1px solid #21262d;border-left:3px solid {sub_color};border-radius:10px">'
         f'<div style="font-size:0.72rem;font-weight:700;color:#556677;text-transform:uppercase;'
-        f'letter-spacing:1.2px;margin-bottom:7px">{label}</div>'
+        f'letter-spacing:1.2px;margin-bottom:10px">{label}</div>'
         f'<div style="font-size:1.55rem;font-weight:800;color:white;line-height:1">{value}</div>'
-        f'<div style="font-size:0.7rem;color:{sub_color};font-weight:600;margin-top:6px;text-align:right">{sub}</div>'
+        f'<div style="font-size:0.7rem;color:{sub_color};font-weight:600;margin-top:8px;text-align:right">{sub}</div>'
         f'</div>'
     )
 
@@ -285,51 +285,21 @@ with r1_right:
 """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ROW 2 — single flex row so all cards share the same height via align-items:stretch
-#         Cash Balance | Net Debt | Free Cash Flow | Collections Performance
-#         flex:1        flex:1     flex:1            flex:3  (keeps 50/50 visual split)
+# ROW 2 — 3 metric cards spanning full width
 # ══════════════════════════════════════════════════════════════════════════════
-_collections_card = (
-    f'<div style="flex:3;background:#161b22;border-radius:8px;padding:16px 14px;'
-    f'border:1px solid #21262d;display:flex;flex-direction:column">'
-    f'<div style="font-size:0.72rem;font-weight:700;color:#556677;text-transform:uppercase;'
-    f'letter-spacing:1.2px;margin-bottom:8px">Collections Performance</div>'
-    f'<div style="display:flex;gap:8px;flex:1">'
-    f'<div style="flex:1;background:#0d1117;border-radius:8px;padding:10px 12px;'
-    f'border:1px solid #21262d;text-align:center;display:flex;flex-direction:column;justify-content:center">'
-    f'<div style="font-size:0.72rem;color:#4488ff;font-weight:600;margin-bottom:5px;'
-    f'text-transform:uppercase;letter-spacing:1px">Government</div>'
-    f'{_coll_display(coll_gov, _cg_color)}'
-    f'<div style="font-size:0.65rem;color:#556677;margin-top:5px">% of billings</div>'
-    f'</div>'
-    f'<div style="flex:1;background:#0d1117;border-radius:8px;padding:10px 12px;'
-    f'border:1px solid #21262d;text-align:center;display:flex;flex-direction:column;justify-content:center">'
-    f'<div style="font-size:0.72rem;color:#a78bfa;font-weight:600;margin-bottom:5px;'
-    f'text-transform:uppercase;letter-spacing:1px">Non-Government</div>'
-    f'{_coll_display(coll_non_gov, _cng_color)}'
-    f'<div style="font-size:0.65rem;color:#556677;margin-top:5px">% of billings</div>'
-    f'</div>'
-    f'</div>'
-    f'</div>'
-)
-
 st.markdown(
-    f'<div style="display:flex;gap:10px;align-items:stretch;margin-bottom:12px">'
-    f'{_mc("Cash Balance",  f"TT${cash_val:,.0f}M",              f"TT${cash_delta:+,.1f}M vs PY",   cash_dc)}'
-    f'{_mc("Net Debt",      f"TT${debt_val:,.0f}M",              f"TT${debt_delta:+,.1f}M vs LY",   debt_dc)}'
-    f'{_mc("Free Cash Flow",f"TT${abs(fcf_month):,.0f}M",        str(latest["Month"]),              _fcf_color)}'
-    f'{_collections_card}'
+    f'<div style="display:flex;gap:10px;align-items:stretch;margin:10px 0">'
+    f'{_mc("Cash Balance",  f"TT${cash_val:,.0f}M",       f"TT${cash_delta:+,.1f}M vs PY",  cash_dc)}'
+    f'{_mc("Net Debt",      f"TT${debt_val:,.0f}M",       f"TT${debt_delta:+,.1f}M vs LY",  debt_dc)}'
+    f'{_mc("Free Cash Flow",f"TT${abs(fcf_month):,.0f}M", str(latest["Month"]),             _fcf_color)}'
     f'</div>',
     unsafe_allow_html=True,
 )
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ROW 3 — CAPEX (left only)
+# ROW 3 — CAPEX (left) | Collections (right) — flex-stretch for equal height
 # ══════════════════════════════════════════════════════════════════════════════
-r3_left, _ = st.columns(2)
-
-with r3_left:
-    st.markdown(f"""
+st.markdown(f"""
 <style>
 @keyframes capex-fill-{int(capex_progress*10)} {{
     from {{ width: 0%; }}
@@ -337,30 +307,57 @@ with r3_left:
 }}
 .capex-bar {{ animation: capex-fill-{int(capex_progress*10)} 600ms ease-in forwards; }}
 </style>
-<div style="background:#161b22;border-radius:8px;padding:18px 20px;border:1px solid #21262d">
-  <div style="font-size:0.7rem;font-weight:700;color:#00e676;text-transform:uppercase;
-              letter-spacing:2px;margin-bottom:14px">CAPEX Spend to Date</div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-    <span style="color:#aaaacc;font-size:14px;font-weight:500">YTD Spend vs Annual Budget</span>
-    <span style="color:{cap_pct_color};font-weight:800;font-size:22px">{capex_progress:.1f}%</span>
-  </div>
-  <div style="background:#1e1e3a;border-radius:8px;height:20px;overflow:hidden;margin-bottom:14px">
-    <div class="capex-bar" style="background:{cap_bar_color};height:100%;border-radius:8px"></div>
-  </div>
-  <div style="display:flex;justify-content:space-between;align-items:baseline">
-    <div>
-      <div style="color:{cap_pct_color};font-size:18px;font-weight:700">TT${capex_act:,.1f}M</div>
-      <div style="color:#6688aa;font-size:13px;margin-top:2px">spent YTD</div>
+<div style="display:flex;gap:10px;align-items:stretch;margin:0 0 12px">
+
+  <div style="flex:1;min-width:0;background:#161b22;border-radius:10px;padding:20px 22px;
+              border:1px solid #21262d;display:flex;flex-direction:column">
+    <div style="font-size:0.7rem;font-weight:700;color:#00e676;text-transform:uppercase;
+                letter-spacing:2px;margin-bottom:18px">CAPEX Spend to Date</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="color:#aaaacc;font-size:14px;font-weight:500">YTD Spend vs Annual Budget</span>
+      <span style="color:{cap_pct_color};font-weight:800;font-size:22px">{capex_progress:.1f}%</span>
     </div>
-    <div style="text-align:center">
-      <div style="color:{cap_rem_color};font-size:18px;font-weight:700">{cap_rem_sign}TT${abs(capex_remaining):,.1f}M</div>
-      <div style="color:#6688aa;font-size:13px;margin-top:2px">{cap_rem_label}</div>
+    <div style="background:#1e1e3a;border-radius:8px;height:20px;overflow:hidden;margin-bottom:18px">
+      <div class="capex-bar" style="background:{cap_bar_color};height:100%;border-radius:8px"></div>
     </div>
-    <div style="text-align:right">
-      <div style="color:#aaaacc;font-size:18px;font-weight:700">TT${capex_plan:,.1f}M</div>
-      <div style="color:#6688aa;font-size:13px;margin-top:2px">annual budget</div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:auto">
+      <div>
+        <div style="color:{cap_pct_color};font-size:18px;font-weight:700">TT${capex_act:,.1f}M</div>
+        <div style="color:#6688aa;font-size:13px;margin-top:2px">spent YTD</div>
+      </div>
+      <div style="text-align:center">
+        <div style="color:{cap_rem_color};font-size:18px;font-weight:700">{cap_rem_sign}TT${abs(capex_remaining):,.1f}M</div>
+        <div style="color:#6688aa;font-size:13px;margin-top:2px">{cap_rem_label}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="color:#aaaacc;font-size:18px;font-weight:700">TT${capex_plan:,.1f}M</div>
+        <div style="color:#6688aa;font-size:13px;margin-top:2px">annual budget</div>
+      </div>
     </div>
   </div>
+
+  <div style="flex:1;min-width:0;background:#161b22;border-radius:10px;padding:20px 22px;
+              border:1px solid #21262d;display:flex;flex-direction:column">
+    <div style="font-size:0.7rem;font-weight:700;color:#556677;text-transform:uppercase;
+                letter-spacing:2px;margin-bottom:14px">Collections Performance</div>
+    <div style="display:flex;gap:10px;flex:1">
+      <div style="flex:1;border:1px solid #21262d;border-radius:8px;padding:16px 14px;
+                  text-align:center;display:flex;flex-direction:column;justify-content:center">
+        <div style="font-size:0.72rem;color:#4488ff;font-weight:600;margin-bottom:8px;
+                    text-transform:uppercase;letter-spacing:1px">Government</div>
+        {_coll_display(coll_gov, _cg_color)}
+        <div style="font-size:0.65rem;color:#556677;margin-top:8px">% of billings</div>
+      </div>
+      <div style="flex:1;border:1px solid #21262d;border-radius:8px;padding:16px 14px;
+                  text-align:center;display:flex;flex-direction:column;justify-content:center">
+        <div style="font-size:0.72rem;color:#a78bfa;font-weight:600;margin-bottom:8px;
+                    text-transform:uppercase;letter-spacing:1px">Non-Government</div>
+        {_coll_display(coll_non_gov, _cng_color)}
+        <div style="font-size:0.65rem;color:#556677;margin-top:8px">% of billings</div>
+      </div>
+    </div>
+  </div>
+
 </div>""", unsafe_allow_html=True)
 
 

@@ -148,71 +148,35 @@ st.markdown(f"""
     <div style="color:{MUTED};font-size:12px;font-style:italic;">All figures in TT$'M unless otherwise stated</div>
 </div>""", unsafe_allow_html=True)
 
-# ── Main Layout ───────────────────────────────────────────────────────────────
-left_col, right_col = st.columns([3, 2])
+# ── Row 1: Full-width stacked bar ─────────────────────────────────────────────
+fig_bar = go.Figure()
+for name, vals, color in SEGS:
+    if any(v > 0 for v in vals):
+        fig_bar.add_trace(go.Bar(
+            name=name, x=p_labels, y=vals,
+            marker_color=color,
+            hovertemplate=f"<b>{name}</b>: TT$%{{y:,.1f}}M<extra></extra>",
+        ))
+fig_bar.update_layout(
+    barmode="stack",
+    height=420,
+    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+    font=dict(color="white"),
+    title=dict(text="<b>Revenue by Segment (TT$M)</b>",
+               font=dict(size=16, color="white"), x=0),
+    xaxis=dict(gridcolor=GRID, tickfont=dict(color="white", size=16)),
+    yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=15),
+               tickprefix="$", zeroline=False),
+    legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="white", size=15),
+                orientation="h", x=0, y=-0.14),
+    margin=dict(l=10, r=10, t=44, b=80),
+)
+st.plotly_chart(fig_bar, use_container_width=True)
 
-# ── Left: Stacked Bar + Segment Highlights ────────────────────────────────────
-with left_col:
-    fig_bar = go.Figure()
-    for name, vals, color in SEGS:
-        if any(v > 0 for v in vals):
-            fig_bar.add_trace(go.Bar(
-                name=name, x=p_labels, y=vals,
-                marker_color=color,
-                hovertemplate=f"<b>{name}</b>: TT$%{{y:,.1f}}M<extra></extra>",
-            ))
-    fig_bar.update_layout(
-        barmode="stack",
-        height=400,
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"),
-        title=dict(text="<b>Revenue by Segment (TT$M)</b>",
-                   font=dict(size=13, color="white"), x=0),
-        xaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED)),
-        yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED),
-                   tickprefix="$", zeroline=False),
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="white", size=11),
-                    orientation="h", x=0, y=-0.18),
-        margin=dict(l=10, r=10, t=44, b=70),
-    )
-    st.plotly_chart(fig_bar, use_container_width=True)
+# ── Row 2: Donut (left) + Waterfall (right) ───────────────────────────────────
+donut_col, wf_col = st.columns(2)
 
-    # Segment Highlights — single-month YoY
-    def _hl(name, color):
-        d  = bridge_delta.get(name, 0.0)
-        ly = ly_seg.get(name, 0.0)
-        if ly == 0:
-            return (
-                f'<span style="color:{color};font-weight:700;">{name}</span> '
-                f'revenue — (no prior-year data)'
-            )
-        pct  = d / ly * 100
-        sign = "↑" if pct >= 0 else "↓"
-        c    = "#22c55e" if pct >= 0 else "#ef4444"
-        return (
-            f'<span style="color:{color};font-weight:700;">{name}</span> revenue '
-            f'<span style="color:{c};font-weight:600;">{sign}&thinsp;{abs(pct):.1f}% YoY</span> '
-            f'(TT${d:+.1f}M)'
-        )
-
-    hl_parts = [_hl("Consumer", SEG_COLORS["Consumer"]),
-                _hl("Business", SEG_COLORS["Business"]),
-                _hl("AMPLIA",   SEG_COLORS["AMPLIA"])]
-    hl_body  = " &nbsp;|&nbsp; ".join(hl_parts)
-
-    st.markdown(f"""
-<div style="background:{CARD_BG};border-radius:10px;padding:16px 20px;
-            border:1px solid rgba(74,158,255,0.08);border-left:3px solid #f59e0b;
-            margin-top:4px;">
-    <div style="color:#f59e0b;font-size:11px;font-weight:700;text-transform:uppercase;
-                letter-spacing:1.5px;margin-bottom:8px;">
-        &#x25A0;&nbsp;Segment Highlights — {_mon_lbl} vs {_ly_lbl}</div>
-    <div style="color:#c0c8d8;font-size:13px;line-height:1.9;">{hl_body}</div>
-</div>""", unsafe_allow_html=True)
-
-# ── Right: Donut (YTD mix) + Waterfall (single-month YoY) ────────────────────
-with right_col:
-    # Donut — YTD Revenue Mix
+with donut_col:
     d_names  = [n for n, v, _ in SEGS if ytd_seg[n] > 0]
     d_vals   = [ytd_seg[n] for n, v, _ in SEGS if ytd_seg[n] > 0]
     d_colors = [c for n, v, c in SEGS if ytd_seg[n] > 0]
@@ -221,27 +185,26 @@ with right_col:
         labels=d_names, values=d_vals, hole=0.55,
         marker=dict(colors=d_colors, line=dict(color="#0d1117", width=2)),
         textinfo="label+percent",
-        textfont=dict(color="white", size=11),
+        textfont=dict(color="white", size=14),
         hovertemplate="<b>%{label}</b>: TT$%{value:,.1f}M (%{percent})<extra></extra>",
+        title=dict(
+            text=f"<b>Total<br>{ytd_tot:,.0f}</b>",
+            font=dict(size=16, color="white"),
+            position="middle center",
+        ),
     ))
     fig_donut.update_layout(
-        height=300,
+        height=380,
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"),
         title=dict(text=f"<b>{_ytd_lbl} Revenue Mix</b>",
-                   font=dict(size=13, color="white"), x=0),
-        annotations=[dict(
-            text=f"<b>Total<br>{ytd_tot:,.0f}</b>",
-            x=0.5, y=0.5,
-            font=dict(size=13, color="white"),
-            showarrow=False,
-        )],
+                   font=dict(size=16, color="white"), x=0),
         showlegend=False,
         margin=dict(l=10, r=10, t=44, b=10),
     )
     st.plotly_chart(fig_donut, use_container_width=True)
 
-    # Waterfall — single month YoY bridge
+with wf_col:
     wf_x = [_ly_lbl] + list(bridge_delta.keys()) + [_mon_lbl]
     wf_m = ["absolute"] + ["relative"] * len(bridge_delta) + ["total"]
     wf_y = [ly_tot] + list(bridge_delta.values()) + [cur_tot]
@@ -254,7 +217,7 @@ with right_col:
         x=wf_x, y=wf_y, measure=wf_m,
         text=wf_text,
         textposition="outside",
-        textfont=dict(color="white", size=10),
+        textfont=dict(color="white", size=14),
         increasing=dict(marker=dict(color="#00d4a0")),
         decreasing=dict(marker=dict(color="#FF4444")),
         totals=dict(marker=dict(color=EBI_COLOR)),
@@ -262,17 +225,49 @@ with right_col:
         hovertemplate="<b>%{x}</b>: TT$%{y:,.1f}M<extra></extra>",
     ))
     fig_wf.update_layout(
-        height=300,
+        height=380,
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"),
         title=dict(text=f"<b>YoY Revenue Bridge — {_mon_lbl} vs {_ly_lbl} (TT$M)</b>",
-                   font=dict(size=13, color="white"), x=0),
-        xaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=10)),
-        yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED), zeroline=False),
+                   font=dict(size=16, color="white"), x=0),
+        xaxis=dict(gridcolor=GRID, tickfont=dict(color="white", size=14)),
+        yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=14), zeroline=False),
         showlegend=False,
         margin=dict(l=10, r=10, t=44, b=30),
     )
     st.plotly_chart(fig_wf, use_container_width=True)
+
+# ── Row 3: Segment highlights callout ─────────────────────────────────────────
+def _hl(name, color):
+    d  = bridge_delta.get(name, 0.0)
+    ly = ly_seg.get(name, 0.0)
+    if ly == 0:
+        return (
+            f'<span style="color:{color};font-weight:700;">{name}</span> '
+            f'revenue — (no prior-year data)'
+        )
+    pct  = d / ly * 100
+    sign = "↑" if pct >= 0 else "↓"
+    c    = "#22c55e" if pct >= 0 else "#ef4444"
+    return (
+        f'<span style="color:{color};font-weight:700;">{name}</span> revenue '
+        f'<span style="color:{c};font-weight:600;">{sign}&thinsp;{abs(pct):.1f}% YoY</span> '
+        f'(TT${d:+.1f}M)'
+    )
+
+hl_parts = [_hl("Consumer", SEG_COLORS["Consumer"]),
+            _hl("Business", SEG_COLORS["Business"]),
+            _hl("AMPLIA",   SEG_COLORS["AMPLIA"])]
+hl_body  = " &nbsp;&nbsp;|&nbsp;&nbsp; ".join(hl_parts)
+
+st.markdown(f"""
+<div style="background:{CARD_BG};border-radius:10px;padding:20px 24px;
+            border:1px solid rgba(74,158,255,0.08);border-left:3px solid #f59e0b;">
+    <div style="color:#f59e0b;font-size:13px;font-weight:700;text-transform:uppercase;
+                letter-spacing:1.5px;margin-bottom:10px;">
+        &#x25A0;&nbsp;Segment Highlights — {_mon_lbl} vs {_ly_lbl}</div>
+    <div style="color:#c0c8d8;font-size:16px;line-height:2.0;">{hl_body}</div>
+</div>""", unsafe_allow_html=True)
 
 # ── Confidential Footer ───────────────────────────────────────────────────────
 st.markdown("""
