@@ -89,6 +89,7 @@ with col_left:
         text=[f"TT${v:,.2f}M" for v in cats["Actual"]],
         textposition="outside",
         textfont=dict(color="white", size=12),
+        cliponaxis=False,
         hovertemplate="%{y}<br>Actual: TT$%{x:,.2f}M<extra></extra>",
     ))
 
@@ -111,7 +112,7 @@ with col_left:
             gridcolor="#1e1e3a",
             tickfont=dict(color="white", size=13),
         ),
-        margin=dict(l=10, r=120, t=44, b=30),
+        margin=dict(l=10, r=160, t=44, b=30),
     )
 
     st.plotly_chart(fig, use_container_width=True)

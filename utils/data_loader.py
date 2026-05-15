@@ -1,7 +1,9 @@
 import pandas as pd
 import streamlit as st
 
-EXCEL_PATH = "TSTT_Board_Data.xlsx"
+EXCEL_PATH       = "TSTT_Board_Data.xlsx"
+ARPU_BUCKET_PATH      = "Prepaid Subs and REV by ARPU buckets.xlsx"
+PREPAID_USAGE_PATH    = "dd_prepaid_data_usage_mth.xlsx"
 M = 1_000_000  # raw TT$ → TT$M conversion factor
 
 
@@ -154,6 +156,86 @@ def load_all_data():
         data["KPI_Summary"] = kpi
 
     return data
+
+
+@st.cache_data
+def load_prepaid_arpu():
+    """Load prepaid subs & revenue by ARPU bucket from the external Excel file.
+
+    Returns a long-format DataFrame with columns:
+        Month (str, e.g. 'Jan-25'), Category (str), Subscribers (float), Revenue (TT$M float)
+    Excludes 'No Revenue' and 'Total' rows — caller filters as needed.
+    """
+    BUCKET_CATS = {
+        "Very Low (0-5)", "Low (5-30)", "Medium (30-120)",
+        "High (120-300)", "Very High (>300)",
+    }
+    try:
+        df = pd.read_excel(ARPU_BUCKET_PATH, sheet_name="Export", header=0)
+    except Exception:
+        return pd.DataFrame()
+
+    # Row 0 is the sub-header (arpu_category / Subscribers / Revenue …)
+    # Rows 1-6 are data rows; row 7 is Total; rows 8+ are blanks/notes.
+    data_rows = df.iloc[1:8].copy()
+    cat_col   = df.columns[0]  # "MonthYear"
+    cols      = df.columns.tolist()
+
+    records = []
+    i = 1
+    while i < len(cols) - 1:
+        subs_col  = cols[i]
+        rev_col   = cols[i + 1]
+        month_raw = str(subs_col)          # e.g. "Jan-2025"
+        try:
+            month_fmt = pd.to_datetime(month_raw, format="%b-%Y").strftime("%b-%y")
+        except Exception:
+            month_fmt = month_raw
+
+        for _, row in data_rows.iterrows():
+            cat = row[cat_col]
+            if pd.isna(cat):
+                continue
+            cat_str = str(cat).strip()
+            if cat_str not in BUCKET_CATS:
+                continue                   # skip No Revenue / Total
+            records.append({
+                "Month":       month_fmt,
+                "Category":    cat_str,
+                "Subscribers": pd.to_numeric(row[subs_col], errors="coerce"),
+                "Revenue":     pd.to_numeric(row[rev_col],  errors="coerce") / M,
+            })
+        i += 2
+
+    return pd.DataFrame(records)
+
+
+@st.cache_data
+def load_prepaid_data_usage():
+    """Load prepaid data usage from dd_prepaid_data_usage_mth.xlsx.
+
+    Returns a DataFrame sorted by month with derived columns:
+        Month (str, e.g. 'Sep-25'), unique_data_users, bundle_users, payg_users,
+        total_data_usage (MB), in_bundle_usage (MB), payg_data_usage (MB),
+        gb_per_user, bundle_pct,
+        data_bundle_rev (TT$M), payg_data_charges (TT$M), total_data_rev (TT$M)
+    """
+    try:
+        df = pd.read_excel(PREPAID_USAGE_PATH, sheet_name="Result 1")
+    except Exception:
+        return pd.DataFrame()
+
+    df = df.sort_values("Month_Code").reset_index(drop=True)
+    df["Month"] = (
+        pd.to_datetime(df["Month_Code"].astype(str), format="%Y%m")
+        .dt.strftime("%b-%y")
+    )
+    df["gb_per_user"]       = df["total_data_usage"] / df["unique_data_users"] / 1024
+    df["bundle_pct"]        = df["bundle_users"]     / df["unique_data_users"] * 100
+    df["data_bundle_rev"]   = df["data_bundle_rev"]  / M
+    df["payg_data_charges"] = df["payg_data_charges"] / M
+    df["total_data_rev"]    = df["data_bundle_rev"]  + df["payg_data_charges"]
+    return df
 
 
 def get_month_order(df, col="Month"):

@@ -160,150 +160,12 @@ def _base_layout(fig, title, height, y_range=None):
 # ═════════════════════════════════════════════════════════════════════════════
 # TABS
 # ═════════════════════════════════════════════════════════════════════════════
-tab1, tab2, tab3, tab4, tab_v2 = st.tabs([
-    "Consumer Sales Performance",
+tab_v2, tab2, tab3, tab4 = st.tabs([
+    "Consumer Sales V2",
     "Prepaid Revenue",
     "Postpaid Revenue",
     "WTTx Revenue",
-    "Consumer Sales V2",
 ])
-
-# ─────────────────────────────────────────────────────────────────────────────
-# TAB 1 — Consumer Sales Performance
-# ─────────────────────────────────────────────────────────────────────────────
-with tab1:
-    latest  = consumer[consumer["Month"] == sel_month].copy()
-    apr25   = consumer[consumer["Month"] == "Apr-25"].copy()
-
-    t_rev  = latest["Revenue"].sum()
-    t_aop  = latest["Revenue_AOP"].sum()
-    t_var  = (t_rev - t_aop) / t_aop * 100 if t_aop else 0
-    apr25_t = apr25["Revenue"].sum()
-    yoy_pct = (t_rev - apr25_t) / apr25_t * 100 if apr25_t else 0
-
-    def _seg_r(name): r = latest[latest["Segment"]==name]; return r["Revenue"].values[0] if not r.empty else 0.0
-    def _seg_a(name):
-        r = latest[latest["Segment"]==name]
-        v = r["Revenue_AOP"].values[0] if not r.empty else 0.0
-        return v if v and pd.notna(v) else None
-    def _vp(name): a,p=_seg_r(name),_seg_a(name); return (a-p)/abs(p)*100 if p else None
-
-    monthly = (consumer.groupby("Month", sort=False)
-               .agg(Revenue=("Revenue","sum"), Revenue_AOP=("Revenue_AOP","sum"))
-               .reset_index())
-
-    # Other = all segments except the three main ones
-    _main = ["Prepaid", "Postpaid", "WTTx"]
-    other_cons      = consumer[~consumer["Segment"].isin(_main)]
-    other_by_month  = other_cons.groupby("Month", sort=False)["Revenue"].sum()
-    other_rev_sel   = other_by_month.get(sel_month, 0.0)
-    other_aop_sel   = other_cons[other_cons["Month"] == sel_month]["Revenue_AOP"].sum()
-    other_var       = (other_rev_sel - other_aop_sel) / other_aop_sel * 100 if other_aop_sel else None
-
-    # Sparkline series — one value per month, aligned to full month list
-    total_trend = monthly.set_index("Month")["Revenue"].reindex(months).fillna(0).tolist()
-    post_trend  = postpaid.set_index("Month")["Revenue"].reindex(months).fillna(0).tolist()
-    pre_trend   = prepaid.set_index("Month")["Revenue"].reindex(months).fillna(0).tolist()
-    wx_trend    = wttx.set_index("Month")["Revenue"].reindex(months).fillna(0).tolist()
-    other_trend = other_by_month.reindex(months).fillna(0).tolist()
-
-    segs_meaningful = ["Prepaid","Postpaid","WTTx","Residential Security"]
-    svars = {s: _vp(s) for s in segs_meaningful if _vp(s) is not None}
-    best_s = max(svars, key=svars.get) if svars else "—"
-    wrst_s = min(svars, key=svars.get) if svars else "—"
-
-    pp_now = latest[latest["Segment"]=="Postpaid"]["Subscribers"]
-    pp_ly  = apr25[apr25["Segment"]=="Postpaid"]["Subscribers"]
-    pp_now_v = pp_now.values[0] if not pp_now.empty else 0
-    pp_ly_v  = pp_ly.values[0]  if not pp_ly.empty  else 0
-    pp_yoy   = (pp_now_v - pp_ly_v) / pp_ly_v * 100 if pp_ly_v else 0
-
-    st.markdown(_tab_hdr("Consumer Sales Performance", f"YTD {sel_month} | TTM"),
-                unsafe_allow_html=True)
-
-    c1,c2,c3,c4,c5 = st.columns(5)
-    yoy_x = f"YoY: {yoy_pct:+.1f}%" if abs(yoy_pct) > 0.05 else "YoY: flat"
-    c1.markdown(_card("Total Revenue",    f"TT${t_rev:.1f}M",  _vs(t_var),  _vc(t_var),  yoy_x,
-                      "#00d4a0", spark_series=total_trend), unsafe_allow_html=True)
-    v2 = _vp("Postpaid")
-    c2.markdown(_card("Postpaid Revenue", f"TT${_seg_r('Postpaid'):.1f}M", _vs(v2), _vc(v2),
-                      accent="#4a9eff", spark_series=post_trend), unsafe_allow_html=True)
-    v3 = _vp("Prepaid")
-    c3.markdown(_card("Prepaid Revenue",  f"TT${_seg_r('Prepaid'):.1f}M",  _vs(v3), _vc(v3),
-                      accent="#a78bfa", spark_series=pre_trend), unsafe_allow_html=True)
-    v4 = _vp("WTTx")
-    c4.markdown(_card("WTTx Revenue",     f"TT${_seg_r('WTTx'):.1f}M",     _vs(v4), _vc(v4),
-                      accent="#f59e0b", spark_series=wx_trend), unsafe_allow_html=True)
-    c5.markdown(_card("Other Revenue",    f"TT${other_rev_sel:.1f}M", _vs(other_var), _vc(other_var),
-                      accent="#ff6b6b", spark_series=other_trend), unsafe_allow_html=True)
-
-    st.markdown("<div style='margin:16px 0 0 0'></div>", unsafe_allow_html=True)
-    cl, cr = st.columns([3,2])
-
-    with cl:
-        mo = list(consumer["Month"].unique())
-        mr = monthly.set_index("Month")["Revenue"].reindex(mo)
-        ma = monthly.set_index("Month")["Revenue_AOP"].reindex(mo)
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=mo, y=mr.values, name="Actual",
-                                 line=dict(color="#22c55e",width=2.5), mode="lines+markers",
-                                 marker=dict(size=6)))
-        ax = [m for m,v in zip(mo,ma.values) if pd.notna(v)]
-        ay = [v for v in ma.values if pd.notna(v)]
-        if ax:
-            fig.add_trace(go.Scatter(x=ax, y=ay, name="AOP",
-                                     line=dict(color="#556677",width=1.8,dash="dash")))
-        _base_layout(fig, "Monthly Revenue vs AOP (TT$M)", 300)
-        st.plotly_chart(fig, use_container_width=True)
-
-    with cr:
-        segs_d   = ["Prepaid","Postpaid","WTTx","TV","Residential Security","Other"]
-        vals_d   = [max(_seg_r(s), 0) for s in segs_d]
-        d_colors = ["#22c55e","#4a9eff","#f59e0b","#a78bfa","#ff6b6b","#8888aa"]
-        fig = go.Figure(go.Pie(labels=segs_d, values=vals_d, hole=0.58,
-                               marker=dict(colors=d_colors, line=dict(color="#0d0d0d",width=2)),
-                               textinfo="label+percent", textfont=dict(color="white",size=10)))
-        fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                          font=dict(color="white"), height=300,
-                          title=dict(text=f"<b>{sel_month} Revenue Mix</b>",
-                                     font=dict(size=13,color="white"),x=0),
-                          annotations=[dict(text=f"TT${sum(vals_d):.1f}M", x=0.5, y=0.5,
-                                            font=dict(size=14,color="white"), showarrow=False)],
-                          legend=dict(bgcolor="rgba(0,0,0,0)",font=dict(size=10),
-                                      orientation="v",x=1.0,y=0.5),
-                          margin=dict(l=10,r=10,t=44,b=10))
-        st.plotly_chart(fig, use_container_width=True)
-
-    b1,b2,b3,b4 = st.columns(4)
-    b1.markdown("""
-<div style="background:#1a1a2e;border-radius:10px;padding:14px 16px;
-            border:1px solid #2a2a4a;border-top:3px solid #4a9eff">
-    <div style="font-size:10px;color:#7788aa;font-weight:600;text-transform:uppercase;
-                letter-spacing:1px;margin-bottom:6px">Voice MOU</div>
-    <div style="font-size:22px;font-weight:700;color:white;margin-bottom:4px">181M</div>
-    <div style="font-size:12px;color:#ef4444;font-weight:600">-8.2% YoY</div>
-    <div style="font-size:10px;color:#556677;margin-top:3px">Minutes of Use</div>
-</div>""", unsafe_allow_html=True)
-    b2.markdown("""
-<div style="background:#1a1a2e;border-radius:10px;padding:14px 16px;
-            border:1px solid #2a2a4a;border-top:3px solid #a78bfa">
-    <div style="font-size:10px;color:#7788aa;font-weight:600;text-transform:uppercase;
-                letter-spacing:1px;margin-bottom:6px">Data Traffic</div>
-    <div style="font-size:22px;font-weight:700;color:white;margin-bottom:4px">48.2 PB</div>
-    <div style="font-size:12px;color:#22c55e;font-weight:600">+22.5% YoY</div>
-    <div style="font-size:10px;color:#556677;margin-top:3px">Petabytes</div>
-</div>""", unsafe_allow_html=True)
-    b3.markdown(_card("Gross Revenue", f"TT${t_rev:.1f}M", _vs(t_var), _vc(t_var),
-                      "All segments combined", "#f59e0b"), unsafe_allow_html=True)
-    rev_dir  = "above" if t_var >= 0 else "below"
-    subs_dir = "growing" if pp_yoy > 0 else "declining"
-    cmt = (f"Consumer revenue of TT${t_rev:.1f}M is {abs(t_var):.1f}% {rev_dir} AOP "
-           f"for {sel_month}, with WTTx and Prepaid driving outperformance. "
-           f"By segment, {best_s} ({svars.get(best_s,0):+.1f}% vs AOP) leads while "
-           f"{wrst_s} ({svars.get(wrst_s,0):+.1f}% vs AOP) is the weakest performer. "
-           f"The Postpaid base stands at {int(pp_now_v):,} subscribers, "
-           f"{subs_dir} {abs(pp_yoy):.1f}% year-on-year.")
-    b4.markdown(_commentary(cmt), unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 2 — Prepaid Revenue
@@ -689,8 +551,8 @@ with tab3:
     st.markdown(
         f'<div style="display:flex;gap:16px;align-items:stretch;margin-bottom:14px">'
         f'<div style="flex:1">{_pp_c1}</div>'
-        f'<div style="flex:1">{_pp_c2}</div>'
         f'<div style="flex:1">{_pp_c3}</div>'
+        f'<div style="flex:1">{_pp_c2}</div>'
         f'</div>',
         unsafe_allow_html=True,
     )
@@ -1020,8 +882,8 @@ with tab4:
     st.markdown(
         f'<div style="display:flex;gap:16px;align-items:stretch;margin-bottom:14px">'
         f'<div style="flex:1">{_wx_c1}</div>'
-        f'<div style="flex:1">{_wx_c2}</div>'
         f'<div style="flex:1">{_wx_c3}</div>'
+        f'<div style="flex:1">{_wx_c2}</div>'
         f'</div>',
         unsafe_allow_html=True,
     )
