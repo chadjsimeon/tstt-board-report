@@ -76,25 +76,15 @@ capex_act  = float(cc["CAPEX_Actual"].sum())
 capex_plan_raw = cc["CAPEX_Plan"].sum()
 capex_plan = float(capex_plan_raw) if pd.notna(capex_plan_raw) and capex_plan_raw > 0 else capex_act / 0.85
 
-# FCF Yield: FCF YTD / Revenue YTD — replaces Collections_Pct which has no data
-fin = data.get("Financial_Monthly", pd.DataFrame())
-cc_months = set(cc["Month"].dropna().tolist())
-if not fin.empty:
-    rev_ytd = float(fin[fin["Month"].isin(cc_months)]["Revenue"].sum())
-    fcf_yield = fcf_ytd / rev_ytd * 100 if rev_ytd > 0 else None
-else:
-    fcf_yield = None
+def _pct_val(col):
+    """Return latest non-zero value for a percentage column, or None."""
+    if col not in cc.columns:
+        return None
+    v = cc[col].replace(0, pd.NA).dropna()
+    return float(v.iloc[-1]) if len(v) else None
 
-if fcf_yield is not None:
-    coll_disp  = f"{fcf_yield:.1f}%"
-    coll_label = "FCF Yield"
-    coll_sub   = "FCF / Revenue"
-    coll_color = "#00e676" if fcf_yield >= 0 else "#ef4444"
-else:
-    coll_disp  = "—"
-    coll_label = "FCF Yield"
-    coll_sub   = "Data pending"
-    coll_color = "#556677"
+coll_gov     = _pct_val("Collections_Pct_Gov")
+coll_non_gov = _pct_val("Collections_Pct_NonGov")
 
 try:
     period_label = pd.to_datetime(latest["Month"], format="%b-%y").strftime("%B %Y")
@@ -181,11 +171,14 @@ with col_left:
     cash_dc = "#00e676" if cash_delta >= 0 else "#ef4444"
     debt_dc = "#ef4444" if debt_delta >= 0 else "#00e676"
 
+    _fcf_color = "#00e676" if fcf_ytd >= 0 else "#ef4444"
+    _fcf_sign  = "+" if fcf_ytd >= 0 else ""
+
     mc1, mc2, mc3 = st.columns(3)
     for _col, _label, _value, _sub, _sub_color in [
-        (mc1, "Cash Balance", f"{cash_val:,.0f}",  f"{cash_delta:+,.0f} vs PY", cash_dc),
-        (mc2, "Net Debt",     f"{debt_val:,.0f}",  f"{debt_delta:+,.0f} vs LY", debt_dc),
-        (mc3, coll_label,     coll_disp,            coll_sub,                   coll_color),
+        (mc1, "Cash Balance",      f"{cash_val:,.0f}",                       f"{cash_delta:+,.0f} vs PY", cash_dc),
+        (mc2, "Net Debt",          f"{debt_val:,.0f}",                       f"{debt_delta:+,.0f} vs LY", debt_dc),
+        (mc3, "Free Cash Flow YTD", f"{_fcf_sign}TT${abs(fcf_ytd):,.0f}M",  "FCF YTD",                   _fcf_color),
     ]:
         with _col:
             st.markdown(
@@ -199,27 +192,37 @@ with col_left:
                 unsafe_allow_html=True,
             )
 
-    # ── 3. Working Capital Summary ────────────────────────────────────────────
-    fcf_color = "#00e676" if fcf_ytd >= 0 else "#ef4444"
-    fcf_sign  = "+" if fcf_ytd >= 0 else ""
+    # ── 3. Collections Performance ────────────────────────────────────────────
+    def _coll_stat(label, pct_val, accent):
+        if pct_val is not None:
+            color  = "#00e676" if pct_val >= 85 else ("#FFD700" if pct_val >= 70 else "#ef4444")
+            val_str = f"{pct_val:.1f}%"
+        else:
+            color   = "#556677"
+            val_str = "—"
+        bar_w   = f"{min(pct_val, 100):.1f}%" if pct_val is not None else "0%"
+        bar_col = color if pct_val is not None else "#21262d"
+        return f"""
+<div style="flex:1;background:#0d1117;border-radius:8px;padding:14px 16px;border:1px solid #21262d">
+  <div style="font-size:0.6rem;font-weight:700;color:{accent};text-transform:uppercase;
+              letter-spacing:1.4px;margin-bottom:8px">{label}</div>
+  <div style="font-size:1.6rem;font-weight:800;color:{color};line-height:1;margin-bottom:10px">{val_str}</div>
+  <div style="background:#1e1e3a;border-radius:4px;height:6px;overflow:hidden">
+    <div style="background:{bar_col};width:{bar_w};height:100%;border-radius:4px"></div>
+  </div>
+  <div style="font-size:0.68rem;color:#556677;margin-top:6px">Collections as % of billings</div>
+</div>"""
+
+    _gov_stat     = _coll_stat("Government",     coll_gov,     "#4488ff")
+    _non_gov_stat = _coll_stat("Non-Government", coll_non_gov, "#a78bfa")
 
     st.markdown(f"""
-<div style="background:#161b22;border-radius:8px;padding:16px 20px;
-            border:1px solid #21262d">
+<div style="background:#161b22;border-radius:8px;padding:16px 20px;border:1px solid #21262d">
   <div style="font-size:0.7rem;font-weight:700;color:#00e676;text-transform:uppercase;
-              letter-spacing:2px;margin-bottom:12px">Working Capital Summary</div>
-  <div style="font-size:0.82rem;color:#8899aa;line-height:1.9;
-              border-bottom:1px solid #21262d;padding-bottom:10px;margin-bottom:10px">
-    DSO:&nbsp;<strong style="color:white">68 days</strong>&nbsp;(LY: 72)
-    &nbsp;&nbsp;|&nbsp;&nbsp;
-    DPO:&nbsp;<strong style="color:white">45 days</strong>&nbsp;(LY: 42)
-    &nbsp;&nbsp;|&nbsp;&nbsp;
-    Cash Conversion:&nbsp;<strong style="color:white">84%</strong>
-  </div>
-  <div style="font-size:0.82rem;color:#8899aa">
-    Free Cash Flow YTD:&nbsp;
-    <strong style="color:{fcf_color};font-size:1.05rem">
-        {fcf_sign}TT${abs(fcf_ytd):,.0f}M (+22% vs LY)</strong>
+              letter-spacing:2px;margin-bottom:12px">Collections Performance</div>
+  <div style="display:flex;gap:10px">
+    {_gov_stat}
+    {_non_gov_stat}
   </div>
 </div>
 """, unsafe_allow_html=True)

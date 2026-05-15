@@ -50,7 +50,9 @@ def load_all_data():
         data["Cash_CAPEX"] = _scale(data["Cash_CAPEX"], [
             "Cash_Balance", "Net_Debt", "FCF", "CAPEX_Actual", "CAPEX_Plan",
         ])
-        data["Cash_CAPEX"] = _pct(data["Cash_CAPEX"], ["Collections_Pct"])
+        data["Cash_CAPEX"] = _pct(data["Cash_CAPEX"], [
+            "Collections_Pct", "Collections_Pct_Gov", "Collections_Pct_NonGov",
+        ])
 
     if "Consumer_Sales" in data:
         data["Consumer_Sales"] = _scale(data["Consumer_Sales"], [
