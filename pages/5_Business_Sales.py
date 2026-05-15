@@ -485,7 +485,8 @@ with tab_fp:
         with c5:
             st.markdown(_r1_col_card("OCC",   "OCC",   FP_ACCENTS[4], occ_trend), unsafe_allow_html=True)
 
-        # Line graph fills the remaining space below MRR / USAGE / OCC
+        # Line graph — starts at Direct Costs / Mobile Subs level, spans down to Gross Profit / ARPU
+        st.markdown(_sp, unsafe_allow_html=True)
         _trend_months = biz_months_all
         fig_lines = go.Figure()
         for _name, _vals, _color in [
@@ -501,14 +502,14 @@ with tab_fp:
             ))
         fig_lines.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=260,
+            font=dict(color="white"), height=210,
             title=dict(text="<b>MRR / OCC / USAGE Trend (TT$M)</b>",
                        font=dict(size=13, color="white"), x=0),
             xaxis=dict(showgrid=False, tickfont=dict(size=10), tickangle=-30),
             yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)",
                        tickfont=dict(size=10), tickprefix="$"),
             legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=11, color="white"),
-                        orientation="h", x=0, y=-0.3),
+                        orientation="h", x=0, y=1.15, yanchor="bottom"),
             margin=dict(l=10, r=10, t=44, b=10),
         )
         st.plotly_chart(fig_lines, use_container_width=True)
