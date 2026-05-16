@@ -74,26 +74,26 @@ def _card(title, value_str, sub_str, sub_color, extra_str="", accent="#00ff88",
           spark_series=None):
     extra = (""
              if not extra_str
-             else f'<div style="font-size:11px;color:#8899bb;margin-top:3px">{extra_str}</div>')
+             else f'<div style="font-size:13px;color:#8899bb;margin-top:4px">{extra_str}</div>')
     spark = _sparkline(spark_series, accent) if spark_series is not None else ""
     return (
         f'<div style="background:#1a1a2e;border-radius:10px;padding:14px 16px;'
         f'border:1px solid #2a2a4a;border-top:3px solid {accent};height:100%">'
-        f'<div style="font-size:10px;color:#7788aa;font-weight:600;text-transform:uppercase;'
-        f'letter-spacing:1px;margin-bottom:6px">{title}</div>'
-        f'<div style="font-size:22px;font-weight:700;color:white;margin-bottom:4px">{value_str}</div>'
-        f'<div style="font-size:12px;color:{sub_color};font-weight:600">{sub_str}</div>'
+        f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
+        f'letter-spacing:1px;margin-bottom:8px">{title}</div>'
+        f'<div style="font-size:28px;font-weight:700;color:white;margin-bottom:6px">{value_str}</div>'
+        f'<div style="font-size:15px;color:{sub_color};font-weight:600">{sub_str}</div>'
         f'{extra}{spark}</div>'
     )
 
 
 def _commentary(text):
     return (
-        '<div style="background:#0f1e10;border-radius:10px;padding:16px 18px;'
+        '<div style="background:#0f1e10;border-radius:10px;padding:18px 20px;'
         'border:1px solid #1a3a1a;border-left:4px solid #22c55e;height:100%">'
-        '<div style="font-size:10px;color:#f59e0b;font-weight:700;text-transform:uppercase;'
-        f'letter-spacing:1.5px;margin-bottom:10px">Commentary</div>'
-        f'<div style="font-size:12px;color:#aaccaa;line-height:1.6">{text}</div>'
+        '<div style="font-size:13px;color:#f59e0b;font-weight:700;text-transform:uppercase;'
+        f'letter-spacing:1.5px;margin-bottom:12px">Commentary</div>'
+        f'<div style="font-size:15px;color:#aaccaa;line-height:1.7">{text}</div>'
         '</div>'
     )
 
@@ -102,8 +102,8 @@ def _tab_hdr(title, period="YTD April 2026 | TTM"):
     return (
         '<div style="display:flex;justify-content:space-between;align-items:center;'
         'margin-bottom:16px">'
-        f'<div style="font-size:1.15rem;font-weight:700;color:white">{title}</div>'
-        f'<div style="font-size:0.9rem;color:#7788aa">{period}</div>'
+        f'<div style="font-size:1.4rem;font-weight:700;color:white">{title}</div>'
+        f'<div style="font-size:1.1rem;color:#7788aa">{period}</div>'
         '</div>'
     )
 
@@ -143,15 +143,15 @@ def _latest_row_with(df, col):
 
 
 def _base_layout(fig, title, height, y_range=None):
-    kw = dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"))
+    kw = dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=14))
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"), height=height,
-        title=dict(text=f"<b>{title}</b>", font=dict(size=13, color="white"), x=0),
+        title=dict(text=f"<b>{title}</b>", font=dict(size=16, color="white"), x=0),
         xaxis=kw,
         yaxis=dict(**kw, range=y_range),
         legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h",
-                    y=1.08, x=0, font=dict(size=11)),
+                    y=1.08, x=0, font=dict(size=14)),
         margin=dict(l=10, r=10, t=44, b=10),
     )
     return fig
@@ -221,6 +221,7 @@ with tab2:
                   if not pre_latest.empty and _saop in pre_latest.columns
                   and pd.notna(pre_latest[_saop].values[0]) else None)
     subs_aop_pct = (subs_lat - subs_aop_v) / subs_aop_v * 100 if subs_aop_v else None
+    subs_aop_m   = (subs_lat - subs_aop_v) if subs_aop_v else None
     subs_py_pct  = (subs_lat - subs_25) / subs_25 * 100 if subs_25 else None
 
     # ARPU — derived from revenue / subscribers (subscribers from ARPU buckets file)
@@ -231,6 +232,7 @@ with tab2:
                   if not pre_latest.empty and _aaop in pre_latest.columns
                   and pd.notna(pre_latest[_aaop].values[0]) else None)
     arpu_aop_pct = (arpu_lat - arpu_aop_v) / arpu_aop_v * 100 if arpu_aop_v else None
+    arpu_aop_m   = (arpu_lat - arpu_aop_v) if arpu_aop_v else None
     arpu_py_pct  = (arpu_lat - arpu_25) / arpu_25 * 100 if arpu_25 else None
 
     # Sparklines
@@ -249,11 +251,11 @@ with tab2:
             f'font-size:10px;color:#f87171;font-weight:600;margin-top:6px">{badge}</span>'
         ) if badge else ""
         sp_html = (
-            f'<div style="margin-top:7px;opacity:0.9">{_sparkline(spark, accent, 36)}</div>'
+            f'<div style="margin-top:10px;opacity:0.9">{_sparkline(spark, accent, 44)}</div>'
         ) if spark else ""
         return (
             f'<div style="background:#1a1a2e;border-radius:10px;padding:16px 16px;'
-            f'border:1px solid #2a2a4a;border-top:3px solid {accent};height:100%">'
+            f'border:1px solid #2a2a4a;border-top:3px solid {accent}">'
             f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
             f'letter-spacing:1px;margin-bottom:8px">{label}</div>'
             f'<div style="font-size:26px;font-weight:800;color:white;line-height:1.1;'
@@ -266,26 +268,25 @@ with tab2:
             f'</div>'
         )
 
+    # ── Subscriber movement for the latest month ─────────────────────────────
+    _prev_subs_month   = (pd.to_datetime(_arpu_latest_month, format="%b-%y")
+                          - pd.DateOffset(months=1)).strftime("%b-%y")
+    pre_subs_open  = float(_arpu_totals.get(_prev_subs_month, 0.0))
+    pre_subs_close = subs_lat
+    pre_subs_net   = pre_subs_close - pre_subs_open
+    pre_subs_disc  = pre_subs_open * churn_pre / 100 if (churn_pre and pre_subs_open > 0) else 0.0
+    pre_subs_gross = max(0.0, pre_subs_net + pre_subs_disc)
+
     # ── Row 1 — 3 KPI cards ──────────────────────────────────────────────────
     r_aop_col = "#22c55e" if (rev_aop_pct or 0) >= 0 else "#ef4444"
-    r_l1 = (f"{rev_aop_pct:+.1f}% vs AOP | TT${rev_aop_m:+.1f}M"
+    r_l1 = (f"TT${rev_aop_m:+.1f}M | {rev_aop_pct:+.1f}% vs AOP"
             if rev_aop_pct is not None else "— vs AOP")
     r_l2 = f"TT${rev_py_m:+.1f}M vs PY" if rev_py_m is not None else "— vs PY"
 
-    s_l1_col = ("#22c55e" if (subs_aop_pct or 0) >= 0
-                else "#ef4444" if subs_aop_pct is not None else "#7788aa")
-    s_l1 = (f"vs AOP: {subs_aop_pct:+.1f}%"
-            if subs_aop_pct is not None else "vs AOP: —")
-    s_l2_col = ("#22c55e" if (subs_py_pct or 0) >= 0
-                else "#ef4444" if subs_py_pct is not None else "#7788aa")
-    s_l2 = (f"vs PY: {subs_py_pct:+.1f}%"
-            if subs_py_pct is not None else "vs PY: —")
-    churn_badge = f"Churn: {churn_pre:.1f}%" if churn_pre is not None else None
-
     a_l1_col = ("#22c55e" if (arpu_aop_pct or 0) >= 0
                 else "#ef4444" if arpu_aop_pct is not None else "#7788aa")
-    a_l1 = (f"vs AOP: {arpu_aop_pct:+.1f}%"
-            if arpu_aop_pct is not None else "vs AOP: —")
+    a_l1 = (f"${arpu_aop_m:+.0f} | {arpu_aop_pct:+.1f}% vs AOP"
+            if arpu_aop_pct is not None else "— vs AOP")
     a_l2_col = ("#22c55e" if (arpu_py_pct or 0) >= 0
                 else "#ef4444" if arpu_py_pct is not None else "#7788aa")
     a_l2 = (f"vs PY: {arpu_py_pct:+.1f}%"
@@ -293,17 +294,36 @@ with tab2:
 
     _c1 = _pre_kpi("Prepaid Revenue", f"TT${apr26_rev:.1f}M",
                    r_l1, r_aop_col, r_l2, "#f59e0b", "#a78bfa", rev_spark)
-    _c2 = _pre_kpi("Subscribers", _fmt_k(subs_lat),
-                   s_l1, s_l1_col, s_l2, s_l2_col, "#22c55e", subs_spark, badge=churn_badge)
     _c3 = _pre_kpi("ARPU", f"${arpu_lat:.0f}",
                    a_l1, a_l1_col, a_l2, a_l2_col, "#f59e0b", arpu_spark)
-    st.markdown(
-        f'<div style="display:flex;gap:16px;align-items:stretch;margin-bottom:14px">'
-        f'<div style="flex:1">{_c1}</div>'
-        f'<div style="flex:1">{_c2}</div>'
-        f'<div style="flex:1">{_c3}</div>'
-        f'</div>',
-        unsafe_allow_html=True,
+
+    # Subscriber card — movement breakdown
+    _net_col   = "#22c55e" if pre_subs_net >= 0 else "#ef4444"
+    _churn_lbl = f"Churn ({churn_pre:.1f}%)" if churn_pre is not None else "Churn"
+    _mov_rows  = [
+        ("Opening",    f"{pre_subs_open/1000:.1f}K",   "#aabbcc"),
+        ("Gross Adds", f"+{pre_subs_gross/1000:.1f}K", "#22c55e"),
+        (_churn_lbl,   f"−{pre_subs_disc/1000:.1f}K",  "#ef4444"),
+        ("Net",        f"{pre_subs_net/1000:+.1f}K",   _net_col),
+        ("Closing",    f"{pre_subs_close/1000:.1f}K",  "white"),
+    ]
+    _mov_html = "".join(
+        f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
+        f'border-bottom:1px solid #1e2a4a;">'
+        f'<span style="font-size:13px;color:#7788aa">{lbl}</span>'
+        f'<span style="font-size:15px;font-weight:700;color:{col}">{val}</span>'
+        f'</div>'
+        for lbl, val, col in _mov_rows
+    )
+    _c2 = (
+        f'<div style="background:#1a1a2e;border-radius:10px;padding:16px 16px;'
+        f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
+        f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
+        f'letter-spacing:1px;margin-bottom:8px">Subscribers — {_arpu_latest_month}</div>'
+        f'<div style="font-size:26px;font-weight:800;color:white;line-height:1.1;margin-bottom:10px">'
+        f'{_fmt_k(pre_subs_close)}</div>'
+        f'{_mov_html}'
+        f'</div>'
     )
 
     # ── Avg daily revenue calc ────────────────────────────────────────────────
@@ -345,6 +365,13 @@ with tab2:
     ml, mr = st.columns([55, 45])
 
     with ml:
+        st.markdown(
+            f'<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">'
+            f'<div style="flex:1">{_c1}</div>'
+            f'<div style="flex:1">{_c3}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
         dvr     = pre_daily["Daily_Rev"].dropna().values
         dvr_pad = (dvr.max() - dvr.min()) * 0.18 if len(dvr) > 1 else 0.05
         fig = go.Figure()
@@ -359,12 +386,15 @@ with tab2:
             line=dict(color="#555577", width=1.8, dash="dash"),
             hovertemplate="%{x}<br>AOP TT$%{y:.3f}M / day<extra></extra>",
         ))
-        _base_layout(fig, "Avg Daily Prepaid Revenue (TT$M / day)", 290,
-                     y_range=([max(0, dvr.min() - dvr_pad), dvr.max() + dvr_pad]
+        _base_layout(fig, "Avg Daily Prepaid Revenue (TT$M / day)", 380,
+                     y_range=([0.6, dvr.max() + dvr_pad]
                                if len(dvr) > 0 else None))
+        fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
 
     with mr:
+        st.markdown(_c2, unsafe_allow_html=True)
+        st.markdown("<div style='margin-top:12px'></div>", unsafe_allow_html=True)
         _cat_names  = list(pre_arpu_cats.keys())
         _cat_vals   = list(pre_arpu_cats.values())
         _cat_colors = ["#6b7280", "#6366f1", "#a78bfa", "#f59e0b", "#22c55e"]
@@ -375,7 +405,7 @@ with tab2:
             marker_color=_cat_colors,
             text=[f"{v/1_000:.1f}K  ({p:.0f}%)"
                   for v, p in zip(_cat_vals, _cat_pcts)],
-            textposition="outside", textfont=dict(color="white", size=11),
+            textposition="outside", textfont=dict(color="white", size=14),
             hovertemplate="<b>%{y}</b><br>%{x:,.0f} subs<extra></extra>",
         ))
         _base_layout(
@@ -386,9 +416,9 @@ with tab2:
         )
         fig.update_layout(
             showlegend=False,
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
+            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=14),
                        range=[0, max(_cat_vals) * 1.45]),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=11),
+            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=15),
                        categoryorder="array", categoryarray=_cat_names),
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -408,12 +438,12 @@ with tab2:
             domain=dict(x=[0, _pd_w]),
             marker=dict(colors=prod_cols,
                         line=dict(color="rgba(255,255,255,0.3)", width=2)),
-            textinfo="percent", textfont=dict(color="white", size=11),
+            textinfo="percent", textfont=dict(color="white", size=14),
             textposition="inside",
             hovertemplate="<b>%{label}</b><br>TT$%{value:.1f}M (%{percent})<extra></extra>",
             title=dict(
                 text=f"<b>TT${apr26_rev:.1f}M</b>",
-                font=dict(size=13, color="white"),
+                font=dict(size=16, color="white"),
                 position="middle center",
             ),
         ))
@@ -422,9 +452,9 @@ with tab2:
             font=dict(color="white"), height=_pd_h,
             title=dict(
                 text=f"<b>Revenue by Product — {_arpu_latest_month} (TT$M)</b>",
-                font=dict(size=13, color="white"), x=0,
+                font=dict(size=16, color="white"), x=0,
             ),
-            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=11, color="#aabbcc"),
+            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=14, color="#aabbcc"),
                         x=_pd_w + 0.04, y=0.5, xanchor="left", yanchor="middle"),
             margin=dict(l=10, r=10, t=_pd_t, b=_pd_b),
         )
@@ -514,21 +544,23 @@ with tab3:
     # TTM for product chart
     ttm_pp = _ttm(postpaid)
 
+    # ── Subscriber movement for card (mirrors chart logic exactly) ───────────
+    _pp_sub_sorted = postpaid.copy()
+    _pp_sub_sorted["_dt"] = pd.to_datetime(_pp_sub_sorted["Month"], format="%b-%y", errors="coerce")
+    _pp_sub_sorted = _pp_sub_sorted.sort_values("_dt").reset_index(drop=True)
+    _pp_subs_mon   = _pp_sub_sorted.iloc[-1]["Month"] if not _pp_sub_sorted.empty else "Apr-26"
+    pp_subs_close  = float(_pp_sub_sorted.iloc[-1]["Subscribers"]) if not _pp_sub_sorted.empty else pp_subs_lat
+    pp_subs_open   = float(_pp_sub_sorted.iloc[-2]["Subscribers"]) if len(_pp_sub_sorted) >= 2 else pp_subs_close
+    pp_subs_net_c  = pp_subs_close - pp_subs_open
+    _pp_chrt       = pp_churn if (pp_churn and pp_churn > 0) else 1.5
+    pp_subs_disc_c = pp_subs_open * _pp_chrt / 100
+    pp_subs_gross_c = max(0.0, pp_subs_net_c + pp_subs_disc_c)
+
     # ── Row 1 — 3 KPI cards ──────────────────────────────────────────────────
     pp_r_aop_col = "#22c55e" if (pp_aop_pct or 0) >= 0 else "#ef4444"
-    pp_r_l1 = (f"{pp_aop_pct:+.1f}% vs AOP | TT${pp_aop_m:+.1f}M"
+    pp_r_l1 = (f"TT${pp_aop_m:+.1f}M | {pp_aop_pct:+.1f}% vs AOP"
                if pp_aop_pct is not None else "— vs AOP")
     pp_r_l2 = f"TT${pp_py_m:+.1f}M vs PY" if pp_py_m is not None else "— vs PY"
-
-    pp_s_l1_col = ("#22c55e" if (pp_subs_aop_pct or 0) >= 0
-                   else "#ef4444" if pp_subs_aop_pct is not None else "#7788aa")
-    pp_s_l1 = (f"vs AOP: {pp_subs_aop_pct:+.1f}%"
-               if pp_subs_aop_pct is not None else "vs AOP: —")
-    pp_s_l2_col = ("#22c55e" if (pp_subs_py_pct or 0) >= 0
-                   else "#ef4444" if pp_subs_py_pct is not None else "#7788aa")
-    pp_s_l2 = (f"vs PY: {pp_subs_py_pct:+.1f}%"
-               if pp_subs_py_pct is not None else "vs PY: —")
-    pp_churn_badge = f"Churn: {pp_churn:.1f}%" if pp_churn is not None else None
 
     pp_a_l1_col = ("#22c55e" if (pp_arpu_aop_pct or 0) >= 0
                    else "#ef4444" if pp_arpu_aop_pct is not None else "#7788aa")
@@ -541,19 +573,37 @@ with tab3:
 
     _pp_c1 = _pre_kpi("Postpaid Revenue", f"TT${pp26_rev:.1f}M",
                       pp_r_l1, pp_r_aop_col, pp_r_l2, "#f59e0b", "#4a9eff", pp_rev_spark)
-    _pp_c2 = _pre_kpi("Subscribers", _fmt_k(pp_subs_lat),
-                      pp_s_l1, pp_s_l1_col, pp_s_l2, pp_s_l2_col,
-                      "#22c55e", pp_subs_spark, badge=pp_churn_badge)
     _pp_c3 = _pre_kpi("ARPU", f"${pp_arpu_lat:.0f}",
                       pp_a_l1, pp_a_l1_col, pp_a_l2, pp_a_l2_col, "#f59e0b", pp_arpu_spark)
-    st.markdown(
-        f'<div style="display:flex;gap:16px;align-items:stretch;margin-bottom:14px">'
-        f'<div style="flex:1">{_pp_c1}</div>'
-        f'<div style="flex:1">{_pp_c3}</div>'
-        f'<div style="flex:1">{_pp_c2}</div>'
-        f'</div>',
-        unsafe_allow_html=True,
+
+    _pp_net_col    = "#22c55e" if pp_subs_net_c >= 0 else "#ef4444"
+    _pp_churn_lbl  = f"Churn ({pp_churn:.1f}%)" if pp_churn is not None else "Churn"
+    _pp_mov_rows   = [
+        ("Opening",     f"{pp_subs_open/1000:.1f}K",     "#aabbcc"),
+        ("Gross Adds",  f"+{pp_subs_gross_c/1000:.1f}K", "#22c55e"),
+        (_pp_churn_lbl, f"−{pp_subs_disc_c/1000:.1f}K",  "#ef4444"),
+        ("Net",         f"{pp_subs_net_c/1000:+.1f}K",   _pp_net_col),
+        ("Closing",     f"{pp_subs_close/1000:.1f}K",    "white"),
+    ]
+    _pp_mov_html = "".join(
+        f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
+        f'border-bottom:1px solid #1e2a4a;">'
+        f'<span style="font-size:13px;color:#7788aa">{lbl}</span>'
+        f'<span style="font-size:15px;font-weight:700;color:{col}">{val}</span>'
+        f'</div>'
+        for lbl, val, col in _pp_mov_rows
     )
+    _pp_c2 = (
+        f'<div style="background:#1a1a2e;border-radius:10px;padding:16px 16px;'
+        f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
+        f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
+        f'letter-spacing:1px;margin-bottom:8px">Subscribers — {_pp_subs_mon}</div>'
+        f'<div style="font-size:26px;font-weight:800;color:white;line-height:1.1;margin-bottom:10px">'
+        f'{_fmt_k(pp_subs_close)}</div>'
+        f'{_pp_mov_html}'
+        f'</div>'
+    )
+
 
     # ── Avg daily revenue calc ────────────────────────────────────────────────
     # ── Subscriber Net Movement data ──────────────────────────────────────────
@@ -612,181 +662,95 @@ with tab3:
     ml, mr = st.columns([55, 45])
 
     with ml:
-        fig = go.Figure()
-
-        # Grey: Opening Base bars from 0 (semi-transparent bulk background)
-        fig.add_trace(go.Bar(
-            x=mov_mons, y=_op_v,
-            name="Opening Base",
-            marker_color="rgba(120,130,165,0.40)",
-            marker_line_width=0,
-            hovertemplate="<b>%{x}</b><br>Opening Base: %{y:,.0f}<extra></extra>",
-        ))
-        # Green: Gross Adds extending up from Opening
-        fig.add_trace(go.Bar(
-            x=mov_mons, y=_gr_v, base=_op_v,
-            name="Gross Adds",
-            marker_color="rgba(34,197,94,0.90)",
-            marker_line_width=0,
-            hovertemplate="<b>%{x}</b><br>Gross Adds: %{y:,.0f}<extra></extra>",
-        ))
-        # Red: Disconnections hanging down from Opening
-        fig.add_trace(go.Bar(
-            x=mov_mons, y=[-d for d in _dc_v], base=_op_v,
-            name="Disconnections",
-            marker_color="rgba(239,68,68,0.90)",
-            marker_line_width=0,
-            hovertemplate="<b>%{x}</b><br>Disconnections: %{y:,.0f}<extra></extra>",
-        ))
-        # Dark blue: Closing Base total bar from 0
-        fig.add_trace(go.Bar(
-            x=mov_mons, y=_cl_v,
-            name="Closing Base",
-            marker_color="rgba(30,64,175,0.65)",
-            marker_line_width=0,
-            text=[f"{v/1000:.1f}K" for v in _cl_v],
-            textposition="outside",
-            textfont=dict(color="white", size=9),
-            hovertemplate="<b>%{x}</b><br>Closing Base: %{y:,.0f}<extra></extra>",
-        ))
-
-        if pp_aop_subs:
-            fig.add_hline(y=pp_aop_subs, line_dash="dash", line_color="#f59e0b",
-                          annotation_text=f"AOP target  {pp_aop_subs/1000:.0f}K",
-                          annotation_font=dict(color="#f59e0b", size=10),
-                          annotation_position="top right")
-
-        fig.update_layout(
-            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=340, barmode="overlay",
-            title=dict(text="<b>Postpaid Subscriber Net Movement</b>",
-                       font=dict(size=13, color="white"), x=0),
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
-                       range=[_mov_ymin, _mov_ymax], tickformat=","),
-            legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h",
-                        y=1.02, x=1, xanchor="right", font=dict(size=10)),
-            margin=dict(l=10, r=10, t=44, b=10),
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-        # Amber estimation badge
         st.markdown(
-            '<div style="margin-top:2px">'
-            '<span style="background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.35);'
-            'border-radius:20px;padding:2px 12px;font-size:10px;color:#f59e0b;font-weight:600">'
-            '⚠ Disconnections estimated from Churn %</span></div>',
-            unsafe_allow_html=True,
-        )
-
-        # Summary stats row
-        _avg_g   = mov_df["Gross"].mean()
-        _avg_d   = mov_df["Disc"].mean()
-        _net_ytd = mov_df["Net"].sum()
-        _ytd_col = "#22c55e" if _net_ytd >= 0 else "#ef4444"
-        st.markdown(
-            f'<div style="display:flex;gap:20px;margin-top:8px;padding:10px 14px;'
-            f'background:#080d1a;border-radius:8px;border:1px solid #1a2540">'
-            f'<div><div style="font-size:9px;color:#7788aa;text-transform:uppercase;'
-            f'letter-spacing:1px;margin-bottom:3px">Avg Monthly Gross Adds</div>'
-            f'<div style="font-size:17px;font-weight:700;color:#22c55e">{_avg_g/1000:.1f}K</div></div>'
-            f'<div style="border-left:1px solid #1e2a4a;padding-left:20px">'
-            f'<div style="font-size:9px;color:#7788aa;text-transform:uppercase;'
-            f'letter-spacing:1px;margin-bottom:3px">Avg Monthly Disconnections</div>'
-            f'<div style="font-size:17px;font-weight:700;color:#ef4444">{_avg_d/1000:.1f}K</div></div>'
-            f'<div style="border-left:1px solid #1e2a4a;padding-left:20px">'
-            f'<div style="font-size:9px;color:#7788aa;text-transform:uppercase;'
-            f'letter-spacing:1px;margin-bottom:3px">Net Movement YTD</div>'
-            f'<div style="font-size:17px;font-weight:700;color:{_ytd_col}">{_net_ytd/1000:+.1f}K</div></div>'
+            f'<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">'
+            f'<div style="flex:1">{_pp_c1}</div>'
+            f'<div style="flex:1">{_pp_c3}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
-
-    with mr:
         _pp_plan_colors = ["#f59e0b", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"]
         _pp_plan_total  = sum(pp_plan_vals)
-        _pp_dw = 0.56
-        _pp_dh, _pp_dt, _pp_db = 420, 44, 6
+        _pp_dw = 0.52
         fig = go.Figure(go.Pie(
             labels=pp_plan_names, values=pp_plan_vals, hole=0.48, sort=False,
             domain=dict(x=[0, _pp_dw]),
             marker=dict(colors=_pp_plan_colors,
                         line=dict(color="rgba(255,255,255,0.3)", width=2)),
-            textinfo="percent", textfont=dict(color="white", size=11),
+            textinfo="percent", textfont=dict(color="white", size=14),
             textposition="inside",
             hovertemplate="<b>%{label}</b><br>%{value:,.0f} subs (%{percent})<extra></extra>",
             title=dict(
                 text=f"<b>{_pp_plan_total/1_000:.0f}K</b>",
-                font=dict(size=14, color="white"),
+                font=dict(size=16, color="white"),
                 position="middle center",
             ),
         ))
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=_pp_dh,
+            font=dict(color="white"), height=500,
             title=dict(
                 text="<b>Subscribers by Active Plan</b>"
                      " <span style='color:#f87171;font-size:11px'>⚠ dummy data</span>",
-                font=dict(size=13, color="white"), x=0,
+                font=dict(size=16, color="white"), x=0,
             ),
-            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=11, color="#aabbcc"),
+            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=14, color="#aabbcc"),
                         x=_pp_dw + 0.04, y=0.5, xanchor="left", yanchor="middle"),
-            margin=dict(l=10, r=10, t=_pp_dt, b=_pp_db),
+            margin=dict(l=10, r=10, t=44, b=6),
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # ── Row 3 — Revenue by Bundle Type + Commentary ───────────────────────────
-    bl, br = st.columns([55, 45])
-
-    with bl:
+    with mr:
+        st.markdown(_pp_c2, unsafe_allow_html=True)
+        st.markdown("<div style='margin-top:12px'></div>", unsafe_allow_html=True)
         pp_products  = ["Voice + Data", "Data Only", "Enterprise"]
         pp_splits    = [0.52, 0.31, 0.17]
-        pp_prod_vals = [ttm_pp * s for s in pp_splits]
+        pp_prod_vals = [pp26_rev * s for s in pp_splits]
         fig = go.Figure(go.Bar(
             y=pp_products[::-1], x=pp_prod_vals[::-1], orientation="h",
             marker_color=["#93c5fd", "#60a5fa", "#4a9eff"],
             text=[f"TT${v:.0f}M  ({s*100:.0f}%)"
                   for v, s in zip(pp_prod_vals[::-1], pp_splits[::-1])],
-            textposition="outside", textfont=dict(color="white", size=11),
+            textposition="outside", textfont=dict(color="white", size=14),
         ))
-        _base_layout(fig, "Revenue by Bundle Type — YTD (TT$M)", 280)
+        _base_layout(fig, "Revenue by Bundle Type — Apr '26 (TT$M)", 320)
         fig.update_layout(
             showlegend=False,
             xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
                        range=[0, max(pp_prod_vals) * 1.45]),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=12)),
+            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=15)),
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with br:
-        _pp_rev_dir = "above" if (pp_aop_pct or 0) >= 0 else "below"
-        _pp_aop_col = "#22c55e" if (pp_aop_pct or 0) >= 0 else "#ef4444"
-        _pp_py_cl   = (f", TT${abs(pp_py_m):.1f}M "
-                       f"{'above' if (pp_py_m or 0) >= 0 else 'below'} prior year"
-                       if pp_py_m is not None else "")
-        _pp_s_dir   = "increased" if (pp_subs_py_pct or 0) >= 0 else "declined"
-        _pp_a_dir   = "above" if (pp_arpu_py_pct or 0) >= 0 else "below"
-        _pp_churn_n = ("stable retention"
-                       if (pp_churn or 0) < 3
-                       else "churn pressure requiring bundle retention offers")
-        _pp_churn_cl = (f"churn at {pp_churn:.1f}% indicating {_pp_churn_n}"
-                        if pp_churn is not None else "churn data unavailable")
-        pp_cmt = (
-            f"Postpaid revenue of <strong style='color:white'>TT${pp26_rev:.1f}M</strong> "
-            f"in Apr-26 is <strong style='color:{_pp_aop_col}'>"
-            f"{abs(pp_aop_pct or 0):.1f}% {_pp_rev_dir} AOP</strong>{_pp_py_cl}. "
-            f"Voice+Data bundles account for 52% of postpaid revenue with Data Only "
-            f"contributing 31%, a structural shift toward data-led usage that underlines "
-            f"the importance of network investment and competitive bundle packaging. "
-            f"The subscriber base of <strong style='color:white'>{_fmt_k(pp_subs_lat)}</strong> "
-            f"has {_pp_s_dir} {abs(pp_subs_py_pct or 0):.1f}% year-on-year, "
-            f"with {_pp_churn_cl}. "
-            f"ARPU of <strong style='color:white'>${pp_arpu_lat:.0f}</strong> is "
-            f"{abs(pp_arpu_py_pct or 0):.1f}% {_pp_a_dir} prior year; "
-            f"sustaining ARPU through upselling to higher-tier data bundles "
-            f"remains the key commercial priority for postpaid."
-        )
-        st.markdown(_commentary(pp_cmt), unsafe_allow_html=True)
+    # ── Commentary ────────────────────────────────────────────────────────────
+    _pp_rev_dir = "above" if (pp_aop_pct or 0) >= 0 else "below"
+    _pp_aop_col = "#22c55e" if (pp_aop_pct or 0) >= 0 else "#ef4444"
+    _pp_py_cl   = (f", TT${abs(pp_py_m):.1f}M "
+                   f"{'above' if (pp_py_m or 0) >= 0 else 'below'} prior year"
+                   if pp_py_m is not None else "")
+    _pp_s_dir   = "increased" if (pp_subs_py_pct or 0) >= 0 else "declined"
+    _pp_a_dir   = "above" if (pp_arpu_py_pct or 0) >= 0 else "below"
+    _pp_churn_n = ("stable retention"
+                   if (pp_churn or 0) < 3
+                   else "churn pressure requiring bundle retention offers")
+    _pp_churn_cl = (f"churn at {pp_churn:.1f}% indicating {_pp_churn_n}"
+                    if pp_churn is not None else "churn data unavailable")
+    pp_cmt = (
+        f"Postpaid revenue of <strong style='color:white'>TT${pp26_rev:.1f}M</strong> "
+        f"in Apr-26 is <strong style='color:{_pp_aop_col}'>"
+        f"{abs(pp_aop_pct or 0):.1f}% {_pp_rev_dir} AOP</strong>{_pp_py_cl}. "
+        f"Voice+Data bundles account for 52% of postpaid revenue with Data Only "
+        f"contributing 31%, a structural shift toward data-led usage that underlines "
+        f"the importance of network investment and competitive bundle packaging. "
+        f"The subscriber base of <strong style='color:white'>{_fmt_k(pp_subs_lat)}</strong> "
+        f"has {_pp_s_dir} {abs(pp_subs_py_pct or 0):.1f}% year-on-year, "
+        f"with {_pp_churn_cl}. "
+        f"ARPU of <strong style='color:white'>${pp_arpu_lat:.0f}</strong> is "
+        f"{abs(pp_arpu_py_pct or 0):.1f}% {_pp_a_dir} prior year; "
+        f"sustaining ARPU through upselling to higher-tier data bundles "
+        f"remains the key commercial priority for postpaid."
+    )
+    st.markdown(_commentary(pp_cmt), unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 4 — WTTx Revenue
@@ -843,21 +807,23 @@ with tab4:
     # TTM for product chart
     ttm_wx = _ttm(wttx)
 
+    # ── Subscriber movement for card (mirrors chart logic exactly) ───────────
+    _wx_sub_sorted = wttx.copy()
+    _wx_sub_sorted["_dt"] = pd.to_datetime(_wx_sub_sorted["Month"], format="%b-%y", errors="coerce")
+    _wx_sub_sorted = _wx_sub_sorted.sort_values("_dt").reset_index(drop=True)
+    _wx_subs_mon   = _wx_sub_sorted.iloc[-1]["Month"] if not _wx_sub_sorted.empty else "Apr-26"
+    wx_subs_close  = float(_wx_sub_sorted.iloc[-1]["Subscribers"]) if not _wx_sub_sorted.empty else wx_subs_lat
+    wx_subs_open   = float(_wx_sub_sorted.iloc[-2]["Subscribers"]) if len(_wx_sub_sorted) >= 2 else wx_subs_close
+    wx_subs_net_c  = wx_subs_close - wx_subs_open
+    _wx_chrt       = wx_churn if (wx_churn and wx_churn > 0) else 1.5
+    wx_subs_disc_c = wx_subs_open * _wx_chrt / 100
+    wx_subs_gross_c = max(0.0, wx_subs_net_c + wx_subs_disc_c)
+
     # ── Row 1 — 3 KPI cards ──────────────────────────────────────────────────
     wx_r_aop_col = "#22c55e" if (wx_aop_pct or 0) >= 0 else "#ef4444"
-    wx_r_l1 = (f"{wx_aop_pct:+.1f}% vs AOP | TT${wx_aop_m:+.1f}M"
+    wx_r_l1 = (f"TT${wx_aop_m:+.1f}M | {wx_aop_pct:+.1f}% vs AOP"
                if wx_aop_pct is not None else "— vs AOP")
     wx_r_l2 = f"TT${wx_py_m:+.1f}M vs PY" if wx_py_m is not None else "— vs PY"
-
-    wx_s_l1_col = ("#22c55e" if (wx_subs_aop_pct or 0) >= 0
-                   else "#ef4444" if wx_subs_aop_pct is not None else "#7788aa")
-    wx_s_l1 = (f"vs AOP: {wx_subs_aop_pct:+.1f}%"
-               if wx_subs_aop_pct is not None else "vs AOP: —")
-    wx_s_l2_col = ("#22c55e" if (wx_subs_py_pct or 0) >= 0
-                   else "#ef4444" if wx_subs_py_pct is not None else "#7788aa")
-    wx_s_l2 = (f"vs PY: {wx_subs_py_pct:+.1f}%"
-               if wx_subs_py_pct is not None else "vs PY: —")
-    wx_churn_badge = f"Churn: {wx_churn:.1f}%" if wx_churn is not None else None
 
     wx_a_l1_col = ("#22c55e" if (wx_arpu_aop_pct or 0) >= 0
                    else "#ef4444" if wx_arpu_aop_pct is not None else "#7788aa")
@@ -870,19 +836,37 @@ with tab4:
 
     _wx_c1 = _pre_kpi("WTTx Revenue", f"TT${wx26_rev:.1f}M",
                       wx_r_l1, wx_r_aop_col, wx_r_l2, "#f59e0b", "#00d4a0", wx_rev_spark)
-    _wx_c2 = _pre_kpi("Subscribers", _fmt_k(wx_subs_lat),
-                      wx_s_l1, wx_s_l1_col, wx_s_l2, wx_s_l2_col,
-                      "#22c55e", wx_subs_spark, badge=wx_churn_badge)
     _wx_c3 = _pre_kpi("ARPU", f"${wx_arpu_lat:.0f}",
                       wx_a_l1, wx_a_l1_col, wx_a_l2, wx_a_l2_col, "#f59e0b", wx_arpu_spark)
-    st.markdown(
-        f'<div style="display:flex;gap:16px;align-items:stretch;margin-bottom:14px">'
-        f'<div style="flex:1">{_wx_c1}</div>'
-        f'<div style="flex:1">{_wx_c3}</div>'
-        f'<div style="flex:1">{_wx_c2}</div>'
-        f'</div>',
-        unsafe_allow_html=True,
+
+    _wx_net_col    = "#22c55e" if wx_subs_net_c >= 0 else "#ef4444"
+    _wx_churn_lbl  = f"Churn ({wx_churn:.1f}%)" if wx_churn is not None else "Churn"
+    _wx_mov_rows   = [
+        ("Opening",     f"{wx_subs_open/1000:.1f}K",     "#aabbcc"),
+        ("Gross Adds",  f"+{wx_subs_gross_c/1000:.1f}K", "#22c55e"),
+        (_wx_churn_lbl, f"−{wx_subs_disc_c/1000:.1f}K",  "#ef4444"),
+        ("Net",         f"{wx_subs_net_c/1000:+.1f}K",   _wx_net_col),
+        ("Closing",     f"{wx_subs_close/1000:.1f}K",    "white"),
+    ]
+    _wx_mov_html = "".join(
+        f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
+        f'border-bottom:1px solid #1e2a4a;">'
+        f'<span style="font-size:13px;color:#7788aa">{lbl}</span>'
+        f'<span style="font-size:15px;font-weight:700;color:{col}">{val}</span>'
+        f'</div>'
+        for lbl, val, col in _wx_mov_rows
     )
+    _wx_c2 = (
+        f'<div style="background:#1a1a2e;border-radius:10px;padding:16px 16px;'
+        f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
+        f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
+        f'letter-spacing:1px;margin-bottom:8px">Subscribers — {_wx_subs_mon}</div>'
+        f'<div style="font-size:26px;font-weight:800;color:white;line-height:1.1;margin-bottom:10px">'
+        f'{_fmt_k(wx_subs_close)}</div>'
+        f'{_wx_mov_html}'
+        f'</div>'
+    )
+
 
     # ── Subscriber Net Movement data ──────────────────────────────────────────
     wx_sorted = wttx.copy()
@@ -940,184 +924,98 @@ with tab4:
     ml, mr = st.columns([55, 45])
 
     with ml:
-        fig = go.Figure()
-
-        # Grey: Opening Base bars from 0
-        fig.add_trace(go.Bar(
-            x=wx_mov_mons, y=_wx_op_v,
-            name="Opening Base",
-            marker_color="rgba(120,130,165,0.40)",
-            marker_line_width=0,
-            hovertemplate="<b>%{x}</b><br>Opening Base: %{y:,.0f}<extra></extra>",
-        ))
-        # Green: Gross Adds extending up from Opening
-        fig.add_trace(go.Bar(
-            x=wx_mov_mons, y=_wx_gr_v, base=_wx_op_v,
-            name="Gross Adds",
-            marker_color="rgba(34,197,94,0.90)",
-            marker_line_width=0,
-            hovertemplate="<b>%{x}</b><br>Gross Adds: %{y:,.0f}<extra></extra>",
-        ))
-        # Red: Disconnections hanging down from Opening
-        fig.add_trace(go.Bar(
-            x=wx_mov_mons, y=[-d for d in _wx_dc_v], base=_wx_op_v,
-            name="Disconnections",
-            marker_color="rgba(239,68,68,0.90)",
-            marker_line_width=0,
-            hovertemplate="<b>%{x}</b><br>Disconnections: %{y:,.0f}<extra></extra>",
-        ))
-        # Dark teal: Closing Base total bar from 0
-        fig.add_trace(go.Bar(
-            x=wx_mov_mons, y=_wx_cl_v,
-            name="Closing Base",
-            marker_color="rgba(0,100,80,0.65)",
-            marker_line_width=0,
-            text=[f"{v/1000:.1f}K" for v in _wx_cl_v],
-            textposition="outside",
-            textfont=dict(color="white", size=9),
-            hovertemplate="<b>%{x}</b><br>Closing Base: %{y:,.0f}<extra></extra>",
-        ))
-
-        if wx_aop_subs:
-            fig.add_hline(y=wx_aop_subs, line_dash="dash", line_color="#f59e0b",
-                          annotation_text=f"AOP target  {wx_aop_subs/1000:.0f}K",
-                          annotation_font=dict(color="#f59e0b", size=10),
-                          annotation_position="top right")
-
-        fig.update_layout(
-            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=340, barmode="overlay",
-            title=dict(text="<b>WTTx Subscriber Net Movement</b>",
-                       font=dict(size=13, color="white"), x=0),
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
-                       range=[_wx_mov_ymin, _wx_mov_ymax], tickformat=","),
-            legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h",
-                        y=1.02, x=1, xanchor="right", font=dict(size=10)),
-            margin=dict(l=10, r=10, t=44, b=10),
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-        # Amber estimation badge
         st.markdown(
-            '<div style="margin-top:2px">'
-            '<span style="background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.35);'
-            'border-radius:20px;padding:2px 12px;font-size:10px;color:#f59e0b;font-weight:600">'
-            '⚠ Disconnections estimated from Churn %</span></div>',
-            unsafe_allow_html=True,
-        )
-
-        # Summary stats row
-        _wx_avg_g   = wx_mov_df["Gross"].mean()
-        _wx_avg_d   = wx_mov_df["Disc"].mean()
-        _wx_net_ytd = wx_mov_df["Net"].sum()
-        _wx_ytd_col = "#22c55e" if _wx_net_ytd >= 0 else "#ef4444"
-        st.markdown(
-            f'<div style="display:flex;gap:20px;margin-top:8px;padding:10px 14px;'
-            f'background:#080d1a;border-radius:8px;border:1px solid #1a2540">'
-            f'<div><div style="font-size:9px;color:#7788aa;text-transform:uppercase;'
-            f'letter-spacing:1px;margin-bottom:3px">Avg Monthly Gross Adds</div>'
-            f'<div style="font-size:17px;font-weight:700;color:#22c55e">{_wx_avg_g/1000:.1f}K</div></div>'
-            f'<div style="border-left:1px solid #1e2a4a;padding-left:20px">'
-            f'<div style="font-size:9px;color:#7788aa;text-transform:uppercase;'
-            f'letter-spacing:1px;margin-bottom:3px">Avg Monthly Disconnections</div>'
-            f'<div style="font-size:17px;font-weight:700;color:#ef4444">{_wx_avg_d/1000:.1f}K</div></div>'
-            f'<div style="border-left:1px solid #1e2a4a;padding-left:20px">'
-            f'<div style="font-size:9px;color:#7788aa;text-transform:uppercase;'
-            f'letter-spacing:1px;margin-bottom:3px">Net Movement YTD</div>'
-            f'<div style="font-size:17px;font-weight:700;color:{_wx_ytd_col}">{_wx_net_ytd/1000:+.1f}K</div></div>'
+            f'<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">'
+            f'<div style="flex:1">{_wx_c1}</div>'
+            f'<div style="flex:1">{_wx_c3}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
-
-    with mr:
         _wx_plan_colors = ["#f59e0b", "#a78bfa", "#00d4a0"]
         _wx_plan_total  = sum(wx_plan_vals)
-        _wx_dw = 0.56
-        _wx_dh, _wx_dt, _wx_db = 420, 44, 6
+        _wx_dw = 0.52
         fig = go.Figure(go.Pie(
             labels=wx_plan_names, values=wx_plan_vals, hole=0.48, sort=False,
             domain=dict(x=[0, _wx_dw]),
             marker=dict(colors=_wx_plan_colors,
                         line=dict(color="rgba(255,255,255,0.3)", width=2)),
-            textinfo="percent", textfont=dict(color="white", size=11),
+            textinfo="percent", textfont=dict(color="white", size=14),
             textposition="inside",
             hovertemplate="<b>%{label}</b><br>%{value:,.0f} subs (%{percent})<extra></extra>",
             title=dict(
                 text=f"<b>{_wx_plan_total/1_000:.0f}K</b>",
-                font=dict(size=14, color="white"),
+                font=dict(size=16, color="white"),
                 position="middle center",
             ),
         ))
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=_wx_dh,
+            font=dict(color="white"), height=500,
             title=dict(
                 text="<b>Subscribers by Plan Type</b>"
                      " <span style='color:#f87171;font-size:11px'>⚠ dummy data</span>",
-                font=dict(size=13, color="white"), x=0,
+                font=dict(size=16, color="white"), x=0,
             ),
-            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=11, color="#aabbcc"),
+            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=14, color="#aabbcc"),
                         x=_wx_dw + 0.04, y=0.5, xanchor="left", yanchor="middle"),
-            margin=dict(l=10, r=10, t=_wx_dt, b=_wx_db),
+            margin=dict(l=10, r=10, t=44, b=6),
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # ── Row 3 — Revenue by Service Type + Commentary ──────────────────────────
-    bl, br = st.columns([55, 45])
-
-    with bl:
+    with mr:
+        st.markdown(_wx_c2, unsafe_allow_html=True)
+        st.markdown("<div style='margin-top:12px'></div>", unsafe_allow_html=True)
         wx_products  = ["Broadband", "Voice Bundle", "Equipment"]
         wx_splits    = [0.72, 0.20, 0.08]
-        wx_prod_vals = [ttm_wx * s for s in wx_splits]
+        wx_prod_vals = [wx26_rev * s for s in wx_splits]
         fig = go.Figure(go.Bar(
             y=wx_products[::-1], x=wx_prod_vals[::-1], orientation="h",
             marker_color=["#7ffce8", "#3de0c0", "#00d4a0"],
             text=[f"TT${v:.0f}M  ({s*100:.0f}%)"
                   for v, s in zip(wx_prod_vals[::-1], wx_splits[::-1])],
-            textposition="outside", textfont=dict(color="white", size=11),
+            textposition="outside", textfont=dict(color="white", size=14),
         ))
-        _base_layout(fig, "Revenue by Service Type — YTD (TT$M)", 280)
+        _base_layout(fig, "Revenue by Service Type — Apr '26 (TT$M)", 320)
         fig.update_layout(
             showlegend=False,
             xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
                        range=[0, max(wx_prod_vals) * 1.45]),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=12)),
+            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=15)),
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with br:
-        _wx_rev_dir = "above" if (wx_aop_pct or 0) >= 0 else "below"
-        _wx_aop_col = "#22c55e" if (wx_aop_pct or 0) >= 0 else "#ef4444"
-        _wx_py_cl   = (f", TT${abs(wx_py_m):.1f}M "
-                       f"{'above' if (wx_py_m or 0) >= 0 else 'below'} prior year"
-                       if wx_py_m is not None else "")
-        _wx_s_dir   = "increased" if (wx_subs_py_pct or 0) >= 0 else "declined"
-        _wx_a_dir   = "above" if (wx_arpu_py_pct or 0) >= 0 else "below"
-        _wx_churn_n = ("healthy retention"
-                       if (wx_churn or 0) < 3
-                       else "elevated churn requiring targeted retention activity")
-        _wx_churn_cl = (f"churn at {wx_churn:.1f}% indicating {_wx_churn_n}"
-                        if wx_churn is not None else "churn data unavailable")
-        wx_cmt = (
-            f"WTTx revenue of <strong style='color:white'>TT${wx26_rev:.1f}M</strong> "
-            f"in Apr-26 is <strong style='color:{_wx_aop_col}'>"
-            f"{abs(wx_aop_pct or 0):.1f}% {_wx_rev_dir} AOP</strong>{_wx_py_cl}. "
-            f"Broadband services dominate at 72% of WTTx revenue, underscoring the "
-            f"product's strategic role as TSTT's primary fixed-line data access offering. "
-            f"Voice bundles contribute 20%, reflecting bundling adoption among residential "
-            f"customers, while equipment subsidies (~8%) present a structural margin drag "
-            f"that could be meaningfully improved by reviewing the subsidy model for new "
-            f"connections without impacting gross adds. "
-            f"The subscriber base of <strong style='color:white'>{_fmt_k(wx_subs_lat)}</strong> "
-            f"has {_wx_s_dir} {abs(wx_subs_py_pct or 0):.1f}% year-on-year, "
-            f"with {_wx_churn_cl}. "
-            f"ARPU of <strong style='color:white'>${wx_arpu_lat:.0f}</strong> is "
-            f"{abs(wx_arpu_py_pct or 0):.1f}% {_wx_a_dir} prior year; "
-            f"upselling broadband tiers and converged bundles remains the primary lever "
-            f"to sustain ARPU growth as market penetration matures."
-        )
-        st.markdown(_commentary(wx_cmt), unsafe_allow_html=True)
+    # ── Commentary ────────────────────────────────────────────────────────────
+    _wx_rev_dir = "above" if (wx_aop_pct or 0) >= 0 else "below"
+    _wx_aop_col = "#22c55e" if (wx_aop_pct or 0) >= 0 else "#ef4444"
+    _wx_py_cl   = (f", TT${abs(wx_py_m):.1f}M "
+                   f"{'above' if (wx_py_m or 0) >= 0 else 'below'} prior year"
+                   if wx_py_m is not None else "")
+    _wx_s_dir   = "increased" if (wx_subs_py_pct or 0) >= 0 else "declined"
+    _wx_a_dir   = "above" if (wx_arpu_py_pct or 0) >= 0 else "below"
+    _wx_churn_n = ("healthy retention"
+                   if (wx_churn or 0) < 3
+                   else "elevated churn requiring targeted retention activity")
+    _wx_churn_cl = (f"churn at {wx_churn:.1f}% indicating {_wx_churn_n}"
+                    if wx_churn is not None else "churn data unavailable")
+    wx_cmt = (
+        f"WTTx revenue of <strong style='color:white'>TT${wx26_rev:.1f}M</strong> "
+        f"in Apr-26 is <strong style='color:{_wx_aop_col}'>"
+        f"{abs(wx_aop_pct or 0):.1f}% {_wx_rev_dir} AOP</strong>{_wx_py_cl}. "
+        f"Broadband services dominate at 72% of WTTx revenue, underscoring the "
+        f"product's strategic role as TSTT's primary fixed-line data access offering. "
+        f"Voice bundles contribute 20%, reflecting bundling adoption among residential "
+        f"customers, while equipment subsidies (~8%) present a structural margin drag "
+        f"that could be meaningfully improved by reviewing the subsidy model for new "
+        f"connections without impacting gross adds. "
+        f"The subscriber base of <strong style='color:white'>{_fmt_k(wx_subs_lat)}</strong> "
+        f"has {_wx_s_dir} {abs(wx_subs_py_pct or 0):.1f}% year-on-year, "
+        f"with {_wx_churn_cl}. "
+        f"ARPU of <strong style='color:white'>${wx_arpu_lat:.0f}</strong> is "
+        f"{abs(wx_arpu_py_pct or 0):.1f}% {_wx_a_dir} prior year; "
+        f"upselling broadband tiers and converged bundles remains the primary lever "
+        f"to sustain ARPU growth as market penetration matures."
+    )
+    st.markdown(_commentary(wx_cmt), unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB V2 — Consumer Sales V2 (summary overview)
