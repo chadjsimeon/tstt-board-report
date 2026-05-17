@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 
 st.set_page_config(page_title="TSTT | Consumer", page_icon="📱", layout="wide")
 
@@ -1123,7 +1123,7 @@ with tab_v2:
             if spark_series else ""
         )
         return (
-            f'<div style="background:#151528;border-radius:10px;padding:14px 12px;'
+            f'<div style="background:#161B22;border-radius:10px;padding:14px 12px;'
             f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
             f'<div style="font-size:13px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.5px;margin-bottom:8px">{label}</div>'
@@ -1146,7 +1146,7 @@ with tab_v2:
         note_h = (f'<div style="font-size:10px;color:#f59e0b;margin-top:4px;font-style:italic">'
                   f'{note}</div>') if note else ""
         return (
-            f'<div style="background:#151528;border-radius:10px;padding:12px 14px;'
+            f'<div style="background:#161B22;border-radius:10px;padding:12px 14px;'
             f'border:1px solid #252545;border-top:2px solid {accent};height:100%">'
             f'<div style="font-size:13px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.2px;margin-bottom:5px;display:flex;align-items:center">{label}{dot}</div>'
@@ -1366,7 +1366,7 @@ with tab_v2:
         f"to group EBITDA targets."
     )
     st.markdown(
-        f'<div style="background:#090f0a;border-radius:12px;padding:18px 22px;'
+        f'<div style="background:#161B22;border-radius:12px;padding:18px 22px;'
         f'border:1px solid #1a3520;border-left:4px solid #22c55e">'
         f'<div style="font-size:10px;color:#f59e0b;font-weight:700;text-transform:uppercase;'
         f'letter-spacing:2px;margin-bottom:12px">&#x25A0;&nbsp;Commentary</div>'

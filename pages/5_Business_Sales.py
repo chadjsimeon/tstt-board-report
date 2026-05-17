@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 
 st.set_page_config(page_title="TSTT | Business Sales", page_icon="🏢", layout="wide")
 
@@ -57,7 +57,7 @@ def _sparkline(series, color, height=44):
 def _kpi_tile(label, value, sub="", sub_color="#8888aa", accent="#4a9eff"):
     r, g, b = int(accent[1:3], 16), int(accent[3:5], 16), int(accent[5:7], 16)
     return (
-        f'<div style="background:#151528;border-radius:10px;padding:18px 20px;'
+        f'<div style="background:#161B22;border-radius:10px;padding:18px 20px;'
         f'border:1px solid #252545;border-top:3px solid {accent}">'
         f'<div style="font-size:13px;color:#6677aa;font-weight:700;text-transform:uppercase;'
         f'letter-spacing:1.5px;margin-bottom:6px">{label}</div>'
@@ -347,7 +347,7 @@ with tab_fp:
             if spark_series else '<div style="margin-top:8px;height:44px"></div>'
         )
         return (
-            f'<div style="background:#151528;border-radius:10px;padding:16px 14px;'
+            f'<div style="background:#161B22;border-radius:10px;padding:16px 14px;'
             f'border:1px solid #252545;border-top:3px solid {accent}">'
             f'<div style="font-size:13px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.5px;margin-bottom:8px">{label}</div>'
@@ -360,7 +360,7 @@ with tab_fp:
 
     def fp_r2_card(label, val_str, aop_str, aop_col, py_str, accent="#4a9eff"):
         return (
-            f'<div style="background:#151528;border-radius:10px;padding:14px 16px;'
+            f'<div style="background:#161B22;border-radius:10px;padding:14px 16px;'
             f'border:1px solid #252545;border-top:2px solid {accent};height:100%">'
             f'<div style="font-size:13px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.2px;margin-bottom:5px">{label}</div>'
@@ -526,7 +526,7 @@ with tab_fp:
     )
 
     st.markdown(
-        f'<div style="background:#090f0a;border-radius:12px;padding:20px 24px;'
+        f'<div style="background:#161B22;border-radius:12px;padding:20px 24px;'
         f'border:1px solid #1a3520;border-left:4px solid #22c55e">'
         f'<div style="font-size:11px;color:#f59e0b;font-weight:700;text-transform:uppercase;'
         f'letter-spacing:2px;margin-bottom:12px">&#x25A0;&nbsp;Commentary</div>'

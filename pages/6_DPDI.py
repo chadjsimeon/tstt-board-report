@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 
 st.set_page_config(page_title="TSTT | DPDI", page_icon="💻", layout="wide")
 
@@ -59,7 +59,7 @@ st.markdown("""
 st.markdown(f"""
 <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:1.5rem">
 
-  <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #cc2222">
+  <div style="background:#161B22;padding:15px 14px 12px;border-bottom:2px solid #cc2222">
     <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">TOTAL REVENUE</div>
     <div style="font-size:1.4rem;font-weight:700;color:#FF4444;line-height:1.1">
@@ -68,7 +68,7 @@ st.markdown(f"""
         {rev_var_pct:+.1f}% vs AOP</div>
   </div>
 
-  <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #cc2222">
+  <div style="background:#161B22;padding:15px 14px 12px;border-bottom:2px solid #cc2222">
     <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">EXCL. E-GOVTT REV</div>
     <div style="font-size:1.4rem;font-weight:700;color:#FF4444;line-height:1.1">
@@ -77,7 +77,7 @@ st.markdown(f"""
         {excl_var_pct:+.1f}% vs AOP</div>
   </div>
 
-  <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #444444">
+  <div style="background:#161B22;padding:15px 14px 12px;border-bottom:2px solid #444444">
     <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">GROSS PROFIT</div>
     <div style="font-size:1.4rem;font-weight:700;color:#ffffff;line-height:1.1">
@@ -85,7 +85,7 @@ st.markdown(f"""
     <div style="font-size:0.7rem;color:#aaaaaa;margin-top:5px">GP Margin: {gp_margin:.1f}%</div>
   </div>
 
-  <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #444444">
+  <div style="background:#161B22;padding:15px 14px 12px;border-bottom:2px solid #444444">
     <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">DIRECT COSTS</div>
     <div style="font-size:1.4rem;font-weight:700;color:#ffffff;line-height:1.1">
@@ -94,7 +94,7 @@ st.markdown(f"""
         {dc_sub_text}</div>
   </div>
 
-  <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #cc2222">
+  <div style="background:#161B22;padding:15px 14px 12px;border-bottom:2px solid #cc2222">
     <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">EBITDA</div>
     <div style="font-size:1.4rem;font-weight:700;color:#FF4444;line-height:1.1">
@@ -102,7 +102,7 @@ st.markdown(f"""
     <div style="font-size:0.7rem;color:#556677;margin-top:5px">OpEx-heavy BU</div>
   </div>
 
-  <div style="background:#0d0d0d;padding:15px 14px 12px;border-bottom:2px solid #00aa55">
+  <div style="background:#161B22;padding:15px 14px 12px;border-bottom:2px solid #00aa55">
     <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">E-GOVTT PIPELINE</div>
     <div style="font-size:1.4rem;font-weight:700;color:#00ff88;line-height:1.1">
@@ -208,7 +208,7 @@ with col_right:
 
 # ── Key commentary ────────────────────────────────────────────────────────────
 st.markdown("""
-<div style="background:#030f0f;border:1px solid #0d2a2a;border-radius:6px;
+<div style="background:#161B22;border:1px solid #0d2a2a;border-radius:6px;
             padding:1.2rem 1.6rem;margin-top:0.4rem">
   <div style="font-size:0.62rem;font-weight:700;color:#00aaaa;text-transform:uppercase;
               letter-spacing:2.2px;margin-bottom:0.85rem;border-left:3px solid #00aaaa;
