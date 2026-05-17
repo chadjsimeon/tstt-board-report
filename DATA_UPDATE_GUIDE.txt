@@ -17,10 +17,31 @@ HOW TO RUN THE DASHBOARD
 
 
 ================================================================================
+  PAGES IN THE DASHBOARD
+================================================================================
+
+  File                            Page title
+  ─────────────────────────────── ──────────────────────────────────────────────
+  app.py                          Home / Executive Summary (KPI tiles)
+  pages/0_Enterprise_Scorecard.py Enterprise Scorecard
+  pages/1_Financial_Performance.py Financial Performance (v1 — EBITDA bridge)
+  pages/2_OPEX_Cost.py            OPEX & Cost Management
+  pages/3_Cash_CAPEX.py           Cash, Working Capital & CAPEX
+  pages/4_Consumer.py             Consumer (Prepaid · Postpaid · WTTx)
+  pages/5_Business_Sales.py       Business Sales
+  pages/6_DPDI.py                 DPDI
+  pages/7_Amplia.py               Amplia
+  pages/8_Financial_Performance_V2.py  Financial Performance v2 (KPI cards + GP)
+  pages/8_Revenue_Mix_Variance.py Revenue Mix & Variance Drivers
+  pages/9_Export.py               PowerPoint Export
+
+
+================================================================================
   THE MASTER DATA FILE
 ================================================================================
 
-All dashboard data (except AR Aging and Receivables) comes from ONE file:
+All dashboard data (except AR Aging and the Consumer ARPU/usage files) comes
+from ONE file:
 
     TSTT_Board_Data.xlsx   (in the project root folder)
 
@@ -29,30 +50,147 @@ as shown — they are case-sensitive.
 
   Sheet Name          Page it feeds
   ─────────────────── ──────────────────────────────────────────────────────
-  Financial_Monthly   Home (app.py) + Financial Performance
+  Financial_Monthly   Home + Financial Performance (v1 & v2) + Rev Mix
   Cash_CAPEX          Cash, Working Capital & CAPEX
-  Consumer_Sales      Consumer Sales
+  Consumer_Sales      Consumer (Prepaid · Postpaid · WTTx)
   Business_Sales      Business Sales (Financial Performance tab)
   Pipeline            Business Sales (Pipeline tab)
   Renewals            Business Sales (Renewals at Risk tab)
   DPDI                DPDI
   AMPLIA_Financial    Amplia
   OPEX                OPEX & Cost Management
-  EBITDA_Bridge       Financial Performance (waterfall chart)
-  PnL_Breakdown       Financial Performance (P&L table)
-  KPI_Summary         Home (app.py) + Enterprise Scorecard
+  EBITDA_Bridge       Financial Performance v1 (waterfall chart)
+  PnL_Breakdown       Financial Performance v2 (P&L table / GP derivation)
+  KPI_Summary         Home + Enterprise Scorecard
+  PP_Plans            Consumer → Postpaid tab (Active Plans donut) ← OPTIONAL
+  WTTx_Plans          Consumer → WTTx tab (Subscribers by Plan Type donut) ← OPTIONAL
 
 MONTH FORMAT: All "Month" columns must use the format  Apr-26  (Mon-YY).
               Do NOT use full dates or different formats.
 
 
 ================================================================================
-  SHEET-BY-SHEET UPDATE INSTRUCTIONS
+  ADDITIONAL SOURCE FILES (separate from TSTT_Board_Data.xlsx)
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+A. PREPAID SUBS & REVENUE BY ARPU BUCKET
+   File: Prepaid Subs and REV by ARPU buckets.xlsx
+   Page: Consumer → Prepaid tab
+────────────────────────────────────────────────────────────────────────────────
+This is a separate file (NOT a sheet in TSTT_Board_Data.xlsx).
+Sheet: "Export"
+
+Structure:
+- Row 0:  sub-header row (arpu_category / column labels)
+- Rows 1–6:  data rows (one per ARPU bucket category)
+- Row 7:  Total row (skipped by dashboard)
+- Each ARPU bucket has a pair of columns: Subscribers | Revenue
+- Column headers follow the pattern:  Jan-2025  Feb-2025  … (Mon-YYYY format)
+  → The dashboard converts these to Mon-YY format automatically.
+
+Required ARPU bucket category names (must match exactly):
+  Very Low (0-5)
+  Low (5-30)
+  Medium (30-120)
+  High (120-300)
+  Very High (>300)
+
+Revenue values must be in RAW TT$ — dashboard divides by 1,000,000.
+
+To update for a new month:
+  Add two new columns (Subscribers | Revenue) after the last existing pair.
+  Use the header format  May-2026  (Mon-YYYY).
+
+NOTE: This file also drives the subscriber movement card on the Prepaid tab.
+The "Closing Base" for a month is the total Subscribers row in this file
+(sum of all bucket categories for that month).
+
+────────────────────────────────────────────────────────────────────────────────
+B. PREPAID DATA USAGE
+   File: dd_prepaid_data_usage_mth.xlsx
+   Page: Consumer → Prepaid tab (Data Usage sub-section)
+────────────────────────────────────────────────────────────────────────────────
+Sheet: "Result 1"
+
+Required columns:
+  Column                 Format    Description
+  ────────────────────── ───────── ────────────────────────────────────────────
+  Month_Code             YYYYMM    e.g. 202601 for Jan 2026
+  unique_data_users      Count     Distinct subscribers who used data
+  bundle_users           Count     Subscribers who used a bundle
+  payg_users             Count     Pay-as-you-go data users
+  total_data_usage       MB        Total data consumed (megabytes)
+  in_bundle_usage        MB        Data consumed within bundles
+  payg_data_usage        MB        Data consumed as PAYG
+  data_bundle_rev        Raw TT$   Revenue from data bundles
+  payg_data_charges      Raw TT$   Revenue from PAYG data charges
+
+Derived by dashboard:
+  gb_per_user     = total_data_usage / unique_data_users / 1024
+  bundle_pct      = bundle_users / unique_data_users × 100
+  total_data_rev  = data_bundle_rev + payg_data_charges  (in TT$M)
+
+To update: add new rows to the sheet with Month_Code in YYYYMM format.
+
+────────────────────────────────────────────────────────────────────────────────
+C. AR AGING / RECEIVABLES
+   File: Receivables Executive Summary.xlsx
+   Page: Cash, Working Capital & CAPEX
+────────────────────────────────────────────────────────────────────────────────
+Sheet: "Exec. Summary Receivables"
+
+This file uses hardcoded row positions (confirmed for April 2026, column 74).
+When a new reporting month is available, the column index in the code may need
+updating. To change the month column, edit this line in pages/3_Cash_CAPEX.py:
+
+    APR = 74   ← change this to the correct column index for the new month
+               (0-based: column A = 0, column B = 1, etc.)
+
+Row positions used (0-based):
+  Rows 22–28  →  Fixed Enterprise Government aging buckets
+  Rows 40–46  →  Mobile Enterprise Government aging buckets
+  Rows  4–10  →  Total (all customers) aging buckets
+  Government = rows 22–28 + rows 40–46
+  Non-Government = Total minus Government
+
+  Aging buckets:
+    Row offset 0 → 0–30 days
+    Row offset 1 → 31–60 days
+    Row offset 2 → 61–90 days
+    Row offset 3 → 91–180 days   (merged into 90–360 display)
+    Row offset 4 → 181–360 days  (merged into 90–360 display)
+    Row offset 5 → 360+ days
+
+
+================================================================================
+  ETL SCRIPT — build_board_data.py
+================================================================================
+
+You do NOT need to run this manually every month unless the raw source data
+format changes. The output (TSTT_Board_Data.xlsx) is committed to the repo
+and is what the dashboard reads directly.
+
+If you do need to rebuild TSTT_Board_Data.xlsx from source:
+
+    python build_board_data.py
+
+Source files the ETL reads:
+  financial_data.xlsx              — raw financial actuals (long format)
+  subscriber_base_apw.xlsx         — subscriber base by APW (used for Consumer_Sales)
+  Amplia Metrics 2024-2025 February 2026.xlsx  — Amplia KPI data
+  OPEX_AOP_FY2027.xlsx             — OPEX Annual Operating Plan for FY2027
+
+All source files must be in the project root folder.
+
+
+================================================================================
+  SHEET-BY-SHEET UPDATE INSTRUCTIONS (TSTT_Board_Data.xlsx)
 ================================================================================
 
 ────────────────────────────────────────────────────────────────────────────────
 1. FINANCIAL_MONTHLY
-   Page: Home / Financial Performance
+   Pages: Home / Financial Performance v1 & v2 / Revenue Mix & Variance
 ────────────────────────────────────────────────────────────────────────────────
 Add one new row per month. All monetary values enter in RAW TT$ (the dashboard
 divides by 1,000,000 automatically).
@@ -77,39 +215,49 @@ divides by 1,000,000 automatically).
 ────────────────────────────────────────────────────────────────────────────────
 Add one new row per month. Monetary values in RAW TT$.
 
-  Column          Format    Description
-  ─────────────── ───────── ──────────────────────────────────────────────────
-  Month           Mon-YY
-  Cash_Balance    Raw TT$   Closing cash balance
-  Net_Debt        Raw TT$   Net debt position
-  FCF             Raw TT$   Free Cash Flow for the month
-  CAPEX_Actual    Raw TT$   CAPEX spent this month
-  CAPEX_Plan      Raw TT$   CAPEX plan/budget for the month
+  Column                Format    Description
+  ───────────────────── ───────── ────────────────────────────────────────────
+  Month                 Mon-YY
+  Cash_Balance          Raw TT$   Closing cash balance
+  Net_Debt              Raw TT$   Net debt position
+  FCF                   Raw TT$   Free Cash Flow for the month
+  CAPEX_Actual          Raw TT$   CAPEX spent this month
+  CAPEX_Plan            Raw TT$   CAPEX plan/budget for the month
+  Collections_Pct       Decimal   Overall collections rate (e.g. 0.72 for 72%)
+  Collections_Pct_Gov   Decimal   Government collections rate
+  Collections_Pct_NonGov Decimal  Non-government collections rate
 
-  NOTE: Collections_Pct column exists but is no longer displayed.
-  FCF Yield (FCF ÷ Revenue) is derived automatically.
+  NOTE: FCF Yield (FCF ÷ Revenue) is derived automatically.
+  All three Collections_Pct columns are optional — if absent the collections
+  widget will display zero.
 
 ────────────────────────────────────────────────────────────────────────────────
 3. CONSUMER_SALES
-   Page: Consumer Sales
+   Page: Consumer (Prepaid · Postpaid · WTTx)
 ────────────────────────────────────────────────────────────────────────────────
-One row per Segment per Month. Monetary values in RAW TT$.
+One row per Segment per Month. Monetary values in RAW TT$ EXCEPT ARPU columns
+which are entered as actual TT$ per subscriber (e.g. 350 for TT$350/month).
 
-  Column          Format    Description
-  ─────────────── ───────── ──────────────────────────────────────────────────
-  Month           Mon-YY
-  Segment         Text      Prepaid / Postpaid / WTTx
-  Revenue         Raw TT$   Revenue for that segment
-  Revenue_AOP     Raw TT$   AOP target for that segment
-  Subscribers     Count     Closing subscriber count (raw number)
-  YoY_Change_Pct  Decimal   e.g. 0.05 for +5% YoY  (NOT 5)
-  ARPU            Raw TT$   If blank, calculated as Revenue÷Subscribers
-  Gross_Adds      Count     New subscribers added in the month
-  Disc            Count     Disconnections in the month
-  Plan            Count     Subscriber plan/target for the month
+  Column            Format       Description
+  ───────────────── ──────────── ──────────────────────────────────────────────
+  Month             Mon-YY
+  Segment           Text         Prepaid / Postpaid / WTTx
+  Revenue           Raw TT$      Revenue for that segment
+  Revenue_AOP       Raw TT$      AOP target for that segment
+  Subscribers       Count        Closing subscriber count (raw number)
+  Subscribers_AOP   Count        Subscriber plan/target for the month
+  YoY_Change_Pct    Decimal      e.g. 0.05 for +5% YoY  (NOT 5)
+  ARPU              TT$/sub      Actual ARPU — enter as e.g. 350 (not raw TT$)
+                                 If blank, ARPU cards will show zero.
+  ARPU_AOP          TT$/sub      ARPU target — same format as ARPU
+  Gross_Adds        Count        New subscribers added in the month
+  Disc              Count        Disconnections in the month
 
   NOTE: Churn_Pct is auto-calculated by the dashboard from month-over-month
   subscriber changes. Do NOT add a Churn_Pct column.
+
+  IMPORTANT: ARPU and ARPU_AOP are NOT divided by 1,000,000. Enter as
+  TT$ per subscriber per month (e.g. 350, not 350000000).
 
 ────────────────────────────────────────────────────────────────────────────────
 4. BUSINESS_SALES
@@ -241,7 +389,7 @@ One row per cost Category per Month. Monetary values in RAW TT$.
 
 ────────────────────────────────────────────────────────────────────────────────
 10. EBITDA_BRIDGE
-    Page: Financial Performance (waterfall chart)
+    Page: Financial Performance v1 (waterfall chart)
 ────────────────────────────────────────────────────────────────────────────────
 Static or monthly waterfall bridge data.
 
@@ -257,7 +405,7 @@ Static or monthly waterfall bridge data.
 
 ────────────────────────────────────────────────────────────────────────────────
 11. PNL_BREAKDOWN
-    Page: Financial Performance (P&L table)
+    Page: Financial Performance v2 (Gross Profit derivation)
 ────────────────────────────────────────────────────────────────────────────────
 Each row is a P&L line item; each column (except "Month") is a month.
 All values in RAW TT$.
@@ -268,10 +416,15 @@ All values in RAW TT$.
     AMPLIA_Rev              AMPLIA_COS             AMPLIA_Rev_AOP
     DPDI_Rev                DPDI_COS               DPDI_Rev_AOP
     OTHER_Rev               OTHER_COS              OTHER_Rev_AOP
-    Total_Rev               Total_COS              Total_OPEX     EBITDA
+    Total_Rev               Total_COS              Total_Rev_AOP
+    Total_COS_AOP           Total_OPEX             EBITDA
 
   To add a new month: add a new column with the month label (Mon-YY format)
   and fill in all row values in RAW TT$.
+
+  NOTE: Gross Profit and Gross Profit AOP are derived as Total_Rev − Total_COS
+  and Total_Rev_AOP − Total_COS_AOP respectively. The Financial Performance v2
+  page uses this to power the KPI card and 13-month trend chart.
 
 ────────────────────────────────────────────────────────────────────────────────
 12. KPI_SUMMARY
@@ -293,38 +446,64 @@ One row per KPI per Month.
   NOTE: The PY column (8th column) is optional — the dashboard derives PY
   from the Actual of the same KPI_Name 12 months earlier.
 
+────────────────────────────────────────────────────────────────────────────────
+13. PP_PLANS  (OPTIONAL — if absent, Active Plans donut shows stub data)
+    Page: Consumer → Postpaid tab
+────────────────────────────────────────────────────────────────────────────────
+One row per active plan type. NO Month column — this is a snapshot (latest month).
+Update the whole table each month.
+
+  Column          Format    Description
+  ─────────────── ───────── ──────────────────────────────────────────────────
+  Plan            Text      Plan name (e.g. "Basic Voice", "Standard Bundle")
+  Subscribers     Count     Number of active subscribers on this plan
+
+If this sheet is absent or empty, the donut chart falls back to hardcoded
+stub values and shows a "⚠ dummy data" warning.
+
+────────────────────────────────────────────────────────────────────────────────
+14. WTTX_PLANS  (OPTIONAL — if absent, Plan Type donut shows stub data)
+    Page: Consumer → WTTx tab
+────────────────────────────────────────────────────────────────────────────────
+Same structure as PP_Plans. One row per service type.
+
+  Column          Format    Description
+  ─────────────── ───────── ──────────────────────────────────────────────────
+  Plan            Text      Service type (e.g. "Voice Only", "Broadband")
+  Subscribers     Count     Number of active subscribers on this plan
+
+If absent, falls back to hardcoded stub values with a "⚠ dummy data" warning.
+
 
 ================================================================================
-  AR AGING / RECEIVABLES (SEPARATE FILE)
+  STUB DATA — CHARTS THAT STILL USE HARDCODED VALUES
 ================================================================================
 
-The Cash & CAPEX page also reads AR aging data from a separate file:
+The following charts are currently driven by hardcoded data. To replace with
+real data, either add the corresponding optional sheet (PP_Plans / WTTx_Plans)
+or update the hardcoded values directly in the page file.
 
-    Receivables Executive Summary.xlsx
+  Chart                               File / Location          How to fix
+  ─────────────────────────────────── ──────────────────────── ──────────────
+  Postpaid Active Plans donut         pages/4_Consumer.py      Add PP_Plans sheet
+  (falls back to Basic Voice 35K,     ~line 652                in TSTT_Board_Data
+  Basic Data 38K, Standard 22K, etc.)
 
-  Sheet:  "Exec. Summary Receivables"
+  WTTx Subscribers by Plan Type donut pages/4_Consumer.py      Add WTTx_Plans sheet
+  (falls back to Voice Only 8K,       ~line 914                in TSTT_Board_Data
+  Bundles 35K, Data Only 62K)
 
-This file uses hardcoded row positions (confirmed for April 2026, column 74).
-When a new reporting month is available, the column index in the code may need
-updating. To change the month column, edit this line in pages/3_Cash_CAPEX.py:
+  Postpaid Revenue by Bundle Type     pages/4_Consumer.py      Update pp_splits list
+  (hardcoded: Voice+Data 52%,         ~line 706-708            (or add a data source)
+  Data Only 31%, Enterprise 17%)
 
-    APR = 74   ← change this to the correct column index for the new month
-               (0-based: column A = 0, column B = 1, etc.)
+  WTTx Revenue by Service Type        pages/4_Consumer.py      Update wx_splits list
+  (hardcoded: Broadband 72%,          ~line 968-970            (or add a data source)
+  Voice Bundle 20%, Equipment 8%)
 
-Row positions used (0-based):
-  Rows 22–28  →  Fixed Enterprise Government aging buckets
-  Rows 40–46  →  Mobile Enterprise Government aging buckets
-  Rows  4–10  →  Total (all customers) aging buckets
-  Government = rows 22–28 + rows 40–46
-  Non-Government = Total minus Government
-
-  Aging buckets:
-    Row offset 0 → 0–30 days
-    Row offset 1 → 31–60 days
-    Row offset 2 → 61–90 days
-    Row offset 3 → 91–180 days   (merged into 90–360 display)
-    Row offset 4 → 181–360 days  (merged into 90–360 display)
-    Row offset 5 → 360+ days
+NOTE: All four charts apply their hardcoded percentages/counts to the real
+April 2026 revenue / subscriber figures, so the totals are always accurate;
+only the split proportions are estimated.
 
 
 ================================================================================
@@ -334,8 +513,9 @@ Row positions used (0-based):
   ✓ DO:
     - Use Mon-YY format for ALL Month columns (e.g. Apr-26, May-26)
     - Enter all monetary values in RAW TT$ — the dashboard converts to TT$M
-    - Enter percentages as DECIMALS in most sheets (0.28 not 28) EXCEPT
-      Consumer_Sales.YoY_Change_Pct which is also decimal
+    - Enter percentages as DECIMALS in most sheets (0.28 not 28)
+    - Enter ARPU / ARPU_AOP in Consumer_Sales as actual TT$ per subscriber
+      (e.g. 350 for TT$350/month — this column is NOT divided by 1,000,000)
     - Keep sheet names exactly as listed — they are case-sensitive
     - Add new months as new ROWS (not new columns), except PnL_Breakdown
       which uses months as columns
@@ -348,6 +528,8 @@ Row positions used (0-based):
     - Add Churn_Pct to Consumer_Sales — auto-calculated
     - Rename or delete any sheet
     - Change the column order — add new columns at the end if needed
+    - Divide ARPU by 1,000,000 (it is not a monetary total — it is a
+      per-subscriber rate and must remain in its natural TT$ form)
 
 
 ================================================================================
@@ -360,10 +542,13 @@ For each new reporting month (e.g. adding May-26):
 
   [ ] 2. Financial_Monthly    — add 1 row with Revenue, EBITDA, PAT actuals + AOP
 
-  [ ] 3. Cash_CAPEX           — add 1 row with Cash, Net Debt, FCF, CAPEX
+  [ ] 3. Cash_CAPEX           — add 1 row with Cash, Net Debt, FCF, CAPEX,
+                                and Collections_Pct / _Gov / _NonGov
 
   [ ] 4. Consumer_Sales       — add 3 rows (one each for Prepaid, Postpaid, WTTx)
-                                with Revenue, Subscribers, Gross_Adds, Disc
+                                with Revenue, Revenue_AOP, Subscribers,
+                                Subscribers_AOP, ARPU, ARPU_AOP,
+                                Gross_Adds, Disc
 
   [ ] 5. Business_Sales       — add rows (one per Segment) with Revenue, MRR,
                                 Direct_Costs, Gross_Profit, and the new columns:
@@ -385,11 +570,23 @@ For each new reporting month (e.g. adding May-26):
 
   [ ] 13. Renewals            — update statuses / add or remove contracts as needed
 
-  [ ] 14. Save TSTT_Board_Data.xlsx
+  [ ] 14. PP_Plans            — (if available) update with latest subscriber
+                                counts by postpaid plan type
 
-  [ ] 15. If AR Aging column has moved, update APR = XX in pages/3_Cash_CAPEX.py
+  [ ] 15. WTTx_Plans          — (if available) update with latest subscriber
+                                counts by WTTx service type
 
-  [ ] 16. Run:  streamlit run app.py
+  [ ] 16. Save TSTT_Board_Data.xlsx
+
+  [ ] 17. Update Prepaid ARPU buckets file with new month column pair
+              Prepaid Subs and REV by ARPU buckets.xlsx  (sheet: Export)
+
+  [ ] 18. Update Prepaid data usage file with new month row
+              dd_prepaid_data_usage_mth.xlsx  (sheet: Result 1)
+
+  [ ] 19. If AR Aging column has moved, update APR = XX in pages/3_Cash_CAPEX.py
+
+  [ ] 20. Run:  streamlit run app.py
                Then clear the cache if data looks stale:
                Click the ⋮ menu (top-right of browser) → Clear cache
 
