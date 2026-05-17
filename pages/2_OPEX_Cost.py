@@ -39,7 +39,7 @@ var_pct      = total_var / total_plan * 100 if total_plan else 0
 # ── Period badge ──────────────────────────────────────────────────────────────
 st.markdown(
     f'<span style="background:#1a2744;color:#7eb8f7;padding:5px 14px;border-radius:12px;'
-    f'font-size:13px;font-weight:600;border:1px solid #2a4080">Period: {sel_month}</span>',
+    f'font-size:16px;font-weight:600;border:1px solid #2a4080">Period: {sel_month}</span>',
     unsafe_allow_html=True,
 )
 st.markdown("<div style='margin-top:16px'></div>", unsafe_allow_html=True)
@@ -88,7 +88,7 @@ with col_left:
         width=0.42,
         text=[f"{v:,.2f}" for v in cats["Actual"]],
         textposition="outside",
-        textfont=dict(color="white", size=18),
+        textfont=dict(color="white", size=20),
         cliponaxis=False,
         hovertemplate="%{y}<br>Actual: %{x:,.2f}<extra></extra>",
     ))
@@ -101,16 +101,16 @@ with col_left:
         height=fig_height,
         legend=dict(
             bgcolor="rgba(0,0,0,0)", orientation="h",
-            y=-0.04, x=1.0, xanchor="right", yanchor="top", font=dict(size=14),
+            y=-0.04, x=1.0, xanchor="right", yanchor="top", font=dict(size=18),
         ),
         xaxis=dict(
-            gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=18),
-            title=dict(text="", font=dict(color="#8888aa", size=14)),
+            gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=20),
+            title=dict(text="", font=dict(color="#8888aa", size=16)),
             zeroline=True, zerolinecolor="#3a3a5a",
         ),
         yaxis=dict(
             gridcolor="#1e1e3a",
-            tickfont=dict(color="white", size=17),
+            tickfont=dict(color="white", size=20),
         ),
         margin=dict(l=10, r=200, t=10, b=50),
     )
@@ -121,7 +121,7 @@ with col_left:
     sign    = "+" if var_pct > 0 else ""
     var_col = "#ef4444" if total_var > 0 else "#22c55e"
     st.markdown(
-        f'<p style="font-size:18px;font-weight:700;color:#f59e0b;margin-top:2px">'
+        f'<p style="font-size:22px;font-weight:700;color:#f59e0b;margin-top:2px">'
         f'Total OPEX: {total_actual:,.2f} &nbsp;vs Plan&nbsp; {total_plan:,.2f}'
         f'&nbsp;(<span style="color:{var_col}">{sign}{var_pct:.1f}%</span>)'
         f'</p>',
@@ -149,17 +149,17 @@ with col_right:
 <div style="display:flex;align-items:center;margin-bottom:14px;padding:16px 18px;
             background:rgba(255,255,255,0.04);border-radius:10px;
             border-left:4px solid {color}">
-    <div style="background:{badge_bg};color:{color};font-weight:800;font-size:16px;
-                padding:6px 12px;border-radius:50%;min-width:36px;text-align:center;
+    <div style="background:{badge_bg};color:{color};font-weight:800;font-size:20px;
+                padding:6px 12px;border-radius:50%;min-width:40px;text-align:center;
                 margin-right:16px;border:1px solid {color};flex-shrink:0">{rank}</div>
     <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:18px;color:white;
+        <div style="font-weight:700;font-size:22px;color:white;
                     margin-bottom:6px">{row['Category']}</div>
-        <div style="font-size:15px;color:#8888aa;line-height:1.4">
+        <div style="font-size:18px;color:#8888aa;line-height:1.4">
             {abs(vpct):.1f}% {label} — {abs(row['Plan']):,.2f} planned
         </div>
     </div>
-    <div style="font-weight:800;font-size:18px;color:{color};
+    <div style="font-weight:800;font-size:22px;color:{color};
                 text-align:right;white-space:nowrap;margin-left:12px">
         {sign}{abs(var):,.2f}
     </div>
@@ -196,8 +196,8 @@ with col_right:
     st.markdown(f"""
 <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:24px 24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span style="color:#aaaacc;font-size:17px;font-weight:500">YTD Spend vs Annual Budget</span>
-        <span style="color:{pct_color};font-weight:800;font-size:26px">{progress:.1f}%</span>
+        <span style="color:#aaaacc;font-size:20px;font-weight:500">YTD Spend vs Annual Budget</span>
+        <span style="color:{pct_color};font-weight:800;font-size:30px">{progress:.1f}%</span>
     </div>
     <div style="background:#1e1e3a;border-radius:8px;height:22px;overflow:hidden;margin-bottom:18px">
         <div style="background:{bar_color};
@@ -205,16 +205,16 @@ with col_right:
     </div>
     <div style="display:flex;justify-content:space-between;align-items:baseline">
         <div>
-            <div style="color:{pct_color};font-size:20px;font-weight:700">{ytd_spend:,.2f}</div>
-            <div style="color:#6688aa;font-size:15px;margin-top:4px">spent YTD</div>
+            <div style="color:{pct_color};font-size:24px;font-weight:700">{ytd_spend:,.2f}</div>
+            <div style="color:#6688aa;font-size:18px;margin-top:4px">spent YTD</div>
         </div>
         <div style="text-align:center">
-            <div style="color:{rem_color};font-size:20px;font-weight:700">{rem_sign}{abs(remaining):,.2f}</div>
-            <div style="color:#6688aa;font-size:15px;margin-top:4px">{rem_label}</div>
+            <div style="color:{rem_color};font-size:24px;font-weight:700">{rem_sign}{abs(remaining):,.2f}</div>
+            <div style="color:#6688aa;font-size:18px;margin-top:4px">{rem_label}</div>
         </div>
         <div style="text-align:right">
-            <div style="color:#aaaacc;font-size:20px;font-weight:700">{annual_plan:,.2f}</div>
-            <div style="color:#6688aa;font-size:15px;margin-top:4px">annual budget</div>
+            <div style="color:#aaaacc;font-size:24px;font-weight:700">{annual_plan:,.2f}</div>
+            <div style="color:#6688aa;font-size:18px;margin-top:4px">annual budget</div>
         </div>
     </div>
 </div>""", unsafe_allow_html=True)
