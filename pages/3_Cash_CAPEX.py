@@ -291,7 +291,7 @@ row2_left, row2_right = st.columns(2)
 
 with row2_left:
     st.markdown(
-        f'<div style="display:flex;flex-direction:column;gap:10px;margin:10px 0">'
+        f'<div style="display:flex;gap:10px;align-items:stretch;margin:10px 0">'
         f'{_mc("Cash Balance",  f"TT${cash_val:,.0f}M",       f"TT${cash_delta:+,.1f}M vs PY",  cash_dc)}'
         f'{_mc("Net Debt",      f"TT${debt_val:,.0f}M",       f"TT${debt_delta:+,.1f}M vs LY",  debt_dc)}'
         f'{_mc("Free Cash Flow",f"TT${abs(fcf_month):,.0f}M", str(latest["Month"]),             _fcf_color)}'
