@@ -143,7 +143,7 @@ with col_right:
         color    = "#ef4444" if var > 0 else "#22c55e"
         badge_bg = "#3a1212" if var > 0 else "#0f2e1a"
         label    = "above plan" if var > 0 else "below plan"
-        sign     = "+" if var > 0 else ""
+        sign     = "+" if var < 0 else "-"
 
         st.markdown(f"""
 <div style="display:flex;align-items:center;margin-bottom:14px;padding:16px 18px;
@@ -161,7 +161,7 @@ with col_right:
     </div>
     <div style="font-weight:800;font-size:18px;color:{color};
                 text-align:right;white-space:nowrap;margin-left:12px">
-        {sign}TT${var:,.2f}M
+        {sign}TT${abs(var):,.2f}M
     </div>
 </div>""", unsafe_allow_html=True)
 
