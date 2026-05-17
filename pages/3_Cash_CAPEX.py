@@ -285,19 +285,46 @@ with r1_right:
 """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ROW 2 — 3 metric cards spanning full width
+# ROW 2 — 3 metric cards (left half) | Collections (right half)
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown(
-    f'<div style="display:flex;gap:10px;align-items:stretch;margin:10px 0">'
-    f'{_mc("Cash Balance",  f"TT${cash_val:,.0f}M",       f"TT${cash_delta:+,.1f}M vs PY",  cash_dc)}'
-    f'{_mc("Net Debt",      f"TT${debt_val:,.0f}M",       f"TT${debt_delta:+,.1f}M vs LY",  debt_dc)}'
-    f'{_mc("Free Cash Flow",f"TT${abs(fcf_month):,.0f}M", str(latest["Month"]),             _fcf_color)}'
-    f'</div>',
-    unsafe_allow_html=True,
-)
+row2_left, row2_right = st.columns(2)
+
+with row2_left:
+    st.markdown(
+        f'<div style="display:flex;flex-direction:column;gap:10px;margin:10px 0">'
+        f'{_mc("Cash Balance",  f"TT${cash_val:,.0f}M",       f"TT${cash_delta:+,.1f}M vs PY",  cash_dc)}'
+        f'{_mc("Net Debt",      f"TT${debt_val:,.0f}M",       f"TT${debt_delta:+,.1f}M vs LY",  debt_dc)}'
+        f'{_mc("Free Cash Flow",f"TT${abs(fcf_month):,.0f}M", str(latest["Month"]),             _fcf_color)}'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+with row2_right:
+    st.markdown(f"""
+<div style="background:#161b22;border-radius:10px;padding:20px 22px;margin:10px 0;
+            border:1px solid #21262d;display:flex;flex-direction:column;height:calc(100% - 20px)">
+  <div style="font-size:0.7rem;font-weight:700;color:#556677;text-transform:uppercase;
+              letter-spacing:2px;margin-bottom:14px">Collections Performance</div>
+  <div style="display:flex;gap:10px;flex:1">
+    <div style="flex:1;border:1px solid #21262d;border-radius:8px;padding:16px 14px;
+                text-align:center;display:flex;flex-direction:column;justify-content:center">
+      <div style="font-size:0.72rem;color:#4488ff;font-weight:600;margin-bottom:8px;
+                  text-transform:uppercase;letter-spacing:1px">Government</div>
+      {_coll_display(coll_gov, _cg_color)}
+      <div style="font-size:0.65rem;color:#556677;margin-top:8px">% of billings</div>
+    </div>
+    <div style="flex:1;border:1px solid #21262d;border-radius:8px;padding:16px 14px;
+                text-align:center;display:flex;flex-direction:column;justify-content:center">
+      <div style="font-size:0.72rem;color:#a78bfa;font-weight:600;margin-bottom:8px;
+                  text-transform:uppercase;letter-spacing:1px">Non-Government</div>
+      {_coll_display(coll_non_gov, _cng_color)}
+      <div style="font-size:0.65rem;color:#556677;margin-top:8px">% of billings</div>
+    </div>
+  </div>
+</div>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ROW 3 — CAPEX (left) | Collections (right) — flex-stretch for equal height
+# ROW 3 — CAPEX full width
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown(f"""
 <style>
@@ -307,57 +334,31 @@ st.markdown(f"""
 }}
 .capex-bar {{ animation: capex-fill-{int(capex_progress*10)} 600ms ease-in forwards; }}
 </style>
-<div style="display:flex;gap:10px;align-items:stretch;margin:0 0 12px">
-
-  <div style="flex:1;min-width:0;background:#161b22;border-radius:10px;padding:20px 22px;
-              border:1px solid #21262d;display:flex;flex-direction:column">
-    <div style="font-size:0.7rem;font-weight:700;color:#00e676;text-transform:uppercase;
-                letter-spacing:2px;margin-bottom:18px">CAPEX Spend to Date</div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <span style="color:#aaaacc;font-size:14px;font-weight:500">YTD Spend vs Annual Budget</span>
-      <span style="color:{cap_pct_color};font-weight:800;font-size:22px">{capex_progress:.1f}%</span>
+<div style="background:#161b22;border-radius:10px;padding:20px 22px;margin:0 0 12px;
+            border:1px solid #21262d">
+  <div style="font-size:0.7rem;font-weight:700;color:#00e676;text-transform:uppercase;
+              letter-spacing:2px;margin-bottom:18px">CAPEX Spend to Date</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <span style="color:#aaaacc;font-size:14px;font-weight:500">YTD Spend vs Annual Budget</span>
+    <span style="color:{cap_pct_color};font-weight:800;font-size:22px">{capex_progress:.1f}%</span>
+  </div>
+  <div style="background:#1e1e3a;border-radius:8px;height:20px;overflow:hidden;margin-bottom:18px">
+    <div class="capex-bar" style="background:{cap_bar_color};height:100%;border-radius:8px"></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <div>
+      <div style="color:{cap_pct_color};font-size:18px;font-weight:700">TT${capex_act:,.1f}M</div>
+      <div style="color:#6688aa;font-size:13px;margin-top:2px">spent YTD</div>
     </div>
-    <div style="background:#1e1e3a;border-radius:8px;height:20px;overflow:hidden;margin-bottom:18px">
-      <div class="capex-bar" style="background:{cap_bar_color};height:100%;border-radius:8px"></div>
+    <div style="text-align:center">
+      <div style="color:{cap_rem_color};font-size:18px;font-weight:700">{cap_rem_sign}TT${abs(capex_remaining):,.1f}M</div>
+      <div style="color:#6688aa;font-size:13px;margin-top:2px">{cap_rem_label}</div>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:auto">
-      <div>
-        <div style="color:{cap_pct_color};font-size:18px;font-weight:700">TT${capex_act:,.1f}M</div>
-        <div style="color:#6688aa;font-size:13px;margin-top:2px">spent YTD</div>
-      </div>
-      <div style="text-align:center">
-        <div style="color:{cap_rem_color};font-size:18px;font-weight:700">{cap_rem_sign}TT${abs(capex_remaining):,.1f}M</div>
-        <div style="color:#6688aa;font-size:13px;margin-top:2px">{cap_rem_label}</div>
-      </div>
-      <div style="text-align:right">
-        <div style="color:#aaaacc;font-size:18px;font-weight:700">TT${capex_plan:,.1f}M</div>
-        <div style="color:#6688aa;font-size:13px;margin-top:2px">annual budget</div>
-      </div>
+    <div style="text-align:right">
+      <div style="color:#aaaacc;font-size:18px;font-weight:700">TT${capex_plan:,.1f}M</div>
+      <div style="color:#6688aa;font-size:13px;margin-top:2px">annual budget</div>
     </div>
   </div>
-
-  <div style="flex:1;min-width:0;background:#161b22;border-radius:10px;padding:20px 22px;
-              border:1px solid #21262d;display:flex;flex-direction:column">
-    <div style="font-size:0.7rem;font-weight:700;color:#556677;text-transform:uppercase;
-                letter-spacing:2px;margin-bottom:14px">Collections Performance</div>
-    <div style="display:flex;gap:10px;flex:1">
-      <div style="flex:1;border:1px solid #21262d;border-radius:8px;padding:16px 14px;
-                  text-align:center;display:flex;flex-direction:column;justify-content:center">
-        <div style="font-size:0.72rem;color:#4488ff;font-weight:600;margin-bottom:8px;
-                    text-transform:uppercase;letter-spacing:1px">Government</div>
-        {_coll_display(coll_gov, _cg_color)}
-        <div style="font-size:0.65rem;color:#556677;margin-top:8px">% of billings</div>
-      </div>
-      <div style="flex:1;border:1px solid #21262d;border-radius:8px;padding:16px 14px;
-                  text-align:center;display:flex;flex-direction:column;justify-content:center">
-        <div style="font-size:0.72rem;color:#a78bfa;font-weight:600;margin-bottom:8px;
-                    text-transform:uppercase;letter-spacing:1px">Non-Government</div>
-        {_coll_display(coll_non_gov, _cng_color)}
-        <div style="font-size:0.65rem;color:#556677;margin-top:8px">% of billings</div>
-      </div>
-    </div>
-  </div>
-
 </div>""", unsafe_allow_html=True)
 
 
