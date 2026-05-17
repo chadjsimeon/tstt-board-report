@@ -4,11 +4,11 @@ import streamlit as st
 EXCEL_PATH       = "TSTT_Board_Data.xlsx"
 ARPU_BUCKET_PATH      = "Prepaid Subs and REV by ARPU buckets.xlsx"
 PREPAID_USAGE_PATH    = "dd_prepaid_data_usage_mth.xlsx"
-M = 1_000_000  # raw TT$ → TT$M conversion factor
+M = 1_000_000  # raw  →  conversion factor
 
 
 def _scale(df, cols):
-    """Divide named monetary columns by 1,000,000 (raw TT$ → TT$M)."""
+    """Divide named monetary columns by 1,000,000 (raw  → )."""
     for c in cols:
         if c in df.columns:
             df[c] = pd.to_numeric(df[c], errors="coerce") / M
@@ -30,7 +30,7 @@ def load_all_data():
     for sheet in xls.sheet_names:
         data[sheet] = pd.read_excel(xls, sheet_name=sheet)
 
-    # ── Scale monetary columns from raw TT$ to TT$M ──────────────────────────
+    # ── Scale monetary columns from raw  to  ──────────────────────────
     if "Financial_Monthly" in data:
         data["Financial_Monthly"] = _scale(data["Financial_Monthly"], [
             "Revenue", "EBITDA", "PAT",
@@ -127,7 +127,7 @@ def load_all_data():
         mon_cols = [c for c in data["PnL_Breakdown"].columns if c != "Month"]
         data["PnL_Breakdown"] = _scale(data["PnL_Breakdown"], mon_cols)
 
-    # ── KPI Summary: scale only TT$M rows ────────────────────────────────────
+    # ── KPI Summary: scale only  rows ────────────────────────────────────
     if "KPI_Summary" in data:
         kpi = data["KPI_Summary"].copy()
         # Accept 7 columns (no PY) or 8 columns (with PY placeholder)
@@ -139,7 +139,7 @@ def load_all_data():
             kpi.columns = ["Month", "Section", "KPI_Name", "Actual", "AOP", "Status", "Unit"]
             kpi["PY"] = pd.NA
         kpi = kpi.dropna(subset=["Section", "KPI_Name"])
-        ttm_mask = kpi["Unit"] == "TT$M"
+        ttm_mask = kpi["Unit"] == ""
         pct_mask = kpi["Unit"] == "%"
         for col in ["Actual", "AOP"]:
             kpi.loc[ttm_mask, col] = pd.to_numeric(kpi.loc[ttm_mask, col], errors="coerce") / M
@@ -163,7 +163,7 @@ def load_prepaid_arpu():
     """Load prepaid subs & revenue by ARPU bucket from the external Excel file.
 
     Returns a long-format DataFrame with columns:
-        Month (str, e.g. 'Jan-25'), Category (str), Subscribers (float), Revenue (TT$M float)
+        Month (str, e.g. 'Jan-25'), Category (str), Subscribers (float), Revenue ( float)
     Excludes 'No Revenue' and 'Total' rows — caller filters as needed.
     """
     BUCKET_CATS = {
@@ -218,7 +218,7 @@ def load_prepaid_data_usage():
         Month (str, e.g. 'Sep-25'), unique_data_users, bundle_users, payg_users,
         total_data_usage (MB), in_bundle_usage (MB), payg_data_usage (MB),
         gb_per_user, bundle_pct,
-        data_bundle_rev (TT$M), payg_data_charges (TT$M), total_data_rev (TT$M)
+        data_bundle_rev, payg_data_charges, total_data_rev
     """
     try:
         df = pd.read_excel(PREPAID_USAGE_PATH, sheet_name="Result 1")

@@ -29,7 +29,7 @@ GREEN_MED   = dim(GREEN,  0.67)
 
 ACCENT = [BLUE, GREEN, PURPLE, ORANGE, CYAN, YELLOW, RED]
 BG      = "rgba(0,0,0,0)"
-CARD_BG = "#1a1a2e"
+CARD_BG = "#161B22"
 GRID    = "#1e1e3a"
 TEXT    = "white"
 MUTED   = "#8888aa"
@@ -176,7 +176,7 @@ def variance_heatmap(df, index_col, columns_col, value_col, title="", height=320
         z=pivot.values,
         x=[str(c) for c in pivot.columns],
         y=pivot.index.tolist(),
-        colorscale=[[0, RED], [0.5, "#1a1a2e"], [1, GREEN]],
+        colorscale=[[0, RED], [0.5, "#161B22"], [1, GREEN]],
         zmid=0,
         text=[[f"{v:.1f}%" if v == v else "" for v in row] for row in pivot.values],
         texttemplate="%{text}",
@@ -228,7 +228,7 @@ def styled_metric(title, value_str, delta_str="", delta_positive=None, accent="#
     else:
         dh = ""
     st.markdown(f"""
-<div style="background:#1a1a2e;border-radius:10px;padding:14px 16px;
+<div style="background:#161B22;border-radius:10px;padding:14px 16px;
             border:1px solid #2a2a4a;border-top:3px solid {accent};
             margin-bottom:0.5rem">
     <div style="font-size:0.82rem;font-weight:600;color:#7788aa;text-transform:uppercase;

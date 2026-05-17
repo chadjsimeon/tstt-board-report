@@ -95,7 +95,7 @@ with tab1:
     col1, col2 = st.columns(2)
     with col1:
         fig = stacked_bar(rev_pivot, x="Month", y_cols=seg_cols,
-                          title="Revenue by Segment — Stacked (TT$M)",
+                          title="Revenue by Segment — Stacked",
                           colors=[BLUE, GREEN, PURPLE, ORANGE, CYAN, YELLOW])
         _boost(fig, 500)
         st.plotly_chart(fig, use_container_width=True)
@@ -113,7 +113,7 @@ with tab1:
     with col3:
         latest_rev = biz[biz["Month"] == sel_month][["Segment", "Revenue", "Revenue_AOP"]].copy()
         fig = grouped_bar(latest_rev, x="Segment", y_cols=["Revenue", "Revenue_AOP"],
-                          title=f"{sel_month} — Revenue vs AOP (TT$M)",
+                          title=f"{sel_month} — Revenue vs AOP",
                           colors=[BLUE, "#334466"], height=460)
         _boost(fig, 460)
         st.plotly_chart(fig, use_container_width=True)
@@ -129,7 +129,7 @@ with tab1:
     mrr_pivot = pivot_by_group(biz, "Month", "Segment", "MRR")
     mrr_cols  = [c for c in mrr_pivot.columns if c != "Month"]
     fig = stacked_bar(mrr_pivot, x="Month", y_cols=mrr_cols,
-                      title="Monthly Recurring Revenue by Segment (TT$M)",
+                      title="Monthly Recurring Revenue by Segment",
                       colors=[BLUE, GREEN, PURPLE, ORANGE, CYAN, YELLOW])
     _boost(fig, 420)
     st.plotly_chart(fig, use_container_width=True)
@@ -149,7 +149,7 @@ with tab2:
     with t1:
         st.markdown(_kpi_tile("Total Deals", f"{total_deals:,}", accent=BLUE), unsafe_allow_html=True)
     with t2:
-        st.markdown(_kpi_tile("Pipeline Value", f"TT${pip_val:,.0f}M", accent=ORANGE), unsafe_allow_html=True)
+        st.markdown(_kpi_tile("Pipeline Value", f"{pip_val:,.0f}", accent=ORANGE), unsafe_allow_html=True)
     with t3:
         st.markdown(_kpi_tile("Won Deals", f"{won_deals:,}", accent=GREEN), unsafe_allow_html=True)
 
@@ -166,7 +166,7 @@ with tab2:
     with col2:
         fig = funnel_chart(stages=pip_latest["Stage"].tolist(),
                            values=pip_latest["Value_TTD_M"].tolist(),
-                           title=f"{pip_month} Pipeline — Value (TT$M)", height=480)
+                           title=f"{pip_month} Pipeline — Value", height=480)
         _boost(fig, 480)
         st.plotly_chart(fig, use_container_width=True)
 
@@ -176,7 +176,7 @@ with tab2:
     pip_by_stage = pip_by_stage.reindex(month_order).reset_index()
     stage_cols   = [c for c in pip_by_stage.columns if c != "Month"]
     fig = stacked_bar(pip_by_stage, x="Month", y_cols=stage_cols,
-                      title="Pipeline Value by Stage over Time (TT$M)",
+                      title="Pipeline Value by Stage over Time",
                       colors=[BLUE, GREEN, PURPLE, ORANGE, YELLOW])
     _boost(fig, 420)
     st.plotly_chart(fig, use_container_width=True)
@@ -189,8 +189,8 @@ with tab2:
         rows += f"""<tr>
             <td style="font-size:16px">{r['Stage']}</td>
             <td style="text-align:right;font-size:16px">{r['Deal_Count']:,.0f}</td>
-            <td style="text-align:right;font-size:16px">TT${r['Value_TTD_M']:,.0f}M</td>
-            <td style="text-align:right;font-size:16px">TT${r['Avg_Deal_Size']:,.1f}M</td>
+            <td style="text-align:right;font-size:16px">{r['Value_TTD_M']:,.0f}</td>
+            <td style="text-align:right;font-size:16px">{r['Avg_Deal_Size']:,.1f}</td>
             <td style="text-align:right;font-size:16px">{win}</td>
         </tr>"""
     st.markdown(f"""
@@ -214,16 +214,16 @@ with tab3:
 
     r1, r2, r3 = st.columns(3)
     with r1:
-        st.markdown(_kpi_tile("Total Renewal ACV", f"TT${total_acv:,.1f}M", accent="#4a9eff"),
+        st.markdown(_kpi_tile("Total Renewal ACV", f"{total_acv:,.1f}", accent="#4a9eff"),
                     unsafe_allow_html=True)
     with r2:
         hr_pct = high_risk / total_acv * 100 if total_acv else 0
-        st.markdown(_kpi_tile("High-Risk ACV", f"TT${high_risk:,.1f}M",
+        st.markdown(_kpi_tile("High-Risk ACV", f"{high_risk:,.1f}",
                               sub=f"{hr_pct:.1f}% of portfolio", sub_color="#ef4444",
                               accent="#ef4444"), unsafe_allow_html=True)
     with r3:
         sec_pct = secured / total_acv * 100 if total_acv else 0
-        st.markdown(_kpi_tile("Secured ACV", f"TT${secured:,.1f}M",
+        st.markdown(_kpi_tile("Secured ACV", f"{secured:,.1f}",
                               sub=f"{sec_pct:.1f}% secured", sub_color="#22c55e",
                               accent="#22c55e"), unsafe_allow_html=True)
 
@@ -241,7 +241,7 @@ with tab3:
     with col2:
         risk_acv = renewals.groupby("Risk_Level")["ACV_TTD_M"].sum()
         fig = donut_chart(risk_acv.index.tolist(), risk_acv.values.tolist(),
-                          title="Renewals by Risk Level (ACV TT$M)", height=380)
+                          title="Renewals by Risk Level (ACV )", height=380)
         _boost(fig, 380)
         fig.update_traces(textfont=dict(size=17))
         st.plotly_chart(fig, use_container_width=True)
@@ -255,7 +255,7 @@ with tab3:
         rows += f"""<tr>
             <td style="font-size:16px"><strong>{r['Customer']}</strong></td>
             <td style="font-size:16px">{r['Product_Service']}</td>
-            <td style="text-align:right;font-size:16px">TT${r['ACV_TTD_M']:,.1f}M</td>
+            <td style="text-align:right;font-size:16px">{r['ACV_TTD_M']:,.1f}</td>
             <td style="font-size:16px">{r['Expiry_Date']}</td>
             <td class="{risk_class}" style="font-size:16px">{r['Risk_Level']}</td>
             <td class="{status_class}" style="font-size:16px">{r['Status']}</td>
@@ -374,14 +374,14 @@ with tab_fp:
     dc_vp = _vp(dc_rev, dc_aop)
     dc_vm = _vm(dc_rev, dc_aop)
     dc_aop_color = "#ef4444" if (dc_vp or 0) > 0 else "#22c55e"
-    dc_aop_str   = f"{dc_vp:+.1f}% vs AOP | TT${dc_vm:+.1f}M" if dc_vp is not None else "— vs AOP"
-    dc_py_str    = f"TT${dc_rev - dc_py:+.1f}M vs PY" if dc_py is not None else "— vs PY"
+    dc_aop_str   = f"{dc_vp:+.1f}% vs AOP | {dc_vm:+.1f}" if dc_vp is not None else "— vs AOP"
+    dc_py_str    = f"{dc_rev - dc_py:+.1f} vs PY" if dc_py is not None else "— vs PY"
 
     gp_vp = _vp(gp_rev, gp_aop_v)
     gp_vm = _vm(gp_rev, gp_aop_v)
     gp_aop_color = "#22c55e" if (gp_vp or 0) >= 0 else "#ef4444"
-    gp_aop_str   = f"{gp_vp:+.1f}% vs AOP | TT${gp_vm:+.1f}M" if gp_vp is not None else f"{gp_margin_pct:.1f}% margin"
-    gp_py_str    = f"TT${gp_rev - gp_py:+.1f}M vs PY" if gp_py is not None else f"{gp_margin_pct:.1f}% margin"
+    gp_aop_str   = f"{gp_vp:+.1f}% vs AOP | {gp_vm:+.1f}" if gp_vp is not None else f"{gp_margin_pct:.1f}% margin"
+    gp_py_str    = f"{gp_rev - gp_py:+.1f} vs PY" if gp_py is not None else f"{gp_margin_pct:.1f}% margin"
 
     subs_str = f"{int(mob_subs):,}" if mob_subs is not None else "—"
     if mob_subs is not None and subs_aop is not None:
@@ -397,7 +397,7 @@ with tab_fp:
     else:
         subs_py_str = "— vs PY"
 
-    arpu_str = f"TT${arpu_val:,.0f}" if arpu_val is not None else "—"
+    arpu_str = f"{arpu_val:,.0f}" if arpu_val is not None else "—"
 
     def _r1_col_card(col_name, label, accent, trend):
         rv  = _col(biz_latest, col_name)
@@ -407,10 +407,10 @@ with tab_fp:
         vp = _vp(rv_f, aop); vm = _vm(rv_f, aop)
         return fp_r1_card(
             label,
-            f"TT${rv_f:.1f}M" if rv is not None else "—",
+            f"{rv_f:.1f}" if rv is not None else "—",
             vp,
-            f"TT${vm:+.1f}M" if vm is not None else "—",
-            f"TT${rv_f - py:+.1f}M vs PY" if py is not None else None,
+            f"{vm:+.1f}" if vm is not None else "—",
+            f"{rv_f - py:+.1f} vs PY" if py is not None else None,
             accent, spark_series=trend,
         )
 
@@ -424,17 +424,17 @@ with tab_fp:
         c1, c2 = st.columns(2)
         with c1:
             st.markdown(fp_r1_card(
-                "Total Revenue", f"TT${fp_t_rev:.1f}M",
-                fp_tv_pct, f"TT${fp_tv_m:+.1f}M",
-                f"TT${fp_t_rev - fp_t_py:+.1f}M vs PY" if fp_t_py is not None else None,
+                "Total Revenue", f"{fp_t_rev:.1f}",
+                fp_tv_pct, f"{fp_tv_m:+.1f}",
+                f"{fp_t_rev - fp_t_py:+.1f} vs PY" if fp_t_py is not None else None,
                 FP_ACCENTS[0], spark_series=fp_total_trend,
             ), unsafe_allow_html=True)
             st.markdown(_sp, unsafe_allow_html=True)
-            st.markdown(fp_r2_card("Direct Costs", f"TT${dc_rev:.1f}M",
+            st.markdown(fp_r2_card("Direct Costs", f"{dc_rev:.1f}",
                                    dc_aop_str, dc_aop_color, dc_py_str, accent="#ff6b6b"),
                         unsafe_allow_html=True)
             st.markdown(_sp, unsafe_allow_html=True)
-            st.markdown(fp_r2_card("Gross Profit", f"TT${gp_rev:.1f}M",
+            st.markdown(fp_r2_card("Gross Profit", f"{gp_rev:.1f}",
                                    gp_aop_str, gp_aop_color, gp_py_str, accent="#22c55e"),
                         unsafe_allow_html=True)
 
@@ -471,12 +471,12 @@ with tab_fp:
                 x=_trend_months, y=_vals,
                 mode="lines+markers", name=_name,
                 line=dict(color=_color, width=2.5), marker=dict(size=6),
-                hovertemplate=f"<b>{_name}</b>: TT$%{{y:.1f}}M<extra></extra>",
+                hovertemplate=f"<b>{_name}</b>: %{{y:.1f}}<extra></extra>",
             ))
         fig_lines.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="white"), height=280,
-            title=dict(text="<b>MRR / OCC / USAGE Trend (TT$M)</b>",
+            title=dict(text="<b>MRR / OCC / USAGE Trend</b>",
                        font=dict(size=15, color="white"), x=0),
             xaxis=dict(showgrid=False, tickfont=dict(size=15), tickangle=-30),
             yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)",
@@ -496,32 +496,32 @@ with tab_fp:
     aop_col_cmt = "#22c55e" if (fp_tv_pct or 0) >= 0 else "#ef4444"
 
     cmt_parts = [
-        f"Business Sales revenue of <strong style='color:white'>TT${fp_t_rev:.1f}M</strong> "
+        f"Business Sales revenue of <strong style='color:white'>{fp_t_rev:.1f}</strong> "
         f"in {sel_month} is "
         f"<strong style='color:{aop_col_cmt}'>{abs(fp_tv_pct or 0):.1f}% {rev_dir} AOP</strong>"
-        + (f" (TT${fp_tv_m:+.1f}M)" if fp_t_aop else "")
+        + (f" ({fp_tv_m:+.1f})" if fp_t_aop else "")
         + (f", a year-on-year {yoy_sign} of "
-           f"<strong style='color:#f59e0b'>TT${yoy_abs:.1f}M</strong>." if fp_t_py is not None else "."),
+           f"<strong style='color:#f59e0b'>{yoy_abs:.1f}</strong>." if fp_t_py is not None else "."),
     ]
     if mob_rev is not None:
         mob_share = mob_rev / fp_t_rev * 100 if fp_t_rev else 0
         cmt_parts.append(
-            f" Mobile revenue of <strong style='color:white'>TT${mob_rev:.1f}M</strong> "
+            f" Mobile revenue of <strong style='color:white'>{mob_rev:.1f}</strong> "
             f"({mob_share:.0f}% of total)"
         )
         if arpu_val is not None:
-            cmt_parts.append(f" delivers an ARPU of <strong style='color:white'>TT${arpu_val:,.0f}</strong>.")
+            cmt_parts.append(f" delivers an ARPU of <strong style='color:white'>{arpu_val:,.0f}</strong>.")
         else:
             cmt_parts.append(".")
     if mrr_rev:
         mrr_share = mrr_rev / fp_t_rev * 100 if fp_t_rev else 0
         cmt_parts.append(
-            f" MRR stands at <strong style='color:white'>TT${mrr_rev:.1f}M</strong> "
+            f" MRR stands at <strong style='color:white'>{mrr_rev:.1f}</strong> "
             f"({mrr_share:.0f}% of total revenue)."
         )
     cmt_parts.append(
-        f" Direct Costs of <strong style='color:white'>TT${dc_rev:.1f}M</strong> yield a "
-        f"Gross Profit of <strong style='color:white'>TT${gp_rev:.1f}M</strong> "
+        f" Direct Costs of <strong style='color:white'>{dc_rev:.1f}</strong> yield a "
+        f"Gross Profit of <strong style='color:white'>{gp_rev:.1f}</strong> "
         f"({gp_margin_pct:.1f}% margin)."
     )
 

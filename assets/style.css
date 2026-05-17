@@ -1,7 +1,7 @@
 on /* ── TSTT Board Report — Dark Theme ─────────────────────────────────────── */
 
 /* Base */
-.stApp { background-color: #000000 !important; }
+.stApp { background-color: #0D1117 !important; }
 
 .main .block-container {
     padding: 0.8rem 2rem 2rem !important;
@@ -10,7 +10,7 @@ on /* ── TSTT Board Report — Dark Theme ───────────�
 
 /* Sidebar */
 section[data-testid="stSidebar"] {
-    background-color: #000000 !important;
+    background-color: #0D1117 !important;
     border-right: 1px solid #1e1e3a !important;
 }
 section[data-testid="stSidebar"] * { color: #ccccee !important; }
@@ -26,7 +26,7 @@ section[data-testid="stSidebar"] [data-testid="stSidebarNav"] a[aria-selected="t
     justify-content: space-between;
     align-items: center;
     padding: 1.1rem 1.6rem;
-    background: linear-gradient(135deg, #1a1a2e 0%, #0f1e3c 60%, #0d2040 100%);
+    background: linear-gradient(135deg, #161B22 0%, #0f1e3c 60%, #0d2040 100%);
     border-radius: 12px;
     border: 1px solid #2a3a5a;
     margin-bottom: 1.4rem;
@@ -70,7 +70,7 @@ section[data-testid="stSidebar"] [data-testid="stSidebarNav"] a[aria-selected="t
 
 /* ── KPI Cards ───────────────────────────────────────────────────────────── */
 .kpi-card {
-    background: #1a1a2e;
+    background: #161B22;
     border-radius: 10px;
     padding: 0.9rem 1.1rem;
     border: 1px solid #2a2a4a;
@@ -133,7 +133,7 @@ section[data-testid="stSidebar"] [data-testid="stSidebarNav"] a[aria-selected="t
     color: #ddddee;
 }
 .data-table th {
-    background: #000000;
+    background: #0D1117;
     color: #7788aa;
     font-weight: 600;
     text-transform: uppercase;
@@ -167,7 +167,7 @@ div[data-testid="stMetricLabel"] { font-size: 0.9rem !important; color: #7788aa 
 
 .stTabs [data-baseweb="tab-list"] { gap: 6px; background: transparent; }
 .stTabs [data-baseweb="tab"] {
-    background: #1a1a2e;
+    background: #161B22;
     border-radius: 6px;
     color: #7788aa;
     border: 1px solid #2a2a4a;
@@ -181,7 +181,7 @@ div[data-testid="stMetricLabel"] { font-size: 0.9rem !important; color: #7788aa 
 }
 
 div[data-testid="stSelectbox"] > div > div {
-    background: #1a1a2e !important;
+    background: #161B22 !important;
     border-color: #2a2a4a !important;
 }
 
@@ -189,7 +189,7 @@ hr { border-color: #1e1e3a !important; margin: 1.2rem 0 !important; }
 
 /* Plotly chart container subtle card background */
 div[data-testid="stPlotlyChart"] {
-    background: #1a1a2e;
+    background: #161B22;
     border-radius: 10px;
     border: 1px solid #2a2a4a;
     padding: 4px;

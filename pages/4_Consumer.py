@@ -31,10 +31,10 @@ avg_arpu    = ((latest_snap["ARPU"] * latest_snap["Subscribers"]).sum()
                / total_subs if total_subs else 0)
 
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("Total Revenue",     f"TT${total_rev:,.0f}M")
+m1.metric("Total Revenue",     f"{total_rev:,.0f}")
 m2.metric("Total Subscribers", f"{total_subs:,.0f}")
 m3.metric("Avg Churn",         f"{avg_churn:.1f}%")
-m4.metric("Blended ARPU",      f"TT${avg_arpu:,.0f}")
+m4.metric("Blended ARPU",      f"{avg_arpu:,.0f}")
 
 st.markdown("---")
 
@@ -77,7 +77,7 @@ def _card(title, value_str, sub_str, sub_color, extra_str="", accent="#00ff88",
              else f'<div style="font-size:13px;color:#8899bb;margin-top:4px">{extra_str}</div>')
     spark = _sparkline(spark_series, accent) if spark_series is not None else ""
     return (
-        f'<div style="background:#1a1a2e;border-radius:10px;padding:14px 16px;'
+        f'<div style="background:#161B22;border-radius:10px;padding:14px 16px;'
         f'border:1px solid #2a2a4a;border-top:3px solid {accent};height:100%">'
         f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
         f'letter-spacing:1px;margin-bottom:8px">{title}</div>'
@@ -120,7 +120,7 @@ def _vs(pct, suffix="% vs AOP"):
 
 def _fmt_k(n):
     n = float(n)
-    if n >= 1_000_000: return f"{n/1_000_000:.1f}M"
+    if n >= 1_000_000: return f"{n/1_000_000:.1f}"
     if n >= 1_000:     return f"{n/1_000:.0f}K"
     return str(int(n))
 
@@ -254,7 +254,7 @@ with tab2:
             f'<div style="margin-top:10px;opacity:0.9">{_sparkline(spark, accent, 44)}</div>'
         ) if spark else ""
         return (
-            f'<div style="background:#1a1a2e;border-radius:10px;padding:16px 16px;'
+            f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
             f'border:1px solid #2a2a4a;border-top:3px solid {accent}">'
             f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
             f'letter-spacing:1px;margin-bottom:8px">{label}</div>'
@@ -279,9 +279,9 @@ with tab2:
 
     # ── Row 1 — 3 KPI cards ──────────────────────────────────────────────────
     r_aop_col = "#22c55e" if (rev_aop_pct or 0) >= 0 else "#ef4444"
-    r_l1 = (f"TT${rev_aop_m:+.1f}M | {rev_aop_pct:+.1f}% vs AOP"
+    r_l1 = (f"{rev_aop_m:+.1f} | {rev_aop_pct:+.1f}% vs AOP"
             if rev_aop_pct is not None else "— vs AOP")
-    r_l2 = f"TT${rev_py_m:+.1f}M vs PY" if rev_py_m is not None else "— vs PY"
+    r_l2 = f"{rev_py_m:+.1f} vs PY" if rev_py_m is not None else "— vs PY"
 
     a_l1_col = ("#22c55e" if (arpu_aop_pct or 0) >= 0
                 else "#ef4444" if arpu_aop_pct is not None else "#7788aa")
@@ -292,7 +292,7 @@ with tab2:
     a_l2 = (f"vs PY: {arpu_py_pct:+.1f}%"
             if arpu_py_pct is not None else "vs PY: —")
 
-    _c1 = _pre_kpi("Prepaid Revenue", f"TT${apr26_rev:.1f}M",
+    _c1 = _pre_kpi("Prepaid Revenue", f"{apr26_rev:.1f}",
                    r_l1, r_aop_col, r_l2, "#f59e0b", "#a78bfa", rev_spark)
     _c3 = _pre_kpi("ARPU", f"${arpu_lat:.0f}",
                    a_l1, a_l1_col, a_l2, a_l2_col, "#f59e0b", arpu_spark)
@@ -316,7 +316,7 @@ with tab2:
         for lbl, val, col in _mov_rows
     )
     _c2 = (
-        f'<div style="background:#1a1a2e;border-radius:10px;padding:16px 16px;'
+        f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
         f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
         f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
         f'letter-spacing:1px;margin-bottom:8px">Subscribers — {_arpu_latest_month}</div>'
@@ -378,15 +378,15 @@ with tab2:
         fig.add_trace(go.Bar(
             x=pre_daily["Month"], y=pre_daily["Daily_Rev"],
             name="Actual", marker_color="#a78bfa",
-            hovertemplate="%{x}<br>TT$%{y:.3f}M / day<extra></extra>",
+            hovertemplate="%{x}<br>%{y:.3f} / day<extra></extra>",
         ))
         fig.add_trace(go.Scatter(
             x=pre_daily["Month"], y=pre_daily["Daily_AOP"],
             name="AOP", mode="lines",
             line=dict(color="#555577", width=1.8, dash="dash"),
-            hovertemplate="%{x}<br>AOP TT$%{y:.3f}M / day<extra></extra>",
+            hovertemplate="%{x}<br>AOP %{y:.3f} / day<extra></extra>",
         ))
-        _base_layout(fig, "Avg Daily Prepaid Revenue (TT$M / day)", 380,
+        _base_layout(fig, "Avg Daily Prepaid Revenue ( / day)", 380,
                      y_range=([0.6, dvr.max() + dvr_pad]
                                if len(dvr) > 0 else None))
         fig.update_layout(showlegend=False)
@@ -440,9 +440,9 @@ with tab2:
                         line=dict(color="rgba(255,255,255,0.3)", width=2)),
             textinfo="percent", textfont=dict(color="white", size=14),
             textposition="inside",
-            hovertemplate="<b>%{label}</b><br>TT$%{value:.1f}M (%{percent})<extra></extra>",
+            hovertemplate="<b>%{label}</b><br>%{value:.1f} (%{percent})<extra></extra>",
             title=dict(
-                text=f"<b>TT${apr26_rev:.1f}M</b>",
+                text=f"<b>{apr26_rev:.1f}</b>",
                 font=dict(size=16, color="white"),
                 position="middle center",
             ),
@@ -451,7 +451,7 @@ with tab2:
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="white"), height=_pd_h,
             title=dict(
-                text=f"<b>Revenue by Product — {_arpu_latest_month} (TT$M)</b>",
+                text=f"<b>Revenue by Product — {_arpu_latest_month}</b>",
                 font=dict(size=16, color="white"), x=0,
             ),
             legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=14, color="#aabbcc"),
@@ -463,7 +463,7 @@ with tab2:
     with br:
         _rev_dir  = "above" if (rev_aop_pct or 0) >= 0 else "below"
         _aop_col  = "#22c55e" if (rev_aop_pct or 0) >= 0 else "#ef4444"
-        _py_cl    = (f", TT${abs(rev_py_m):.1f}M "
+        _py_cl    = (f", {abs(rev_py_m):.1f} "
                      f"{'above' if (rev_py_m or 0) >= 0 else 'below'} prior year"
                      if rev_py_m is not None else "")
         _s_dir    = "increased" if (subs_py_pct or 0) >= 0 else "declined"
@@ -474,11 +474,11 @@ with tab2:
         _churn_cl = (f"churn at {churn_pre:.1f}% indicating {_churn_n}"
                      if churn_pre is not None else "churn data unavailable")
         pre_cmt = (
-            f"Prepaid revenue of <strong style='color:white'>TT${apr26_rev:.1f}M</strong> "
+            f"Prepaid revenue of <strong style='color:white'>{apr26_rev:.1f}</strong> "
             f"in Apr-26 is <strong style='color:{_aop_col}'>"
             f"{abs(rev_aop_pct or 0):.1f}% {_rev_dir} AOP</strong>{_py_cl}. "
             f"Data Bundles remain the dominant driver at 63% of {_arpu_latest_month} revenue "
-            f"(TT${prod_vals[0]:.1f}M), reflecting continued migration from voice-only plans "
+            f"({prod_vals[0]:.1f}), reflecting continued migration from voice-only plans "
             f"to data-led services. "
             f"The subscriber base of <strong style='color:white'>{_fmt_k(subs_lat)}</strong> "
             f"has {_s_dir} {abs(subs_py_pct or 0):.1f}% year-on-year, "
@@ -558,9 +558,9 @@ with tab3:
 
     # ── Row 1 — 3 KPI cards ──────────────────────────────────────────────────
     pp_r_aop_col = "#22c55e" if (pp_aop_pct or 0) >= 0 else "#ef4444"
-    pp_r_l1 = (f"TT${pp_aop_m:+.1f}M | {pp_aop_pct:+.1f}% vs AOP"
+    pp_r_l1 = (f"{pp_aop_m:+.1f} | {pp_aop_pct:+.1f}% vs AOP"
                if pp_aop_pct is not None else "— vs AOP")
-    pp_r_l2 = f"TT${pp_py_m:+.1f}M vs PY" if pp_py_m is not None else "— vs PY"
+    pp_r_l2 = f"{pp_py_m:+.1f} vs PY" if pp_py_m is not None else "— vs PY"
 
     pp_a_l1_col = ("#22c55e" if (pp_arpu_aop_pct or 0) >= 0
                    else "#ef4444" if pp_arpu_aop_pct is not None else "#7788aa")
@@ -571,7 +571,7 @@ with tab3:
     pp_a_l2 = (f"vs PY: {pp_arpu_py_pct:+.1f}%"
                if pp_arpu_py_pct is not None else "vs PY: —")
 
-    _pp_c1 = _pre_kpi("Postpaid Revenue", f"TT${pp26_rev:.1f}M",
+    _pp_c1 = _pre_kpi("Postpaid Revenue", f"{pp26_rev:.1f}",
                       pp_r_l1, pp_r_aop_col, pp_r_l2, "#f59e0b", "#4a9eff", pp_rev_spark)
     _pp_c3 = _pre_kpi("ARPU", f"${pp_arpu_lat:.0f}",
                       pp_a_l1, pp_a_l1_col, pp_a_l2, pp_a_l2_col, "#f59e0b", pp_arpu_spark)
@@ -594,7 +594,7 @@ with tab3:
         for lbl, val, col in _pp_mov_rows
     )
     _pp_c2 = (
-        f'<div style="background:#1a1a2e;border-radius:10px;padding:16px 16px;'
+        f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
         f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
         f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
         f'letter-spacing:1px;margin-bottom:8px">Subscribers — {_pp_subs_mon}</div>'
@@ -636,7 +636,7 @@ with tab3:
     _dc_v    = mov_df["Disc"].tolist()
     _cl_v    = mov_df["Closing"].tolist()
 
-    # AOP implied subscriber base: Revenue_AOP (TT$M) × 1M ÷ ARPU (TT$)
+    # AOP implied subscriber base: Revenue_AOP × 1M ÷ ARPU ()
     pp_aop_subs = (pp_aop_v * 1_000_000 / pp_arpu_lat
                    if pp_aop_v is not None and pp_arpu_lat > 0 else None)
 
@@ -709,11 +709,11 @@ with tab3:
         fig = go.Figure(go.Bar(
             y=pp_products[::-1], x=pp_prod_vals[::-1], orientation="h",
             marker_color=["#93c5fd", "#60a5fa", "#4a9eff"],
-            text=[f"TT${v:.0f}M  ({s*100:.0f}%)"
+            text=[f"{v:.0f}  ({s*100:.0f}%)"
                   for v, s in zip(pp_prod_vals[::-1], pp_splits[::-1])],
             textposition="outside", textfont=dict(color="white", size=14),
         ))
-        _base_layout(fig, "Revenue by Bundle Type — Apr '26 (TT$M)", 320)
+        _base_layout(fig, "Revenue by Bundle Type — Apr '26", 320)
         fig.update_layout(
             showlegend=False,
             xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
@@ -725,7 +725,7 @@ with tab3:
     # ── Commentary ────────────────────────────────────────────────────────────
     _pp_rev_dir = "above" if (pp_aop_pct or 0) >= 0 else "below"
     _pp_aop_col = "#22c55e" if (pp_aop_pct or 0) >= 0 else "#ef4444"
-    _pp_py_cl   = (f", TT${abs(pp_py_m):.1f}M "
+    _pp_py_cl   = (f", {abs(pp_py_m):.1f} "
                    f"{'above' if (pp_py_m or 0) >= 0 else 'below'} prior year"
                    if pp_py_m is not None else "")
     _pp_s_dir   = "increased" if (pp_subs_py_pct or 0) >= 0 else "declined"
@@ -736,7 +736,7 @@ with tab3:
     _pp_churn_cl = (f"churn at {pp_churn:.1f}% indicating {_pp_churn_n}"
                     if pp_churn is not None else "churn data unavailable")
     pp_cmt = (
-        f"Postpaid revenue of <strong style='color:white'>TT${pp26_rev:.1f}M</strong> "
+        f"Postpaid revenue of <strong style='color:white'>{pp26_rev:.1f}</strong> "
         f"in Apr-26 is <strong style='color:{_pp_aop_col}'>"
         f"{abs(pp_aop_pct or 0):.1f}% {_pp_rev_dir} AOP</strong>{_pp_py_cl}. "
         f"Voice+Data bundles account for 52% of postpaid revenue with Data Only "
@@ -821,9 +821,9 @@ with tab4:
 
     # ── Row 1 — 3 KPI cards ──────────────────────────────────────────────────
     wx_r_aop_col = "#22c55e" if (wx_aop_pct or 0) >= 0 else "#ef4444"
-    wx_r_l1 = (f"TT${wx_aop_m:+.1f}M | {wx_aop_pct:+.1f}% vs AOP"
+    wx_r_l1 = (f"{wx_aop_m:+.1f} | {wx_aop_pct:+.1f}% vs AOP"
                if wx_aop_pct is not None else "— vs AOP")
-    wx_r_l2 = f"TT${wx_py_m:+.1f}M vs PY" if wx_py_m is not None else "— vs PY"
+    wx_r_l2 = f"{wx_py_m:+.1f} vs PY" if wx_py_m is not None else "— vs PY"
 
     wx_a_l1_col = ("#22c55e" if (wx_arpu_aop_pct or 0) >= 0
                    else "#ef4444" if wx_arpu_aop_pct is not None else "#7788aa")
@@ -834,7 +834,7 @@ with tab4:
     wx_a_l2 = (f"vs PY: {wx_arpu_py_pct:+.1f}%"
                if wx_arpu_py_pct is not None else "vs PY: —")
 
-    _wx_c1 = _pre_kpi("WTTx Revenue", f"TT${wx26_rev:.1f}M",
+    _wx_c1 = _pre_kpi("WTTx Revenue", f"{wx26_rev:.1f}",
                       wx_r_l1, wx_r_aop_col, wx_r_l2, "#f59e0b", "#00d4a0", wx_rev_spark)
     _wx_c3 = _pre_kpi("ARPU", f"${wx_arpu_lat:.0f}",
                       wx_a_l1, wx_a_l1_col, wx_a_l2, wx_a_l2_col, "#f59e0b", wx_arpu_spark)
@@ -857,7 +857,7 @@ with tab4:
         for lbl, val, col in _wx_mov_rows
     )
     _wx_c2 = (
-        f'<div style="background:#1a1a2e;border-radius:10px;padding:16px 16px;'
+        f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
         f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
         f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
         f'letter-spacing:1px;margin-bottom:8px">Subscribers — {_wx_subs_mon}</div>'
@@ -898,7 +898,7 @@ with tab4:
     _wx_dc_v    = wx_mov_df["Disc"].tolist()
     _wx_cl_v    = wx_mov_df["Closing"].tolist()
 
-    # AOP implied subscriber base: Revenue_AOP (TT$M) × 1M ÷ ARPU (TT$)
+    # AOP implied subscriber base: Revenue_AOP × 1M ÷ ARPU ()
     wx_aop_subs = (wx_aop_v * 1_000_000 / wx_arpu_lat
                    if wx_aop_v is not None and wx_arpu_lat > 0 else None)
 
@@ -971,11 +971,11 @@ with tab4:
         fig = go.Figure(go.Bar(
             y=wx_products[::-1], x=wx_prod_vals[::-1], orientation="h",
             marker_color=["#7ffce8", "#3de0c0", "#00d4a0"],
-            text=[f"TT${v:.0f}M  ({s*100:.0f}%)"
+            text=[f"{v:.0f}  ({s*100:.0f}%)"
                   for v, s in zip(wx_prod_vals[::-1], wx_splits[::-1])],
             textposition="outside", textfont=dict(color="white", size=14),
         ))
-        _base_layout(fig, "Revenue by Service Type — Apr '26 (TT$M)", 320)
+        _base_layout(fig, "Revenue by Service Type — Apr '26", 320)
         fig.update_layout(
             showlegend=False,
             xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
@@ -987,7 +987,7 @@ with tab4:
     # ── Commentary ────────────────────────────────────────────────────────────
     _wx_rev_dir = "above" if (wx_aop_pct or 0) >= 0 else "below"
     _wx_aop_col = "#22c55e" if (wx_aop_pct or 0) >= 0 else "#ef4444"
-    _wx_py_cl   = (f", TT${abs(wx_py_m):.1f}M "
+    _wx_py_cl   = (f", {abs(wx_py_m):.1f} "
                    f"{'above' if (wx_py_m or 0) >= 0 else 'below'} prior year"
                    if wx_py_m is not None else "")
     _wx_s_dir   = "increased" if (wx_subs_py_pct or 0) >= 0 else "declined"
@@ -998,7 +998,7 @@ with tab4:
     _wx_churn_cl = (f"churn at {wx_churn:.1f}% indicating {_wx_churn_n}"
                     if wx_churn is not None else "churn data unavailable")
     wx_cmt = (
-        f"WTTx revenue of <strong style='color:white'>TT${wx26_rev:.1f}M</strong> "
+        f"WTTx revenue of <strong style='color:white'>{wx26_rev:.1f}</strong> "
         f"in Apr-26 is <strong style='color:{_wx_aop_col}'>"
         f"{abs(wx_aop_pct or 0):.1f}% {_wx_rev_dir} AOP</strong>{_wx_py_cl}. "
         f"Broadband services dominate at 72% of WTTx revenue, underscoring the "
@@ -1162,41 +1162,41 @@ with tab_v2:
     c1, c2, c3, c4, c5 = st.columns(5)
 
     c1.markdown(r1_card(
-        "Total Revenue", f"TT${v2_t_rev:.1f}M",
-        v2_tv_pct, f"TT${v2_tv_m:+.1f}M",
-        f"TT${v2_t_rev - v2_t_py:+.1f}M vs PY" if v2_t_py is not None else None,
+        "Total Revenue", f"{v2_t_rev:.1f}",
+        v2_tv_pct, f"{v2_tv_m:+.1f}",
+        f"{v2_t_rev - v2_t_py:+.1f} vs PY" if v2_t_py is not None else None,
         "#00d4a0", spark_series=v2_total_trend,
     ), unsafe_allow_html=True)
 
     c2.markdown(r1_card(
-        "Postpaid", f"TT${pp_rev:.1f}M",
+        "Postpaid", f"{pp_rev:.1f}",
         _v2vp(pp_rev, pp_aop),
-        f"TT${_v2vm(pp_rev, pp_aop):+.1f}M" if _v2vm(pp_rev, pp_aop) is not None else "—",
-        f"TT${pp_rev - pp_py_v:+.1f}M vs PY" if pp_py_v is not None else None,
+        f"{_v2vm(pp_rev, pp_aop):+.1f}" if _v2vm(pp_rev, pp_aop) is not None else "—",
+        f"{pp_rev - pp_py_v:+.1f} vs PY" if pp_py_v is not None else None,
         "#4a9eff", spark_series=v2_post_trend,
     ), unsafe_allow_html=True)
 
     c3.markdown(r1_card(
-        "Prepaid", f"TT${pr_rev:.1f}M",
+        "Prepaid", f"{pr_rev:.1f}",
         _v2vp(pr_rev, pr_aop),
-        f"TT${_v2vm(pr_rev, pr_aop):+.1f}M" if _v2vm(pr_rev, pr_aop) is not None else "—",
-        f"TT${pr_rev - pr_py_v:+.1f}M vs PY" if pr_py_v is not None else None,
+        f"{_v2vm(pr_rev, pr_aop):+.1f}" if _v2vm(pr_rev, pr_aop) is not None else "—",
+        f"{pr_rev - pr_py_v:+.1f} vs PY" if pr_py_v is not None else None,
         "#a78bfa", spark_series=v2_pre_trend,
     ), unsafe_allow_html=True)
 
     c4.markdown(r1_card(
-        "WTTx", f"TT${wx_rev:.1f}M",
+        "WTTx", f"{wx_rev:.1f}",
         _v2vp(wx_rev, wx_aop),
-        f"TT${_v2vm(wx_rev, wx_aop):+.1f}M" if _v2vm(wx_rev, wx_aop) is not None else "—",
-        f"TT${wx_rev - wx_py_v:+.1f}M vs PY" if wx_py_v is not None else None,
+        f"{_v2vm(wx_rev, wx_aop):+.1f}" if _v2vm(wx_rev, wx_aop) is not None else "—",
+        f"{wx_rev - wx_py_v:+.1f} vs PY" if wx_py_v is not None else None,
         "#f59e0b", spark_series=v2_wx_trend,
     ), unsafe_allow_html=True)
 
     c5.markdown(r1_card(
-        "Other Revenue", f"TT${v2_other_rev:.1f}M",
+        "Other Revenue", f"{v2_other_rev:.1f}",
         v2_other_var,
-        f"TT${v2_other_rev - v2_other_aop:+.1f}M" if v2_other_aop else "—",
-        f"TT${v2_other_rev - v2_other_py:+.1f}M vs PY" if v2_other_py is not None else None,
+        f"{v2_other_rev - v2_other_aop:+.1f}" if v2_other_aop else "—",
+        f"{v2_other_rev - v2_other_py:+.1f} vs PY" if v2_other_py is not None else None,
         "#ff6b6b", spark_series=v2_other_trend,
     ), unsafe_allow_html=True)
 
@@ -1210,7 +1210,7 @@ with tab_v2:
         # Row 2a
         ra1, ra2, ra3 = st.columns(3)
         ra1.markdown(r2_card(
-            "Direct Costs", f"TT${dc_est:.1f}M",
+            "Direct Costs", f"{dc_est:.1f}",
             f"~{dc_est/v2_t_rev*100:.0f}% of revenue" if v2_t_rev else "—",
             "#8899bb", is_ph=True, accent="#ef4444", note="est. (58% proxy)",
         ), unsafe_allow_html=True)
@@ -1260,7 +1260,7 @@ with tab_v2:
         rb1, rb2, rb3 = st.columns(3)
         gp_col_str = "#22c55e" if (gp_vp is not None and gp_vp >= 0) else "#ef4444"
         rb1.markdown(r2_card(
-            "Gross Profit", f"TT${gp_est:.1f}M",
+            "Gross Profit", f"{gp_est:.1f}",
             f"{gp_vp:+.1f}% vs AOP" if gp_vp is not None else "—",
             gp_col_str, is_ph=True, accent="#22c55e", note="est. (42% proxy)",
         ), unsafe_allow_html=True)
@@ -1304,9 +1304,9 @@ with tab_v2:
             textposition="inside",
             domain=dict(x=[0, _dom_x]),
             customdata=d_segs,
-            hovertemplate="<b>%{customdata}</b><br>TT$%{value:.1f}M (%{percent})<extra></extra>",
+            hovertemplate="<b>%{customdata}</b><br>%{value:.1f} (%{percent})<extra></extra>",
             title=dict(
-                text=f"<b>TT${d_total:.1f}M</b>",
+                text=f"<b>{d_total:.1f}</b>",
                 font=dict(size=12, color="white"),
                 position="middle center",
             ),
@@ -1347,11 +1347,11 @@ with tab_v2:
     aop_col_cmt = "#22c55e" if (v2_tv_pct or 0) >= 0 else "#ef4444"
 
     cmt_text = (
-        f"Consumer revenue of <strong style='color:white'>TT${v2_t_rev:.1f}M</strong> in {sel_month} "
+        f"Consumer revenue of <strong style='color:white'>{v2_t_rev:.1f}</strong> in {sel_month} "
         f"is <strong style='color:{aop_col_cmt}'>{abs(v2_tv_pct or 0):.1f}% {rev_dir} AOP</strong>"
-        + (f" (TT${v2_tv_m:+.1f}M)" if v2_t_aop else "")
+        + (f" ({v2_tv_m:+.1f})" if v2_t_aop else "")
         + (f", representing a year-on-year {yoy_sign} of "
-           f"<strong style='color:#f59e0b'>TT${yoy_abs:.1f}M</strong>." if v2_t_py is not None else ".")
+           f"<strong style='color:#f59e0b'>{yoy_abs:.1f}</strong>." if v2_t_py is not None else ".")
         + f" <strong style='color:white'>{v2_best}</strong> is the strongest performing segment "
         f"at <strong style='color:#22c55e'>{best_v:+.1f}% vs AOP</strong>, driven by {best_why}. "
         f"<strong style='color:white'>{v2_worst}</strong> remains the most challenged segment "
@@ -1359,7 +1359,7 @@ with tab_v2:
         f"continuing to constrain growth. "
         f"WTTx is {wx_dir} on a month-on-month basis "
         f"(<strong style='color:{'#22c55e' if wx_mom >= 0 else '#ef4444'}'>"
-        f"TT${wx_mom:+.1f}M MoM</strong>), underpinned by residential broadband demand. "
+        f"{wx_mom:+.1f} MoM</strong>), underpinned by residential broadband demand. "
         f"Strategic priorities for the remainder of FY2026-27 include Prepaid data bundle "
         f"conversion to defend revenue, Postpaid ARPU protection through bundle upsell, "
         f"and accelerating WTTx commercial rollout to sustain the Consumer LoB's contribution "

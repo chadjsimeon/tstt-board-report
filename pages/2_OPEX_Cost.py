@@ -75,7 +75,7 @@ with col_left:
         marker_color="rgba(90,90,130,0.28)",
         marker_line=dict(color="rgba(140,140,180,0.55)", width=1),
         width=0.70,
-        hovertemplate="%{y}<br>Plan: TT$%{x:,.2f}M<extra></extra>",
+        hovertemplate="%{y}<br>Plan: %{x:,.2f}<extra></extra>",
     ))
 
     # Actual bar — narrower, coloured, value label outside
@@ -86,11 +86,11 @@ with col_left:
         name="Actual",
         marker_color=bar_colors,
         width=0.42,
-        text=[f"TT${v:,.2f}M" for v in cats["Actual"]],
+        text=[f"{v:,.2f}" for v in cats["Actual"]],
         textposition="outside",
         textfont=dict(color="white", size=18),
         cliponaxis=False,
-        hovertemplate="%{y}<br>Actual: TT$%{x:,.2f}M<extra></extra>",
+        hovertemplate="%{y}<br>Actual: %{x:,.2f}<extra></extra>",
     ))
 
     fig.update_layout(
@@ -105,7 +105,7 @@ with col_left:
         ),
         xaxis=dict(
             gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=18),
-            title=dict(text="TT$M", font=dict(color="#8888aa", size=14)),
+            title=dict(text="", font=dict(color="#8888aa", size=14)),
             zeroline=True, zerolinecolor="#3a3a5a",
         ),
         yaxis=dict(
@@ -122,7 +122,7 @@ with col_left:
     var_col = "#ef4444" if total_var > 0 else "#22c55e"
     st.markdown(
         f'<p style="font-size:18px;font-weight:700;color:#f59e0b;margin-top:2px">'
-        f'Total OPEX: TT${total_actual:,.2f}M &nbsp;vs Plan&nbsp; TT${total_plan:,.2f}M'
+        f'Total OPEX: {total_actual:,.2f} &nbsp;vs Plan&nbsp; {total_plan:,.2f}'
         f'&nbsp;(<span style="color:{var_col}">{sign}{var_pct:.1f}%</span>)'
         f'</p>',
         unsafe_allow_html=True,
@@ -156,12 +156,12 @@ with col_right:
         <div style="font-weight:700;font-size:18px;color:white;
                     margin-bottom:6px">{row['Category']}</div>
         <div style="font-size:15px;color:#8888aa;line-height:1.4">
-            {abs(vpct):.1f}% {label} — TT${abs(row['Plan']):,.2f}M planned
+            {abs(vpct):.1f}% {label} — {abs(row['Plan']):,.2f} planned
         </div>
     </div>
     <div style="font-weight:800;font-size:18px;color:{color};
                 text-align:right;white-space:nowrap;margin-left:12px">
-        {sign}TT${abs(var):,.2f}M
+        {sign}{abs(var):,.2f}
     </div>
 </div>""", unsafe_allow_html=True)
 
@@ -205,15 +205,15 @@ with col_right:
     </div>
     <div style="display:flex;justify-content:space-between;align-items:baseline">
         <div>
-            <div style="color:{pct_color};font-size:20px;font-weight:700">TT${ytd_spend:,.2f}M</div>
+            <div style="color:{pct_color};font-size:20px;font-weight:700">{ytd_spend:,.2f}</div>
             <div style="color:#6688aa;font-size:15px;margin-top:4px">spent YTD</div>
         </div>
         <div style="text-align:center">
-            <div style="color:{rem_color};font-size:20px;font-weight:700">{rem_sign}TT${abs(remaining):,.2f}M</div>
+            <div style="color:{rem_color};font-size:20px;font-weight:700">{rem_sign}{abs(remaining):,.2f}</div>
             <div style="color:#6688aa;font-size:15px;margin-top:4px">{rem_label}</div>
         </div>
         <div style="text-align:right">
-            <div style="color:#aaaacc;font-size:20px;font-weight:700">TT${annual_plan:,.2f}M</div>
+            <div style="color:#aaaacc;font-size:20px;font-weight:700">{annual_plan:,.2f}</div>
             <div style="color:#6688aa;font-size:15px;margin-top:4px">annual budget</div>
         </div>
     </div>

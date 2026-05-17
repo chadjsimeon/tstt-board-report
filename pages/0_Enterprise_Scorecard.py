@@ -41,7 +41,7 @@ def fmt(val, unit):
     if pd.isna(val):
         return "—"
     v = float(val)
-    if unit == "TT$M":   return f"TT${v:,.0f}M"
+    if unit == "":   return f"{v:,.0f}"
     if unit == "%":      return f"{v:.1f}%"
     if unit == "pts":    return f"{v:.0f} pts"
     if unit == "subs":   return f"{v:,.0f}"
@@ -84,7 +84,7 @@ def quadrant_html(section_key, section_display, accent):
 
     if df.empty:
         return (
-            f'<div style="background:#1a1a2e;border-radius:12px;padding:20px;'
+            f'<div style="background:#161B22;border-radius:12px;padding:20px;'
             f'border:1px solid #2a2a4a;border-left:4px solid {accent};'
             f'display:flex;flex-direction:column;overflow:hidden">'
             f'<div style="font-size:10px;font-weight:700;color:{accent};'
@@ -133,7 +133,7 @@ def quadrant_html(section_key, section_display, accent):
         )
 
     return (
-        f'<div style="background:#1a1a2e;border-radius:12px;padding:18px 20px;'
+        f'<div style="background:#161B22;border-radius:12px;padding:18px 20px;'
         f'border:1px solid #2a2a4a;border-left:4px solid {accent};'
         f'display:flex;flex-direction:column;overflow:hidden;min-height:0">'
         f'<div style="font-size:12px;font-weight:700;color:{accent};'
@@ -151,7 +151,7 @@ def quadrant_html(section_key, section_display, accent):
 st.markdown(f"""
 <div style="display:flex;justify-content:space-between;align-items:center;
             padding:1.1rem 1.6rem;
-            background:linear-gradient(135deg,#1a1a2e 0%,#0f1e3c 60%,#0d2040 100%);
+            background:linear-gradient(135deg,#161B22 0%,#0f1e3c 60%,#0d2040 100%);
             border-radius:12px;border:1px solid #2a3a5a;margin-bottom:1rem">
     <div style="font-size:1.4rem;font-weight:700;color:white;
                 letter-spacing:0.5px">Enterprise Scorecard</div>

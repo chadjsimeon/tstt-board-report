@@ -71,7 +71,7 @@ with col1:
     fig = line_chart(
         fin, x="Month",
         y_cols=["Revenue", "Revenue_AOP", "Revenue_PY"],
-        title="Revenue (TT$M)",
+        title="Revenue",
         colors=[BLUE, BLUE_DIM, WHITE_DIM],
         dash_cols=["Revenue_AOP", "Revenue_PY"],
     )
@@ -81,7 +81,7 @@ with col2:
     fig = line_chart(
         fin, x="Month",
         y_cols=["EBITDA", "EBITDA_AOP", "EBITDA_PY"],
-        title="EBITDA (TT$M)",
+        title="EBITDA",
         colors=[GREEN, GREEN_DIM, WHITE_DIM],
         dash_cols=["EBITDA_AOP", "EBITDA_PY"],
     )
@@ -92,7 +92,7 @@ with col3:
     fig = line_chart(
         fin, x="Month",
         y_cols=["PAT", "PAT_AOP", "PAT_PY"],
-        title="Profit After Tax (TT$M)",
+        title="Profit After Tax",
         colors=[PURPLE, PURPLE_DIM, WHITE_DIM],
         dash_cols=["PAT_AOP", "PAT_PY"],
     )
@@ -126,11 +126,11 @@ def delta_str(actual, ref):
         return f"{pct:+.1f}%"
     return "N/A"
 
-m1.metric("Revenue",      f"TT${latest['Revenue']:,.0f}M",
+m1.metric("Revenue",      f"{latest['Revenue']:,.0f}",
           delta_str(latest["Revenue"], latest["Revenue_AOP"]))
-m2.metric("EBITDA",       f"TT${latest['EBITDA']:,.0f}M",
+m2.metric("EBITDA",       f"{latest['EBITDA']:,.0f}",
           delta_str(latest["EBITDA"], latest["EBITDA_AOP"]))
-m3.metric("PAT",          f"TT${latest['PAT']:,.0f}M",
+m3.metric("PAT",          f"{latest['PAT']:,.0f}",
           delta_str(latest["PAT"], latest["PAT_AOP"]))
 m4.metric("EBITDA Margin", f"{latest['EBITDA_Margin']:.1f}%",
           delta_str(latest["EBITDA_Margin"], 30.2))

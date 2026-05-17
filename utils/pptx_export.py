@@ -274,7 +274,7 @@ def _period(data: dict) -> str:
     return ""
 
 
-def _fmt(val, prefix="TT$", suffix="M", decimals=0) -> str:
+def _fmt(val, prefix="", suffix="M", decimals=0) -> str:
     try:
         return f"{prefix}{abs(float(val)):,.{decimals}f}{suffix}"
     except (TypeError, ValueError):
@@ -373,7 +373,7 @@ def _slide_scorecard(prs: Presentation, data: dict, period: str) -> None:
             status = str(r.get("Status", ""))
             try:
                 av = float(actual)
-                val_str = (f"TT${av:,.1f}M" if unit == "TT$M"
+                val_str = (f"{av:,.1f}" if unit == ""
                            else f"{av:.1f}%" if unit == "%" else f"{av:,.0f}")
             except (TypeError, ValueError):
                 val_str = "—"
@@ -516,7 +516,7 @@ def _slide_ebitda_bridge(prs: Presentation, data: dict, period: str) -> None:
     kpis = [
         ("AOP EBITDA",    _fmt(aop_val),    "",        BLUE_RGB),
         ("Actual EBITDA", _fmt(actual_val), "",        GREEN_RGB if actual_val >= aop_val else RED_RGB),
-        ("Gap to AOP",    _fmt(gap_val, prefix="TT$" + ("+" if gap_val >= 0 else "")),
+        ("Gap to AOP",    _fmt(gap_val, prefix="" + ("+" if gap_val >= 0 else "")),
          "positive = ahead", GREEN_RGB if gap_val >= 0 else RED_RGB),
     ]
     _kpi_row_3(sl, kpis, top=CONTENT_TOP)
@@ -548,7 +548,7 @@ def _slide_opex(prs: Presentation, data: dict, period: str) -> None:
     kpis = [
         ("Total OPEX Actual",  _fmt(total_act),  "",    BLUE_RGB),
         ("Total OPEX Plan",    _fmt(total_plan),  "",   MUTED_RGB),
-        ("Variance",           _fmt(variance, prefix="TT$" + ("+" if variance >= 0 else "")),
+        ("Variance",           _fmt(variance, prefix="" + ("+" if variance >= 0 else "")),
          "over budget" if variance > 0 else "under budget",
          RED_RGB if variance > 0 else GREEN_RGB),
     ]
@@ -625,7 +625,7 @@ def _slide_consumer(prs: Presentation, data: dict, period: str) -> None:
     kpis = [
         ("Revenue YTD",    _fmt(rev_ytd),    "",    BLUE_RGB),
         ("Total Subs",     f"{subs_val:,.0f}", "",  GREEN_RGB),
-        ("Blended ARPU",   f"TT${arpu_val:,.0f}", "Average", PURPLE_RGB),
+        ("Blended ARPU",   f"{arpu_val:,.0f}", "Average", PURPLE_RGB),
     ]
     _kpi_row_3(sl, kpis, top=CONTENT_TOP)
 

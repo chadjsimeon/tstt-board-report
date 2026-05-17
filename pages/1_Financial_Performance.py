@@ -18,7 +18,7 @@ fin    = data["Financial_Monthly"]
 bridge = data["EBITDA_Bridge"]
 pnl    = data["PnL_Breakdown"]
 
-# Compute AOP EBITDA margin from the scaled columns (already in TT$M and %)
+# Compute AOP EBITDA margin from the scaled columns (already in  and %)
 fin["EBITDA_Margin_AOP"] = (fin["EBITDA_AOP"] / fin["Revenue_AOP"] * 100)
 
 page_header("Financial Performance", "Revenue · EBITDA · PAT · Bridge")
@@ -35,17 +35,17 @@ def vs(actual, plan, inverse=False):
     return ""
 
 with m1:
-    styled_metric("Revenue", f"TT${latest['Revenue']:,.0f}M",
+    styled_metric("Revenue", f"{latest['Revenue']:,.0f}",
                   vs(latest["Revenue"], latest["Revenue_AOP"]),
                   latest["Revenue"] >= latest["Revenue_AOP"] if latest["Revenue_AOP"] else None,
                   "#00d4a0")
 with m2:
-    styled_metric("EBITDA", f"TT${latest['EBITDA']:,.0f}M",
+    styled_metric("EBITDA", f"{latest['EBITDA']:,.0f}",
                   vs(latest["EBITDA"], latest["EBITDA_AOP"]),
                   latest["EBITDA"] >= latest["EBITDA_AOP"] if latest["EBITDA_AOP"] else None,
                   "#4a9eff")
 with m3:
-    styled_metric("PAT", f"TT${latest['PAT']:,.0f}M",
+    styled_metric("PAT", f"{latest['PAT']:,.0f}",
                   vs(latest["PAT"], latest["PAT_AOP"]),
                   latest["PAT"] >= latest["PAT_AOP"] if latest["PAT_AOP"] else None,
                   "#aa44ff")
@@ -75,7 +75,7 @@ with tab0:
     with col1:
         fig = stacked_bar(
             pnl, x="Month", y_cols=rev_cols,
-            title="Revenue by Group — Trend (TT$M)",
+            title="Revenue by Group — Trend",
             colors=GRP_COLORS,
         )
         # Override legend labels to short names
@@ -101,7 +101,7 @@ with tab0:
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="white"), height=380, barmode="group",
-            title=dict(text=f"<b>{latest_pnl['Month']} Revenue vs AOP by Group (TT$M)</b>",
+            title=dict(text=f"<b>{latest_pnl['Month']} Revenue vs AOP by Group</b>",
                        font=dict(size=13, color="white"), x=0),
             xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
             yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
@@ -119,7 +119,7 @@ with tab0:
             pnl_abs[c] = pnl_abs[c].abs()
         fig = stacked_bar(
             pnl_abs, x="Month", y_cols=cos_cols,
-            title="Cost of Sales by Group (TT$M, abs)",
+            title="Cost of Sales by Group (, abs)",
             colors=GRP_COLORS,
         )
         for i, trace in enumerate(fig.data):
@@ -130,7 +130,7 @@ with tab0:
         fig = line_chart(
             pnl, x="Month",
             y_cols=["Total_Rev", "Total_COS", "Total_OPEX", "EBITDA"],
-            title="P&L Cascade Trend (TT$M)",
+            title="P&L Cascade Trend",
             colors=[BLUE, RED, ORANGE, GREEN],
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -155,7 +155,7 @@ with tab0:
         fig = waterfall_chart(
             wf_df,
             x_col="Category", y_col="Value", type_col="Type",
-            title=f"P&L Waterfall — {latest_pnl['Month']} (TT$M)",
+            title=f"P&L Waterfall — {latest_pnl['Month']}",
             height=420,
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -163,12 +163,12 @@ with tab0:
     with col6:
         gp_margin   = gross_prof / total_rev * 100 if total_rev else 0
         ebi_margin  = ebitda     / total_rev * 100 if total_rev else 0
-        st.metric("Total Revenue",  f"TT${total_rev:,.1f}M")
-        st.metric("Direct Costs",   f"TT${total_cos:,.1f}M")
-        st.metric("Gross Profit",   f"TT${gross_prof:,.1f}M",
+        st.metric("Total Revenue",  f"{total_rev:,.1f}")
+        st.metric("Direct Costs",   f"{total_cos:,.1f}")
+        st.metric("Gross Profit",   f"{gross_prof:,.1f}",
                   f"{gp_margin:.1f}% margin")
-        st.metric("OPEX",           f"TT${total_opex:,.1f}M")
-        st.metric("EBITDA",         f"TT${ebitda:,.1f}M",
+        st.metric("OPEX",           f"{total_opex:,.1f}")
+        st.metric("EBITDA",         f"{ebitda:,.1f}",
                   f"{ebi_margin:.1f}% margin")
 
 with tab1:
@@ -177,7 +177,7 @@ with tab1:
         fig = line_chart(
             fin, x="Month",
             y_cols=["Revenue", "Revenue_AOP", "Revenue_PY"],
-            title="Revenue vs AOP vs PY (TT$M)",
+            title="Revenue vs AOP vs PY",
             colors=[BLUE, BLUE_DIM, WHITE_DIM],
             dash_cols=["Revenue_AOP", "Revenue_PY"],
         )
@@ -187,7 +187,7 @@ with tab1:
         fig = line_chart(
             fin, x="Month",
             y_cols=["EBITDA", "EBITDA_AOP", "EBITDA_PY"],
-            title="EBITDA vs AOP vs PY (TT$M)",
+            title="EBITDA vs AOP vs PY",
             colors=[GREEN, GREEN_DIM, WHITE_DIM],
             dash_cols=["EBITDA_AOP", "EBITDA_PY"],
         )
@@ -213,7 +213,7 @@ with tab1:
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"), height=400,
         title=dict(text="<b>Revenue / EBITDA / Margin</b>", font=dict(size=13, color="white"), x=0),
-        yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"), title="TT$M"),
+        yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"), title=""),
         yaxis2=dict(overlaying="y", side="right", ticksuffix="%",
                     tickfont=dict(color="#8888aa"), showgrid=False),
         legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h", y=1.02, x=1, xanchor="right"),
@@ -228,7 +228,7 @@ with tab2:
         fig = line_chart(
             fin, x="Month",
             y_cols=["PAT", "PAT_AOP", "PAT_PY"],
-            title="Profit After Tax (TT$M)",
+            title="Profit After Tax",
             colors=[PURPLE, PURPLE_DIM, WHITE_DIM],
             dash_cols=["PAT_AOP", "PAT_PY"],
         )
@@ -252,19 +252,19 @@ with tab2:
     fig = grouped_bar(
         fin_copy, x="Month",
         y_cols=["Revenue", "Revenue_AOP"],
-        title="Revenue Actual vs AOP (TT$M)",
+        title="Revenue Actual vs AOP",
         colors=[BLUE, "#334466"],
     )
     st.plotly_chart(fig, use_container_width=True)
 
 with tab3:
-    st.markdown("#### EBITDA Bridge — YTD Apr 2026 (TT$M)")
+    st.markdown("#### EBITDA Bridge — YTD Apr 2026")
     col1, col2 = st.columns([2, 1])
     with col1:
         fig = waterfall_chart(
             bridge,
             x_col="Category", y_col="Value", type_col="Type",
-            title="EBITDA Bridge: AOP → Actual (TT$M)",
+            title="EBITDA Bridge: AOP → Actual",
             height=460,
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -283,12 +283,12 @@ with tab3:
             else:
                 color = "🔵"
             st.markdown(
-                f"{color} **{row['Category']}** — `TT${val:,.0f}M`"
+                f"{color} **{row['Category']}** — `{val:,.0f}`"
             )
 
         aop    = bridge[bridge["Sort_Order"] == 1]["Value"].values[0]
         actual = bridge.iloc[-1]["Value"]
         gap    = actual - aop
         st.markdown("---")
-        st.metric("AOP EBITDA",    f"TT${aop:,.0f}M")
-        st.metric("Actual EBITDA", f"TT${actual:,.0f}M", delta=f"TT${gap:+,.0f}M vs AOP")
+        st.metric("AOP EBITDA",    f"{aop:,.0f}")
+        st.metric("Actual EBITDA", f"{actual:,.0f}", delta=f"{gap:+,.0f} vs AOP")

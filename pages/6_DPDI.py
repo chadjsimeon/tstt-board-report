@@ -33,7 +33,7 @@ rev_var_pct  = (total_rev - total_aop) / abs(total_aop) * 100 if total_aop else 
 excl_var_pct = (excl_rev  - excl_aop)  / abs(excl_aop)  * 100 if excl_aop  else 0
 gp_margin    = total_gp / total_rev * 100 if total_rev else 0
 
-ebitda_display = f"({abs(total_ebitda):.1f}M)" if total_ebitda < 0 else f"{total_ebitda:.1f}M"
+ebitda_display = f"({abs(total_ebitda):.1f})" if total_ebitda < 0 else f"{total_ebitda:.1f}"
 dc_below_aop   = total_dc < total_aop
 dc_sub_text    = "Below AOP ↓" if dc_below_aop else f"{(total_dc - total_aop) / abs(total_aop) * 100:+.1f}% vs AOP"
 dc_sub_color   = "#00ff88" if dc_below_aop else "#FF4444"
@@ -49,7 +49,7 @@ st.markdown("""
     DPDI Financial Overview
   </div>
   <div style="font-size:0.8rem;color:#7788aa">
-    YTD March 2026 &nbsp;&nbsp;|&nbsp;&nbsp; All figures in TT$M unless stated
+    YTD March 2026 &nbsp;&nbsp;|&nbsp;&nbsp; All figures in  unless stated
   </div>
 </div>
 <hr style="border:none;border-top:1px solid #1a1a2a;margin:0.9rem 0 1.2rem 0">
@@ -63,7 +63,7 @@ st.markdown(f"""
     <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">TOTAL REVENUE</div>
     <div style="font-size:1.4rem;font-weight:700;color:#FF4444;line-height:1.1">
-        TT${total_rev:.1f}M</div>
+        {total_rev:.1f}</div>
     <div style="font-size:0.7rem;color:#FF4444;margin-top:5px;font-weight:600">
         {rev_var_pct:+.1f}% vs AOP</div>
   </div>
@@ -72,7 +72,7 @@ st.markdown(f"""
     <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">EXCL. E-GOVTT REV</div>
     <div style="font-size:1.4rem;font-weight:700;color:#FF4444;line-height:1.1">
-        TT${excl_rev:.1f}M</div>
+        {excl_rev:.1f}</div>
     <div style="font-size:0.7rem;color:#FF4444;margin-top:5px;font-weight:600">
         {excl_var_pct:+.1f}% vs AOP</div>
   </div>
@@ -81,7 +81,7 @@ st.markdown(f"""
     <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">GROSS PROFIT</div>
     <div style="font-size:1.4rem;font-weight:700;color:#ffffff;line-height:1.1">
-        TT${total_gp:.1f}M</div>
+        {total_gp:.1f}</div>
     <div style="font-size:0.7rem;color:#aaaaaa;margin-top:5px">GP Margin: {gp_margin:.1f}%</div>
   </div>
 
@@ -89,7 +89,7 @@ st.markdown(f"""
     <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">DIRECT COSTS</div>
     <div style="font-size:1.4rem;font-weight:700;color:#ffffff;line-height:1.1">
-        TT${total_dc:.1f}M</div>
+        {total_dc:.1f}</div>
     <div style="font-size:0.7rem;color:{dc_sub_color};margin-top:5px;font-weight:600">
         {dc_sub_text}</div>
   </div>
@@ -106,7 +106,7 @@ st.markdown(f"""
     <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
                 letter-spacing:1.4px;margin-bottom:7px">E-GOVTT PIPELINE</div>
     <div style="font-size:1.4rem;font-weight:700;color:#00ff88;line-height:1.1">
-        TT${egovtt_pipeline:.1f}M</div>
+        {egovtt_pipeline:.1f}</div>
     <div style="font-size:0.7rem;color:#00ff88;margin-top:5px;font-weight:600">
         Key opportunity →</div>
   </div>
@@ -129,7 +129,7 @@ with col_left:
         dict(
             x=max(av, bv) + safe_max * 0.06,
             y=prod,
-            text=f"<b>{av:.1f}M</b> / {bv:.1f}M",
+            text=f"<b>{av:.1f}</b> / {bv:.1f}",
             showarrow=False,
             font=dict(color="#aaaacc", size=10, family="Inter, sans-serif"),
             xanchor="left",
@@ -155,7 +155,7 @@ with col_left:
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white", family="Inter, sans-serif", size=11),
         height=380,
-        title=dict(text="<b>Revenue by Product — YTD vs AOP (TT$M)</b>",
+        title=dict(text="<b>Revenue by Product — YTD vs AOP</b>",
                    font=dict(size=13, color="white"), x=0),
         xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=13),
                    range=[0, max_x], showline=False, zeroline=False),
@@ -195,7 +195,7 @@ with col_right:
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white", family="Inter, sans-serif", size=11),
         height=380,
-        title=dict(text="<b>Monthly Revenue — Actual vs AOP excl. e-GOVTT (TT$M)</b>",
+        title=dict(text="<b>Monthly Revenue — Actual vs AOP excl. e-GOVTT</b>",
                    font=dict(size=13, color="white"), x=0),
         xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=13)),
         yaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=13),

@@ -76,7 +76,7 @@ def kpi_card(label, col, aop_col, ly_col, color, is_margin=False):
     if actual is None or pd.isna(actual):
         return f'<div style="background:{CARD_BG};border-radius:12px;padding:20px 16px;min-height:230px;">—</div>'
 
-    val_str = f"{actual:.1f}%" if is_margin else f"TT${actual:,.0f}M"
+    val_str = f"{actual:.1f}%" if is_margin else f"{actual:,.0f}"
     unit    = "pp" if is_margin else "%"
 
     badges = []
@@ -112,7 +112,7 @@ def driver_block(label, color, col, aop_col, ly_col, is_margin=False, last_entry
     actual = latest[col] if col in latest.index else None
     if actual is None or pd.isna(actual):
         return ""
-    val_str = f"{actual:.1f}%" if is_margin else f"TT${actual:,.0f}M"
+    val_str = f"{actual:.1f}%" if is_margin else f"{actual:,.0f}"
     unit    = "pp" if is_margin else "%"
     month   = latest["Month"]
 
@@ -128,7 +128,7 @@ def driver_block(label, color, col, aop_col, ly_col, is_margin=False, last_entry
         ly = latest[ly_col]
         if pd.notna(ly) and ly != 0:
             d = (actual - ly) if is_margin else (actual - ly) / abs(ly) * 100
-            ly_str = f"{ly:.1f}%" if is_margin else f"TT${ly:,.0f}M"
+            ly_str = f"{ly:.1f}%" if is_margin else f"{ly:,.0f}"
             line2 = f"{'↑' if d >= 0 else '↓'} {abs(d):.1f}{unit} vs prior year ({ly_str})"
 
     divider = "" if last_entry else "border-bottom:1px solid #1e3050;"
@@ -156,7 +156,7 @@ with tab1:
                      padding:4px 10px;border-radius:4px;">AMP</span>
         <span style="font-size:26px;font-weight:800;color:white;">Amplia Financial Performance</span>
     </div>
-    <div style="color:{MUTED};font-size:12px;">All figures in TT$M unless otherwise stated</div>
+    <div style="color:{MUTED};font-size:12px;">All figures in  unless otherwise stated</div>
 </div>""", unsafe_allow_html=True)
 
     # KPI Cards
@@ -201,7 +201,7 @@ with tab1:
             height=560,
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="white"),
-            title=dict(text="<b>Revenue, Gross Profit & EBITDA — 13-Month Trend (TT$M)</b>",
+            title=dict(text="<b>Revenue, Gross Profit & EBITDA — 13-Month Trend</b>",
                        font=dict(size=13, color="white"), x=0),
             xaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=13), showline=False, tickangle=-30),
             yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=13), showline=False, zeroline=False),
@@ -242,7 +242,7 @@ with tab2:
 
         latest_com = monthly_com.iloc[-1]
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("ARPU",            f"TT${latest_com['ARPU']:,.0f}")
+        c1.metric("ARPU",            f"{latest_com['ARPU']:,.0f}")
         c2.metric("Gross Additions",  f"{latest_com['Gross_Additions']:,.0f}",
                   f"AOP: {latest_com['Gross_Additions_AOP']:,.0f}")
         c3.metric("Monthly Churn",   f"{latest_com['Monthly_Churn']:,.0f}",
@@ -297,7 +297,7 @@ with tab2:
         with col4:
             fig = line_chart(
                 monthly_com, x="Month", y_cols=["ARPU"],
-                title="ARPU Trend (TT$)",
+                title="ARPU Trend ()",
                 colors=[YELLOW],
             )
             st.plotly_chart(fig, use_container_width=True)

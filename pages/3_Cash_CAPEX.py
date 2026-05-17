@@ -119,7 +119,7 @@ st.markdown(f"""
 <div style="width:100%;background:#0d1117;padding:16px 24px;margin-bottom:16px;display:block;">
   <div style="font-size:0.75rem;color:#00e676;font-weight:600;margin-bottom:4px;">02</div>
   <div style="font-size:1.4rem;font-weight:700;color:white;">Cash, Working Capital &amp; CAPEX</div>
-  <div style="font-size:0.8rem;color:#8b949e;margin-top:4px;">YTD {period_label} &nbsp;·&nbsp; All figures TT$'M</div>
+  <div style="font-size:0.8rem;color:#8b949e;margin-top:4px;">YTD {period_label} &nbsp;·&nbsp; All figures </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -170,7 +170,7 @@ def _pill_row(row_label, data):
             if pct > 8 else ""
         )
         pill_parts.append(
-            f'<div title="{bl}: TT${data[key]:,.1f}M ({pct:.1f}%)" '
+            f'<div title="{bl}: {data[key]:,.1f} ({pct:.1f}%)" '
             f'style="flex:{max(data[key], 0.001):.3f};min-width:20px;background:{color};'
             f'border-radius:6px;height:100%;position:relative;overflow:hidden">'
             f'{label_html}'
@@ -181,7 +181,7 @@ def _pill_row(row_label, data):
         f'<div style="margin-bottom:28px">'
         f'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">'
         f'<span style="font-size:1rem;color:white;font-weight:600">{row_label}</span>'
-        f'<span style="font-size:1rem;color:#aaaacc;font-weight:700">TT${row_total:,.1f}M</span>'
+        f'<span style="font-size:1rem;color:#aaaacc;font-weight:700">{row_total:,.1f}</span>'
         f'</div>'
         f'<div style="display:flex;gap:0;height:72px;width:{bar_pct:.1f}%">{pills}</div>'
         f'</div>'
@@ -235,7 +235,7 @@ with r1_left:
         line=dict(color="#00e676", width=2.5, shape="linear"),
         marker=dict(size=5, color="#00e676"),
         fill=None, showlegend=False,
-        hovertemplate="%{x}: TT$%{y:,.0f}M<extra></extra>",
+        hovertemplate="%{x}: %{y:,.0f}<extra></extra>",
     ))
     fig_cash.add_hline(
         y=cash_val,
@@ -274,9 +274,9 @@ with r1_right:
   <div style="font-size:0.75rem;font-weight:700;color:#00e676;text-transform:uppercase;
               letter-spacing:2px;margin-bottom:6px">AR Aging</div>
   <div style="font-size:0.85rem;color:#556677;margin-bottom:28px">
-    Total: <strong style="color:#aaaacc">TT${AR_TOTAL:,.1f}M</strong>
-    &nbsp;|&nbsp; Gov: <strong style="color:#aaaacc">{gov['total']:,.1f}M</strong>
-    &nbsp;|&nbsp; Non-Gov: <strong style="color:#aaaacc">{non_gov['total']:,.1f}M</strong>
+    Total: <strong style="color:#aaaacc">{AR_TOTAL:,.1f}</strong>
+    &nbsp;|&nbsp; Gov: <strong style="color:#aaaacc">{gov['total']:,.1f}</strong>
+    &nbsp;|&nbsp; Non-Gov: <strong style="color:#aaaacc">{non_gov['total']:,.1f}</strong>
   </div>
   {_pill_row("Government", gov)}
   {_pill_row("Non-Government", non_gov)}
@@ -292,9 +292,9 @@ row2_left, row2_right = st.columns(2)
 with row2_left:
     st.markdown(
         f'<div style="display:flex;gap:10px;align-items:stretch;margin:10px 0">'
-        f'{_mc("Cash Balance",  f"TT${cash_val:,.0f}M",       f"TT${cash_delta:+,.1f}M vs PY",  cash_dc)}'
-        f'{_mc("Net Debt",      f"TT${debt_val:,.0f}M",       f"TT${debt_delta:+,.1f}M vs LY",  debt_dc)}'
-        f'{_mc("Free Cash Flow",f"TT${abs(fcf_month):,.0f}M", str(latest["Month"]),             _fcf_color)}'
+        f'{_mc("Cash Balance",  f"{cash_val:,.0f}",       f"{cash_delta:+,.1f} vs PY",  cash_dc)}'
+        f'{_mc("Net Debt",      f"{debt_val:,.0f}",       f"{debt_delta:+,.1f} vs LY",  debt_dc)}'
+        f'{_mc("Free Cash Flow",f"{abs(fcf_month):,.0f}", str(latest["Month"]),             _fcf_color)}'
         f'</div>',
         unsafe_allow_html=True,
     )
@@ -347,15 +347,15 @@ st.markdown(f"""
   </div>
   <div style="display:flex;justify-content:space-between;align-items:baseline">
     <div>
-      <div style="color:{cap_pct_color};font-size:18px;font-weight:700">TT${capex_act:,.1f}M</div>
+      <div style="color:{cap_pct_color};font-size:18px;font-weight:700">{capex_act:,.1f}</div>
       <div style="color:#6688aa;font-size:13px;margin-top:2px">spent YTD</div>
     </div>
     <div style="text-align:center">
-      <div style="color:{cap_rem_color};font-size:18px;font-weight:700">{cap_rem_sign}TT${abs(capex_remaining):,.1f}M</div>
+      <div style="color:{cap_rem_color};font-size:18px;font-weight:700">{cap_rem_sign}{abs(capex_remaining):,.1f}</div>
       <div style="color:#6688aa;font-size:13px;margin-top:2px">{cap_rem_label}</div>
     </div>
     <div style="text-align:right">
-      <div style="color:#aaaacc;font-size:18px;font-weight:700">TT${capex_plan:,.1f}M</div>
+      <div style="color:#aaaacc;font-size:18px;font-weight:700">{capex_plan:,.1f}</div>
       <div style="color:#6688aa;font-size:13px;margin-top:2px">annual budget</div>
     </div>
   </div>

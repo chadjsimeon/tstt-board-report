@@ -38,7 +38,7 @@ def fig_revenue_trend(data: dict, height: int = 440) -> go.Figure:
     colors = [BLUE, BLUE_DIM, WHITE_DIM][: len(cols)]
     dash = [c for c in ["Revenue_AOP", "Revenue_PY"] if c in fin.columns]
     return _transparent(line_chart(fin, x="Month", y_cols=cols,
-                                   title="Revenue vs AOP vs PY (TT$M)",
+                                   title="Revenue vs AOP vs PY",
                                    colors=colors, dash_cols=dash, height=height))
 
 
@@ -48,7 +48,7 @@ def fig_ebitda_trend(data: dict, height: int = 440) -> go.Figure:
     colors = [GREEN, GREEN_DIM, WHITE_DIM][: len(cols)]
     dash = [c for c in ["EBITDA_AOP", "EBITDA_PY"] if c in fin.columns]
     return _transparent(line_chart(fin, x="Month", y_cols=cols,
-                                   title="EBITDA vs AOP vs PY (TT$M)",
+                                   title="EBITDA vs AOP vs PY",
                                    colors=colors, dash_cols=dash, height=height))
 
 
@@ -58,7 +58,7 @@ def fig_pat_trend(data: dict, height: int = 440) -> go.Figure:
     colors = [PURPLE, dim(PURPLE, 0.40), WHITE_DIM][: len(cols)]
     dash = [c for c in ["PAT_AOP", "PAT_PY"] if c in fin.columns]
     return _transparent(line_chart(fin, x="Month", y_cols=cols,
-                                   title="PAT vs AOP vs PY (TT$M)",
+                                   title="PAT vs AOP vs PY",
                                    colors=colors, dash_cols=dash, height=height))
 
 
@@ -88,7 +88,7 @@ def fig_revenue_ebitda_combo(data: dict, height: int = 440) -> go.Figure:
                    font=dict(size=13, color="white"), x=0),
         xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=10)),
         yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
-                   title=dict(text="TT$M", font=dict(color="#8888aa", size=11))),
+                   title=dict(text="", font=dict(color="#8888aa", size=11))),
         yaxis2=dict(overlaying="y", side="right", ticksuffix="%",
                     tickfont=dict(color="#8888aa"), showgrid=False),
         legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h",
@@ -107,7 +107,7 @@ def fig_ebitda_bridge(data: dict, height: int = 500) -> go.Figure:
         return go.Figure()
     return _transparent(waterfall_chart(
         bridge, x_col="Category", y_col="Value", type_col="Type",
-        title="EBITDA Bridge: AOP → Actual (TT$M)", height=height,
+        title="EBITDA Bridge: AOP → Actual", height=height,
     ))
 
 
@@ -131,7 +131,7 @@ def fig_pnl_waterfall(data: dict, height: int = 500) -> go.Figure:
     ])
     return _transparent(waterfall_chart(
         wf, x_col="Category", y_col="Value", type_col="Type",
-        title=f"P&L Waterfall — {month} (TT$M)", height=height,
+        title=f"P&L Waterfall — {month}", height=height,
     ))
 
 
@@ -155,14 +155,14 @@ def fig_opex_bullet(data: dict, height: int = 500) -> go.Figure:
     fig.add_trace(go.Bar(
         y=cats["Category"], x=cats["Actual"], orientation="h", name="Actual",
         marker_color=bar_colors, width=0.42,
-        text=[f"TT${v:,.1f}M" for v in cats["Actual"]],
+        text=[f"{v:,.1f}" for v in cats["Actual"]],
         textposition="outside", textfont=dict(color="white", size=10),
     ))
     fig.update_layout(
         barmode="overlay",
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white", family="Inter, sans-serif"), height=height,
-        title=dict(text=f"<b>OPEX — {latest_month} Actual vs Plan (TT$M)</b>",
+        title=dict(text=f"<b>OPEX — {latest_month} Actual vs Plan</b>",
                    font=dict(size=13, color="white"), x=0),
         xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=10),
                    zeroline=True, zerolinecolor="#3a3a5a"),
@@ -192,7 +192,7 @@ def fig_cash_trend(data: dict, height: int = 380) -> go.Figure:
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white", family="Inter, sans-serif"), height=height,
-        title=dict(text="<b>Closing Cash Balance Trend (TT$M)</b>",
+        title=dict(text="<b>Closing Cash Balance Trend</b>",
                    font=dict(size=13, color="white"), x=0),
         xaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=10)),
         yaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=10)),
@@ -221,7 +221,7 @@ def fig_ar_aging(gov: dict, non_gov: dict, height: int = 340) -> go.Figure:
         barmode="stack",
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white", family="Inter, sans-serif"), height=height,
-        title=dict(text="<b>AR Aging — Government vs Non-Government (TT$M)</b>",
+        title=dict(text="<b>AR Aging — Government vs Non-Government</b>",
                    font=dict(size=13, color="white"), x=0),
         xaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=10),
                    ticksuffix="M", range=[0, _x_max]),
@@ -243,7 +243,7 @@ def fig_consumer_revenue(data: dict, height: int = 380) -> go.Figure:
     seg_cols  = [c for c in rev_pivot.columns if c != "Month"]
     colors    = [BLUE, GREEN, PURPLE, ORANGE, CYAN, YELLOW][: len(seg_cols)]
     return _transparent(stacked_bar(rev_pivot, x="Month", y_cols=seg_cols,
-                                    title="Consumer Revenue by Segment (TT$M)",
+                                    title="Consumer Revenue by Segment",
                                     colors=colors, height=height))
 
 
@@ -269,7 +269,7 @@ def fig_business_revenue(data: dict, height: int = 380) -> go.Figure:
     seg_cols  = [c for c in rev_pivot.columns if c != "Month"]
     colors    = [BLUE, GREEN, PURPLE, ORANGE, CYAN, YELLOW][: len(seg_cols)]
     return _transparent(stacked_bar(rev_pivot, x="Month", y_cols=seg_cols,
-                                    title="Business Sales Revenue by Segment (TT$M)",
+                                    title="Business Sales Revenue by Segment",
                                     colors=colors, height=height))
 
 
@@ -302,7 +302,7 @@ def fig_business_gp(data: dict, height: int = 380) -> go.Figure:
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white", family="Inter, sans-serif"), height=height,
-        title=dict(text="<b>Business Sales — Revenue & Gross Profit (TT$M)</b>",
+        title=dict(text="<b>Business Sales — Revenue & Gross Profit</b>",
                    font=dict(size=13, color="white"), x=0),
         xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=10)),
         yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
@@ -326,7 +326,7 @@ def fig_business_mrr(data: dict, height: int = 380) -> go.Figure:
         lambda m: months.index(m) if m in months else 99)
     mrr_agg = mrr_agg.sort_values("_ord").drop(columns=["_ord"])
     return _transparent(line_chart(mrr_agg, x="Month", y_cols=["MRR"],
-                                   title="Monthly Recurring Revenue (TT$M)",
+                                   title="Monthly Recurring Revenue",
                                    colors=[GREEN], height=height))
 
 
@@ -357,7 +357,7 @@ def fig_dpdi_by_product(data: dict, height: int = 380) -> go.Figure:
         barmode="overlay",
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white", family="Inter, sans-serif"), height=height,
-        title=dict(text="<b>DPDI Revenue by Product — YTD vs AOP (TT$M)</b>",
+        title=dict(text="<b>DPDI Revenue by Product — YTD vs AOP</b>",
                    font=dict(size=13, color="white"), x=0),
         xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=10),
                    range=[0, safe_max * 1.6]),
@@ -384,7 +384,7 @@ def fig_dpdi_monthly_trend(data: dict, height: int = 380) -> go.Figure:
     colors = [GREEN, YELLOW][: len(cols)]
     dash = ["Revenue_AOP"] if "Revenue_AOP" in cols else []
     return _transparent(line_chart(excl, x="Month", y_cols=cols,
-                                   title="DPDI Monthly Revenue excl. e-GOVTT (TT$M)",
+                                   title="DPDI Monthly Revenue excl. e-GOVTT",
                                    colors=colors, dash_cols=dash, height=height))
 
 
@@ -398,7 +398,7 @@ def fig_amplia_revenue(data: dict, height: int = 380) -> go.Figure:
     colors = [BLUE, BLUE_FAINT][: len(cols)]
     dash = ["Revenue_AOP"] if "Revenue_AOP" in cols else []
     return _transparent(line_chart(amp, x="Month", y_cols=cols,
-                                   title="Amplia Revenue vs AOP (TT$M)",
+                                   title="Amplia Revenue vs AOP",
                                    colors=colors, dash_cols=dash, height=height))
 
 
@@ -410,7 +410,7 @@ def fig_amplia_ebitda(data: dict, height: int = 380) -> go.Figure:
     colors = [GREEN, GREEN_FAINT][: len(cols)]
     dash = ["EBITDA_AOP"] if "EBITDA_AOP" in cols else []
     return _transparent(line_chart(amp, x="Month", y_cols=cols,
-                                   title="Amplia EBITDA vs AOP (TT$M)",
+                                   title="Amplia EBITDA vs AOP",
                                    colors=colors, dash_cols=dash, height=height))
 
 
@@ -420,5 +420,5 @@ def fig_amplia_pat(data: dict, height: int = 380) -> go.Figure:
         return go.Figure()
     cols = [c for c in ["PAT"] if c in amp.columns]
     return _transparent(line_chart(amp, x="Month", y_cols=cols,
-                                   title="Amplia Profit After Tax (TT$M)",
+                                   title="Amplia Profit After Tax",
                                    colors=[PURPLE], height=height))

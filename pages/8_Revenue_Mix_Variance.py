@@ -145,7 +145,7 @@ st.markdown(f"""
             <span style="font-size:14px;color:{MUTED};margin-left:14px;">{_ytd_lbl}</span>
         </div>
     </div>
-    <div style="color:{MUTED};font-size:12px;font-style:italic;">All figures in TT$'M unless otherwise stated</div>
+    <div style="color:{MUTED};font-size:12px;font-style:italic;">All figures in  unless otherwise stated</div>
 </div>""", unsafe_allow_html=True)
 
 # ── Row 1: Full-width stacked bar ─────────────────────────────────────────────
@@ -155,14 +155,14 @@ for name, vals, color in SEGS:
         fig_bar.add_trace(go.Bar(
             name=name, x=p_labels, y=vals,
             marker_color=color,
-            hovertemplate=f"<b>{name}</b>: TT$%{{y:,.1f}}M<extra></extra>",
+            hovertemplate=f"<b>{name}</b>: %{{y:,.1f}}<extra></extra>",
         ))
 fig_bar.update_layout(
     barmode="stack",
     height=420,
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     font=dict(color="white"),
-    title=dict(text="<b>Revenue by Segment (TT$M)</b>",
+    title=dict(text="<b>Revenue by Segment</b>",
                font=dict(size=16, color="white"), x=0),
     xaxis=dict(gridcolor=GRID, tickfont=dict(color="white", size=16)),
     yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=15),
@@ -186,7 +186,7 @@ with donut_col:
         marker=dict(colors=d_colors, line=dict(color="#0d1117", width=2)),
         textinfo="label+percent",
         textfont=dict(color="white", size=14),
-        hovertemplate="<b>%{label}</b>: TT$%{value:,.1f}M (%{percent})<extra></extra>",
+        hovertemplate="<b>%{label}</b>: %{value:,.1f} (%{percent})<extra></extra>",
         title=dict(
             text=f"<b>Total<br>{ytd_tot:,.0f}</b>",
             font=dict(size=16, color="white"),
@@ -222,13 +222,13 @@ with wf_col:
         decreasing=dict(marker=dict(color="#FF4444")),
         totals=dict(marker=dict(color=EBI_COLOR)),
         connector=dict(line=dict(color="rgba(255,255,255,0.15)", width=1, dash="dot")),
-        hovertemplate="<b>%{x}</b>: TT$%{y:,.1f}M<extra></extra>",
+        hovertemplate="<b>%{x}</b>: %{y:,.1f}<extra></extra>",
     ))
     fig_wf.update_layout(
         height=380,
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"),
-        title=dict(text=f"<b>YoY Revenue Bridge — {_mon_lbl} vs {_ly_lbl} (TT$M)</b>",
+        title=dict(text=f"<b>YoY Revenue Bridge — {_mon_lbl} vs {_ly_lbl}</b>",
                    font=dict(size=16, color="white"), x=0),
         xaxis=dict(gridcolor=GRID, tickfont=dict(color="white", size=14)),
         yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=14), zeroline=False),
@@ -252,7 +252,7 @@ def _hl(name, color):
     return (
         f'<span style="color:{color};font-weight:700;">{name}</span> revenue '
         f'<span style="color:{c};font-weight:600;">{sign}&thinsp;{abs(pct):.1f}% YoY</span> '
-        f'(TT${d:+.1f}M)'
+        f'({d:+.1f})'
     )
 
 hl_parts = [_hl("Consumer", SEG_COLORS["Consumer"]),

@@ -19,7 +19,7 @@ def load_ar_aging():
     """Load AR aging buckets from the Receivables Executive Summary workbook.
 
     Returns a dict with keys 'gov', 'non_gov', 'total', each being a dict of
-    bucket values in TT$M.  Returns fallback hard-coded values on failure.
+    bucket values in .  Returns fallback hard-coded values on failure.
     """
     try:
         df = pd.read_excel(AR_FILE, sheet_name=AR_SHEET, header=None)
