@@ -31,11 +31,11 @@ last12  = fin.tail(13).reset_index(drop=True)
 latest  = fin.iloc[-1]
 
 # ── Colors ────────────────────────────────────────────────────────────────────
-REV_COLOR = "#00d4a0"
+REV_COLOR = "#0101D3"
 GP_COLOR  = "#FF8844"
 EBI_COLOR = "#4a9eff"
 PAT_COLOR = "#aa44ff"
-CARD_BG   = "#1a2234"
+CARD_BG   = "#161B22"
 MUTED     = "#8888aa"
 GRID      = "#1e2a3a"
 
@@ -62,45 +62,50 @@ def make_svg_sparkline(series, color, width=220, height=56):
     )
 
 
-def _badge(label, delta, pos_color, neg_color):
-    color = pos_color if delta >= 0 else neg_color
-    r, g, b = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
+def _variance_row(label, pct_delta, dollar_delta, unit, is_margin=False):
+    color = "#00d4a0" if pct_delta >= 0 else "#FF4444"
+    pct_str = f"{'+' if pct_delta >= 0 else ''}{pct_delta:.1f}{unit}"
+    if is_margin:
+        content = f"{label}&nbsp;&nbsp;<b>{pct_str}</b>"
+    else:
+        dollar_str = f"{'+' if dollar_delta >= 0 else ''}{dollar_delta:,.0f}"
+        content = f"{label}&nbsp;&nbsp;<b>{dollar_str}</b>&nbsp;&nbsp;{pct_str}"
     return (
-        f'<span style="font-size:14px;font-weight:600;padding:2px 8px;border-radius:3px;'
-        f'background:rgba({r},{g},{b},0.15);color:{color};">{label}</span>'
+        f'<div style="color:{color};font-size:20px;font-weight:600;'
+        f'padding:3px 0;white-space:nowrap;">{content}</div>'
     )
 
 
 def kpi_card(label, col, aop_col, ly_col, color, is_margin=False):
     actual = latest[col]
     if pd.isna(actual):
-        return f'<div style="background:{CARD_BG};border-radius:12px;padding:20px 16px;min-height:230px;">—</div>'
+        return f'<div style="background:{CARD_BG};border-radius:12px;padding:20px 14px;min-height:300px;">—</div>'
 
-    val_str = f"{actual:.1f}%" if is_margin else f"TT${actual:,.0f}M"
+    val_str = f"{actual:.1f}%" if is_margin else f"{actual:,.0f}"
     unit    = "pp" if is_margin else "%"
 
-    badges = []
+    variance_rows = []
     aop = latest.get(aop_col)
     if aop is not None and pd.notna(aop) and aop != 0:
-        d = (actual - aop) if is_margin else (actual - aop) / abs(aop) * 100
-        lbl = f"vs AOP {'+' if d >= 0 else ''}{d:.1f}{unit}"
-        badges.append(_badge(lbl, d, "#00d4a0", "#FF4444"))
+        d_pct = (actual - aop) if is_margin else (actual - aop) / abs(aop) * 100
+        d_abs = actual - aop
+        variance_rows.append(_variance_row("vs AOP", d_pct, d_abs, unit, is_margin))
 
     ly = latest.get(ly_col)
     if ly is not None and pd.notna(ly) and ly != 0:
-        d = (actual - ly) if is_margin else (actual - ly) / abs(ly) * 100
-        lbl = f"vs PY {'+' if d >= 0 else ''}{d:.1f}{unit}"
-        badges.append(_badge(lbl, d, "#4a9eff", "#FFD700"))
+        d_pct = (actual - ly) if is_margin else (actual - ly) / abs(ly) * 100
+        d_abs = actual - ly
+        variance_rows.append(_variance_row("vs PY", d_pct, d_abs, unit, is_margin))
 
     sparkline = make_svg_sparkline(last12[col].fillna(0).tolist(), color)
-    badges_html = "&nbsp;".join(badges) if badges else "&nbsp;"
+    variances_html = "".join(variance_rows) if variance_rows else "&nbsp;"
 
     return f"""
-<div style="background:{CARD_BG};border-radius:12px;padding:20px 16px;
-            border:1px solid rgba(74,158,255,0.08);border-top:3px solid {color};height:100%;min-height:230px;">
-    <div style="color:{MUTED};font-size:14px;font-weight:500;margin-bottom:4px;">{label}</div>
-    <div style="color:white;font-size:64px;font-weight:800;line-height:1;margin:4px 0 10px 0;">{val_str}</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;">{badges_html}</div>
+<div style="background:{CARD_BG};border-radius:12px;padding:20px 14px;
+            border:1px solid rgba(74,158,255,0.08);border-top:3px solid {color};height:100%;min-height:300px;">
+    <div style="color:{MUTED};font-size:20px;font-weight:500;margin-bottom:4px;">{label}</div>
+    <div style="color:white;font-size:64px;font-weight:800;line-height:1;margin:4px 0 12px 0;">{val_str}</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px;">{variances_html}</div>
     {sparkline}
 </div>"""
 
@@ -109,7 +114,7 @@ def driver_block(label, color, col, aop_col, ly_col, is_margin=False, last_entry
     actual = latest[col]
     if pd.isna(actual):
         return ""
-    val_str = f"{actual:.1f}%" if is_margin else f"TT${actual:,.0f}M"
+    val_str = f"{actual:.1f}%" if is_margin else f"{actual:,.0f}"
     unit    = "pp" if is_margin else "%"
     month   = latest["Month"]
 
@@ -123,14 +128,14 @@ def driver_block(label, color, col, aop_col, ly_col, is_margin=False, last_entry
     ly = latest.get(ly_col)
     if ly is not None and pd.notna(ly) and ly != 0:
         d = (actual - ly) if is_margin else (actual - ly) / abs(ly) * 100
-        ly_str = f"{ly:.1f}%" if is_margin else f"TT${ly:,.0f}M"
+        ly_str = f"{ly:.1f}%" if is_margin else f"{ly:,.0f}"
         line2 = f"{'↑' if d >= 0 else '↓'} {abs(d):.1f}{unit} vs prior year ({ly_str})"
 
     divider = "" if last_entry else "border-bottom:1px solid #1e3050;"
     return f"""
 <div style="margin-bottom:18px;padding-bottom:16px;{divider}">
-    <div style="font-size:14px;font-weight:700;color:{color};margin-bottom:6px;">{label}</div>
-    <div style="color:#c0c8d8;font-size:14px;line-height:1.6;">{line1}</div>
+    <div style="font-size:27px;font-weight:700;color:{color};margin-bottom:6px;">{label}</div>
+    <div style="color:#c0c8d8;font-size:27px;line-height:1.6;">{line1}</div>
     {"<div style='color:#8888aa;font-size:13px;line-height:1.6;'>" + line2 + "</div>" if line2 else ""}
 </div>"""
 
@@ -144,7 +149,7 @@ st.markdown(f"""
                      padding:4px 10px;border-radius:4px;">02</span>
         <span style="font-size:26px;font-weight:800;color:white;">Financial Performance</span>
     </div>
-    <div style="color:{MUTED};font-size:12px;">All figures in TT$M unless otherwise stated</div>
+    <div style="color:{MUTED};font-size:12px;">Financial Performance</div>
 </div>""", unsafe_allow_html=True)
 
 # ── KPI Cards ─────────────────────────────────────────────────────────────────
@@ -186,10 +191,10 @@ with chart_col:
     ))
     fig.update_layout(
         height=560,
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor=CARD_BG, plot_bgcolor=CARD_BG,
         font=dict(color="white"),
-        title=dict(text="<b>Revenue, Gross Profit & EBITDA — 13-Month Trend (TT$M)</b>",
-                   font=dict(size=13, color="white"), x=0),
+        title=dict(text="<b>Revenue, Gross Profit & EBITDA — 13-Month Trend</b>",
+                   font=dict(size=24, color="white"), x=0),
         xaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=13), showline=False, tickangle=-30),
         yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=13), showline=False, zeroline=False),
         legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="white"),
