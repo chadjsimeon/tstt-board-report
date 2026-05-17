@@ -1,7 +1,14 @@
-on /* ── TSTT Board Report — Dark Theme ─────────────────────────────────────── */
+/* ── TSTT Board Report — Dark Theme ─────────────────────────────────────── */
 
-/* Base */
-.stApp { background-color: #0D1117 !important; }
+/* Base — cover every Streamlit layout layer */
+.stApp,
+.stApp > div,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+[data-testid="stMainBlockContainer"],
+.main {
+    background-color: #0D1117 !important;
+}
 
 .main .block-container {
     padding: 0.8rem 2rem 2rem !important;
