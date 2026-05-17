@@ -14,10 +14,11 @@ inject_css()
 st.markdown("""
 <style>
 .main .block-container {
-    padding-bottom: 0.5rem !important;
-    min-height: calc(100vh - 60px) !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0 !important;
+    max-height: calc(100vh - 60px) !important;
+    overflow: hidden !important;
 }
-[data-testid="column"] { min-height: calc(100vh - 220px); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -60,8 +61,7 @@ with col_left:
 
     cats       = latest.sort_values("Plan", ascending=True).copy()
     n          = len(cats)
-    # slot height scaled to align chart bottom with the Cost Movements / Spend to Date separator
-    fig_height = max(620, n * 93 + 10)
+    fig_height = max(380, n * 52 + 40)
     bar_colors = ["#22c55e" if v <= 0 else "#ef4444" for v in cats["Variance"]]
 
     fig = go.Figure()
@@ -146,7 +146,7 @@ with col_right:
         sign     = "+" if var < 0 else "-"
 
         st.markdown(f"""
-<div style="display:flex;align-items:center;margin-bottom:14px;padding:16px 18px;
+<div style="display:flex;align-items:center;margin-bottom:6px;padding:8px 14px;
             background:rgba(255,255,255,0.04);border-radius:10px;
             border-left:4px solid {color}">
     <div style="background:{badge_bg};color:{color};font-weight:800;font-size:20px;
@@ -154,7 +154,7 @@ with col_right:
                 margin-right:16px;border:1px solid {color};flex-shrink:0">{rank}</div>
     <div style="flex:1;min-width:0">
         <div style="font-weight:700;font-size:22px;color:white;
-                    margin-bottom:6px">{row['Category']}</div>
+                    margin-bottom:2px">{row['Category']}</div>
         <div style="font-size:18px;color:#8888aa;line-height:1.4">
             {abs(vpct):.1f}% {label} — {abs(row['Plan']):,.2f} planned
         </div>
@@ -165,12 +165,12 @@ with col_right:
     </div>
 </div>""", unsafe_allow_html=True)
 
-    st.markdown("<div style='margin-top:10px'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:4px'></div>", unsafe_allow_html=True)
     st.markdown("---")
 
     # ── Spend to Date ─────────────────────────────────────────────────────────
     st.markdown("#### Spend to Date")
-    st.markdown("<div style='margin-top:8px'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:4px'></div>", unsafe_allow_html=True)
 
     # Restrict to the financial year that contains sel_month (Apr–Mar)
     _sel_dt   = pd.to_datetime(sel_month, format="%b-%y")
@@ -194,27 +194,27 @@ with col_right:
     rem_sign     = "+" if remaining < 0 else ""
 
     st.markdown(f"""
-<div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:24px 24px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:12px 18px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span style="color:#aaaacc;font-size:20px;font-weight:500">YTD Spend vs Annual Budget</span>
         <span style="color:{pct_color};font-weight:800;font-size:30px">{progress:.1f}%</span>
     </div>
-    <div style="background:#1e1e3a;border-radius:8px;height:22px;overflow:hidden;margin-bottom:18px">
+    <div style="background:#1e1e3a;border-radius:8px;height:18px;overflow:hidden;margin-bottom:10px">
         <div style="background:{bar_color};
                     width:{progress:.1f}%;height:100%;border-radius:8px"></div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:baseline">
         <div>
             <div style="color:{pct_color};font-size:24px;font-weight:700">{ytd_spend:,.2f}</div>
-            <div style="color:#6688aa;font-size:18px;margin-top:4px">spent YTD</div>
+            <div style="color:#6688aa;font-size:18px;margin-top:2px">spent YTD</div>
         </div>
         <div style="text-align:center">
             <div style="color:{rem_color};font-size:24px;font-weight:700">{rem_sign}{abs(remaining):,.2f}</div>
-            <div style="color:#6688aa;font-size:18px;margin-top:4px">{rem_label}</div>
+            <div style="color:#6688aa;font-size:18px;margin-top:2px">{rem_label}</div>
         </div>
         <div style="text-align:right">
             <div style="color:#aaaacc;font-size:24px;font-weight:700">{annual_plan:,.2f}</div>
-            <div style="color:#6688aa;font-size:18px;margin-top:4px">annual budget</div>
+            <div style="color:#6688aa;font-size:18px;margin-top:2px">annual budget</div>
         </div>
     </div>
 </div>""", unsafe_allow_html=True)
