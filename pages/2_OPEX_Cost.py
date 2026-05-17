@@ -165,12 +165,10 @@ with col_right:
     </div>
 </div>""", unsafe_allow_html=True)
 
-    st.markdown("<div style='margin-top:4px'></div>", unsafe_allow_html=True)
-    st.markdown("---")
+    st.markdown("<hr style='border:none;border-top:1px solid #2a2a4a;margin:6px 0 6px 0'>", unsafe_allow_html=True)
 
     # ── Spend to Date ─────────────────────────────────────────────────────────
     st.markdown("#### Spend to Date")
-    st.markdown("<div style='margin-top:4px'></div>", unsafe_allow_html=True)
 
     # Restrict to the financial year that contains sel_month (Apr–Mar)
     _sel_dt   = pd.to_datetime(sel_month, format="%b-%y")
