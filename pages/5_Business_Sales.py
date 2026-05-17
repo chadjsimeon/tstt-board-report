@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data, pivot_by_group, get_month_order
 from utils.charts import (
-    inject_css, page_header, styled_metric,
+    inject_css, page_header,
     line_chart, stacked_bar, grouped_bar, funnel_chart, donut_chart,
     GREEN, RED, BLUE, YELLOW, PURPLE, ORANGE, CYAN,
 )
@@ -46,30 +46,6 @@ months    = get_month_order(biz)
 pip_months = get_month_order(pipeline)
 sel_month  = st.sidebar.selectbox("Focus Month", months, index=len(months) - 1)
 pip_month  = st.sidebar.selectbox("Pipeline Month", pip_months, index=len(pip_months) - 1)
-
-# ── Summary metrics ───────────────────────────────────────────────────────────
-latest = biz[biz["Month"] == sel_month]
-total_rev   = latest["Revenue"].sum()
-total_gp    = latest["Gross_Profit"].sum()
-avg_gp_pct  = total_gp / total_rev * 100 if total_rev else 0
-total_mrr   = latest["MRR"].sum()
-total_aop   = latest["Revenue_AOP"].sum()
-vs_aop      = (total_rev - total_aop) / total_aop * 100 if total_aop else 0
-
-m1, m2, m3, m4 = st.columns(4)
-with m1:
-    styled_metric("Business Revenue", f"TT${total_rev:,.0f}M",
-                  f"{vs_aop:+.1f}% vs AOP", vs_aop >= 0, "#00d4a0")
-with m2:
-    styled_metric("Gross Profit", f"TT${total_gp:,.0f}M",
-                  f"{avg_gp_pct:.1f}% margin", None, "#4a9eff")
-with m3:
-    styled_metric("Monthly Recurring", f"TT${total_mrr:,.0f}M", accent="#aa44ff")
-with m4:
-    pip_val = pipeline[pipeline["Month"] == pip_month]["Value_TTD_M"].sum()
-    styled_metric("Pipeline", f"TT${pip_val:,.0f}M", accent="#FF8844")
-
-st.markdown("---")
 
 tab1, tab2, tab3, tab_fp = st.tabs([
     "Sales Performance", "Pipeline", "Renewals at Risk", "Financial Performance",
