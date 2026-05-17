@@ -1,44 +1,73 @@
 """
-build_board_data.py — ETL: financial_data.xlsx → TSTT_Board_Data.xlsx
+build_board_data.py — ETL: Consolidated Contribution Statements.xlsx → TSTT_Board_Data.xlsx
 
-Run this whenever new financial data arrives:
+Run whenever new financial data arrives:
     python build_board_data.py
 
-The script reads normalized long-format data from financial_data.xlsx and writes
-the wide-format sheets expected by the Streamlit dashboard (data_loader.py).
-
-Values are written as raw TTD$ — data_loader.py handles the /1,000,000 scaling
-and decimal-to-percent conversions.
+Values are written as raw TTD$ — data_loader.py handles the /1,000,000 scaling.
 """
 
 import numpy as np
 import pandas as pd
 
-SRC              = "financial_data.xlsx"
-DST              = "TSTT_Board_Data.xlsx"
-SUBS_SRC         = "subscriber_base_apw.xlsx"
-AMP_KPI_SRC      = "Amplia Metrics 2024-2025 February 2026.xlsx"
-AOP_OPEX_SRC     = "OPEX_AOP_FY2027.xlsx"
+# ── openpyxl monkey-patch for corrupted print-title in source workbook ────────
+import openpyxl.reader.workbook as _wbr
+_orig_assign = _wbr.WorkbookParser.assign_names
+def _safe_assign(self, *a, **k):
+    try: return _orig_assign(self, *a, **k)
+    except Exception: pass
+_wbr.WorkbookParser.assign_names = _safe_assign
+
+# ── File paths ─────────────────────────────────────────────────────────────────
+SRC          = "Consolidated Contribution Statements.xlsx"
+DST          = "TSTT_Board_Data.xlsx"
+SUBS_SRC     = "subscriber_base_apw.xlsx"
+AMP_KPI_SRC  = "Amplia Metrics 2024-2025 February 2026.xlsx"
+AOP_OPEX_SRC = "OPEX_AOP_FY2027.xlsx"
 
 CUR_FY = "2026-27"
 LY_FY  = "2025-26"
+PY_FY  = "2024-25"
 
-# ── OPEX category consolidation ───────────────────────────────────────────────
-# Maps every financial_data.xlsx OPEX description → one of 6 canonical categories
-OPEX_CATEGORY_MAP = {
-    "Personnel.":                "Personnel",
-    "Maintenance.":              "Maintenance",
-    "Consultancy & Other Fees.": "Consultancy & Professional Fees",
-    "Professional.":             "Consultancy & Professional Fees",
-    "Consultancy/Contractors":   "Consultancy & Professional Fees",
-    "Other Operating Expenses.": "Other Operating Expenses",
-    "Insurance":                 "Other Operating Expenses",
-    "Security.":                 "Other Operating Expenses",
-    "Bad Debt":                  "Bad Debt",
-    "Advertising & PR.":         "Advertising & PR",
-}
+MONTH_ORDER = [
+    "April", "May", "June", "July", "August", "September",
+    "October", "November", "December", "January", "February", "March",
+]
+_Q4_MONTHS = {"January", "February", "March"}
 
-# Maps OPEX_AOP_FY2027.xlsx Group names → same 6 canonical categories
+
+def fmt_month(month_name: str, fy: str) -> str:
+    """'April', '2026-27' → 'Apr-26'"""
+    first_yr, second_yr = fy.split("-")
+    suffix = second_yr if month_name in _Q4_MONTHS else first_yr[-2:]
+    return pd.to_datetime(month_name, format="%B").strftime("%b") + "-" + suffix
+
+
+def _g(lookup: dict, key: str, mon_yy: str, default=np.nan):
+    return lookup.get((key, mon_yy), default)
+
+
+def _safe(v):
+    return float(v) if pd.notna(v) else np.nan
+
+
+# ── Row index constants (0-based) for Consolidated P&L ───────────────────────
+CPL = dict(
+    TOT_REV=16,  CON_REV=11,  BIZ_REV=12,  DPDI_REV=13, AMP_REV=14,  OTH_REV=15,
+    CON_COS=18,  BIZ_COS=19,  DPDI_COS=20, AMP_COS=21,  OTH_COS=22,
+    DIR_COST=23, GP=25,       TOT_OPEX=166, EBITDA=168,  PAT=182,
+    PERSONNEL=33, MAINT=67,   BAD_DEBT=161,
+)
+# First data column per FY in Consolidated P&L
+FY_COL = {PY_FY: 15, LY_FY: 27, CUR_FY: 39}
+
+# ── Row index constants for Consol P&L AoP (FY26-27 only) ────────────────────
+CAOP = dict(
+    TOT_REV=15, CON_REV=10, BIZ_REV=11, DPDI_REV=12, AMP_REV=13, OTH_REV=14,
+    DIR_COST=22, GP=26, TOT_OPEX=162, EBITDA=164, PAT=178,
+)
+
+# ── OPEX categories ────────────────────────────────────────────────────────────
 AOP_OPEX_CATEGORY_MAP = {
     "Personnel":                "Personnel",
     "Maintenance":              "Maintenance",
@@ -48,472 +77,459 @@ AOP_OPEX_CATEGORY_MAP = {
     "Bad Debt":                 "Bad Debt",
     "Advertising & PR":         "Advertising & PR",
 }
-
 CANONICAL_OPEX_CATS = [
-    "Personnel",
-    "Maintenance",
-    "Consultancy & Professional Fees",
-    "Other Operating Expenses",
-    "Bad Debt",
-    "Advertising & PR",
+    "Personnel", "Maintenance", "Consultancy & Professional Fees",
+    "Other Operating Expenses", "Bad Debt", "Advertising & PR",
 ]
 
-# Month order within a TSTT financial year (April = Period 1)
-MONTH_ORDER = [
-    "April", "May", "June", "July", "August", "September",
-    "October", "November", "December", "January", "February", "March",
-]
-# In an April-to-March financial year, Jan/Feb/Mar fall in the second calendar year
-_Q4_MONTHS = {"January", "February", "March"}
+
+# ── Sheet readers ──────────────────────────────────────────────────────────────
+
+def _read_consol_pl(xl):
+    """Return {(metric_key, 'Mon-YY'): raw_TTD}. Covers PY/LY/CUR FY."""
+    df = xl.parse("Consolidated P&L", header=None)
+    result = {}
+    for fy, start_col in FY_COL.items():
+        first_yr, second_yr = fy.split("-")
+        for offset in range(12):
+            col = start_col + offset
+            raw_lbl = df.iloc[10, col]
+            if pd.isna(raw_lbl):
+                continue
+            abbr = str(raw_lbl).strip()[:3]
+            yr = second_yr if abbr in ("Jan", "Feb", "Mar") else first_yr[-2:]
+            mon_yy = f"{abbr}-{yr}"
+            for key, row_idx in CPL.items():
+                result[(key, mon_yy)] = _safe(df.iloc[row_idx, col])
+    return result
 
 
-def fmt_month(month_name: str, fy: str) -> str:
-    """Return 'Mon-YY' with the correct calendar year.
-    FY format 'YYYY-YY': Apr-Dec use the first year; Jan-Mar use the second.
-    """
-    first_yr, second_yr = fy.split("-")
-    suffix = second_yr if month_name in _Q4_MONTHS else first_yr[-2:]
-    return pd.to_datetime(month_name, format="%B").strftime("%b") + "-" + suffix
+def _read_consol_aop(xl):
+    """Return {(metric_key, 'Mon-YY'): raw_TTD}. Source is TTD thousands → ×1000."""
+    df = xl.parse("Consol P&L AoP", header=None)
+    result = {}
+    first_yr, second_yr = CUR_FY.split("-")
+    for offset in range(12):
+        col = 2 + offset
+        raw_lbl = df.iloc[9, col]
+        if pd.isna(raw_lbl):
+            continue
+        abbr = str(raw_lbl).strip()[:3]
+        yr = second_yr if abbr in ("Jan", "Feb", "Mar") else first_yr[-2:]
+        mon_yy = f"{abbr}-{yr}"
+        for key, row_idx in CAOP.items():
+            v = df.iloc[row_idx, col]
+            result[(key, mon_yy)] = _safe(v) * 1000 if pd.notna(v) else np.nan
+    return result
 
 
-def _get(src: pd.DataFrame, bu: str, desc: str, month: str, default=np.nan):
-    """Return a single value matching BU / description / month; default if not found."""
-    mask = (src["BU"] == bu) & (src["Description"] == desc) & (src["Month"] == month)
-    v = src.loc[mask, "Value"]
-    return float(v.iloc[0]) if len(v) else default
+def _read_wide_pl(xl, sheet, header_row, data_col_start, rows: dict, scale=1_000_000):
+    """Read a wide-format P&L sheet with datetime column headers."""
+    df = xl.parse(sheet, header=None)
+    result = {}
+    for col in range(data_col_start, df.shape[1]):
+        dt = df.iloc[header_row, col]
+        if pd.isna(dt) or not hasattr(dt, "strftime"):
+            continue
+        mon_yy = dt.strftime("%b-%y")
+        for key, row_idx in rows.items():
+            v = df.iloc[row_idx, col]
+            result[(key, mon_yy)] = _safe(v) * scale if pd.notna(v) else np.nan
+    return result
 
 
-def _get_sum(src: pd.DataFrame, bu: str, descs: list, month: str, default=np.nan):
-    """Sum values across multiple descriptions for one BU / month."""
-    if not descs:
-        return default
-    mask = (src["BU"] == bu) & (src["Description"].isin(descs)) & (src["Month"] == month)
-    rows = src.loc[mask, "Value"]
-    return float(rows.sum()) if len(rows) else default
+def _read_consumer_pl(xl):
+    return _read_wide_pl(xl, "Consumer Sales P&L", 3, 3, dict(
+        POSTPD_REV=5, PREPD_REV=6, WTTX_REV=11,
+        TOT_REV=16, DIR_COST=20, GP=22, TOT_OPEX=27, EBITDA=29,
+    ))
 
 
-def _get_opex_canon_sum(src: pd.DataFrame, bu: str, canonical_cat: str, month: str, cat_map: dict, default=np.nan):
-    """Sum all OPEX descriptions that map to canonical_cat for bu/month."""
-    descs = [desc for desc, canon in cat_map.items() if canon == canonical_cat]
-    if not descs:
-        return default
-    mask = (src["BU"] == bu) & (src["Description"].isin(descs)) & (src["Month"] == month)
-    rows = src.loc[mask, "Value"]
-    return float(rows.sum()) if len(rows) else default
+def _read_business_pl(xl):
+    return _read_wide_pl(xl, "Business Sales P&L", 3, 4, dict(
+        ENT_MOB=5, CIRCUIT=8, CLOUD=9, SECURITY=10, ENT_FIXED=12,
+        CPE=13, WTTX=14, CARRIER=15, OTHER=16,
+        TOT_REV=17, DIR_COST=21, GP=23, TOT_OPEX=28, EBITDA=30,
+    ))
 
 
-def build_financial_monthly(act, aop, ly, ly_aop, act_months):
-    """
-    Build a rolling 13-month dataset:
-      - FY 2025-26 (all 12 months): ACT from ly, AOP from ly_aop, LY = NaN (FY24-25 not available)
-      - FY 2026-27 (ACT months only): ACT from act, AOP from aop, LY = same month from ly
+def _read_dpdi_pl(xl):
+    return _read_wide_pl(xl, "DPD&I P&L", 2, 3, dict(
+        E_TENDER=4, E_HEALTH=5, E_KIOSK=6, PAYPR=7, E_CASHBOOK=8,
+        E_PAY=9, OTHER=10,
+        TOT_REV=11, DIR_COST=15, GP=17, TOT_OPEX=26, EBITDA=28,
+    ))
 
-    This ensures fin.iloc[-1] always lands on the most recent month with real ACT data,
-    which the Financial Performance page requires for its metric cards.
-    """
-    rows = []
 
-    # Historical full year: FY 2025-26
-    for m in MONTH_ORDER:
-        rows.append({
-            "Month":         fmt_month(m, LY_FY),
-            "Revenue":       _get(ly,     "Consolidated", "TOTAL REVENUE", m),
-            "EBITDA":        _get(ly,     "Consolidated", "EBITDA", m),
-            "PAT":           _get(ly,     "Consolidated", "Profit After Taxation", m),
-            "EBITDA_Margin": _get(ly,     "Consolidated", "EBITDA %", m),
-            "Revenue_AOP":   _get(ly_aop, "Consolidated", "TOTAL REVENUE", m),
-            "EBITDA_AOP":    _get(ly_aop, "Consolidated", "EBITDA", m),
-            "PAT_AOP":       _get(ly_aop, "Consolidated", "Profit After Taxation", m),
-            "Revenue_PY":    np.nan,   # FY 2024-25 not in source data
-            "EBITDA_PY":     np.nan,
-            "PAT_PY":        np.nan,
-        })
-
-    # Current year: FY 2026-27 ACT months (April onward)
-    for m in act_months:
-        rows.append({
-            "Month":         fmt_month(m, CUR_FY),
-            "Revenue":       _get(act, "Consolidated", "TOTAL REVENUE", m),
-            "EBITDA":        _get(act, "Consolidated", "EBITDA", m),
-            "PAT":           _get(act, "Consolidated", "Profit After Taxation", m),
-            "EBITDA_Margin": _get(act, "Consolidated", "EBITDA %", m),
-            "Revenue_AOP":   _get(aop, "Consolidated", "TOTAL REVENUE", m),
-            "EBITDA_AOP":    _get(aop, "Consolidated", "EBITDA", m),
-            "PAT_AOP":       _get(aop, "Consolidated", "Profit After Taxation", m),
-            "Revenue_PY":    _get(ly,  "Consolidated", "TOTAL REVENUE", m),  # same month, prior FY
-            "EBITDA_PY":     _get(ly,  "Consolidated", "EBITDA", m),
-            "PAT_PY":        _get(ly,  "Consolidated", "Profit After Taxation", m),
-        })
-
-    return pd.DataFrame(rows)
+def _read_amplia_fin(xl):
+    """Amplia formatted FY2526: raw TTD, date headers at row 5, data cols 9-44."""
+    df = xl.parse("Amplia formatted FY2526", header=None)
+    result = {}
+    for col in range(9, 45):
+        dt = df.iloc[5, col]
+        if pd.isna(dt) or not hasattr(dt, "strftime"):
+            continue
+        mon_yy = dt.strftime("%b-%y")
+        for key, row_idx in dict(TOT_REV=16, GP=30, EBITDA=75, PAT=88).items():
+            result[(key, mon_yy)] = _safe(df.iloc[row_idx, col])
+    return result
 
 
 def _load_aop_opex_fy27():
-    """Aggregate OPEX_AOP_FY2027.xlsx → dict {(canonical_category, 'Mon-YY'): plan_amount}.
-    Returns empty dict if the file is missing."""
     try:
         aop = pd.read_excel(AOP_OPEX_SRC, sheet_name="OPEX AOP")
-        aop["CanonicalCat"] = aop["Group"].map(AOP_OPEX_CATEGORY_MAP)
-        aop = aop.dropna(subset=["CanonicalCat"])
-        lookup = (
-            aop.groupby(["CanonicalCat", "Period"])["Amount"]
-            .sum()
-            .to_dict()
-        )
-        return lookup   # keys are (canonical_cat, "Apr-26") etc.
+        aop["Cat"] = aop["Group"].map(AOP_OPEX_CATEGORY_MAP)
+        aop = aop.dropna(subset=["Cat"])
+        return aop.groupby(["Cat", "Period"])["Amount"].sum().to_dict()
     except FileNotFoundError:
         print(f"  WARNING: {AOP_OPEX_SRC} not found — FY2027 OPEX plan will be empty.")
         return {}
 
 
-def _norm(s):
-    """Normalise a category name for fuzzy matching (strip dots/spaces, lowercase)."""
-    return str(s).strip().rstrip(".").strip().lower()
+# ── Build functions ────────────────────────────────────────────────────────────
 
-
-def build_opex(act, aop, ly, ly_aop, act_months, aop_fy27):
-    """Build the OPEX sheet with 6 canonical categories.
-
-    FY 2025-26: actuals + plan from financial_data.xlsx (full 12 months),
-                source descriptions mapped to canonical cats via OPEX_CATEGORY_MAP.
-    FY 2026-27: actuals from financial_data.xlsx for ACT months; plan from
-                OPEX_AOP_FY2027.xlsx for all 12 months so the annual budget
-                is always complete.
-    """
+def build_financial_monthly(cpl, caop, act_months):
     rows = []
-
-    # ── Pass 1: FY 2025-26 full year ─────────────────────────────────────────
     for m in MONTH_ORDER:
-        for cat in CANONICAL_OPEX_CATS:
-            rows.append({
-                "Month":        fmt_month(m, LY_FY),
-                "Category":     cat,
-                "Actual":       _get_opex_canon_sum(ly,     "Consolidated", cat, m, OPEX_CATEGORY_MAP),
-                "Plan":         _get_opex_canon_sum(ly_aop, "Consolidated", cat, m, OPEX_CATEGORY_MAP),
-                "Variance":     0,
-                "Variance_Pct": 0,
-            })
-
-    # ── Pass 2: FY 2026-27 ACT months — actual from financial_data ───────────
+        mon = fmt_month(m, LY_FY)
+        py  = fmt_month(m, PY_FY)
+        rev = _g(cpl, "TOT_REV", mon)
+        ebi = _g(cpl, "EBITDA",  mon)
+        pat = _g(cpl, "PAT",     mon)
+        rows.append({
+            "Month":         mon,
+            "Revenue":       rev,
+            "EBITDA":        ebi,
+            "PAT":           pat,
+            "EBITDA_Margin": ebi / rev if (pd.notna(ebi) and pd.notna(rev) and rev) else np.nan,
+            "Revenue_AOP":   np.nan,
+            "EBITDA_AOP":    np.nan,
+            "PAT_AOP":       np.nan,
+            "Revenue_PY":    _g(cpl, "TOT_REV", py),
+            "EBITDA_PY":     _g(cpl, "EBITDA",  py),
+            "PAT_PY":        _g(cpl, "PAT",     py),
+        })
     for m in act_months:
-        month_abbr = fmt_month(m, CUR_FY)
-        for cat in CANONICAL_OPEX_CATS:
-            actual = _get_opex_canon_sum(act, "Consolidated", cat, m, OPEX_CATEGORY_MAP)
-            plan   = aop_fy27.get((cat, month_abbr), np.nan)
-            rows.append({
-                "Month":        month_abbr,
-                "Category":     cat,
-                "Actual":       actual,
-                "Plan":         plan,
-                "Variance":     0,
-                "Variance_Pct": 0,
-            })
-
-    # ── Pass 3: FY 2026-27 remaining months — plan only ──────────────────────
-    future_months = [m for m in MONTH_ORDER if m not in act_months]
-    for m in future_months:
-        month_abbr = fmt_month(m, CUR_FY)
-        for cat in CANONICAL_OPEX_CATS:
-            plan = aop_fy27.get((cat, month_abbr), np.nan)
-            rows.append({
-                "Month":        month_abbr,
-                "Category":     cat,
-                "Actual":       np.nan,
-                "Plan":         plan,
-                "Variance":     0,
-                "Variance_Pct": 0,
-            })
-
+        mon = fmt_month(m, CUR_FY)
+        ly  = fmt_month(m, LY_FY)
+        rev = _g(cpl,  "TOT_REV", mon)
+        ebi = _g(cpl,  "EBITDA",  mon)
+        pat = _g(cpl,  "PAT",     mon)
+        rows.append({
+            "Month":         mon,
+            "Revenue":       rev,
+            "EBITDA":        ebi,
+            "PAT":           pat,
+            "EBITDA_Margin": ebi / rev if (pd.notna(ebi) and pd.notna(rev) and rev) else np.nan,
+            "Revenue_AOP":   _g(caop, "TOT_REV", mon),
+            "EBITDA_AOP":    _g(caop, "EBITDA",  mon),
+            "PAT_AOP":       _g(caop, "PAT",     mon),
+            "Revenue_PY":    _g(cpl,  "TOT_REV", ly),
+            "EBITDA_PY":     _g(cpl,  "EBITDA",  ly),
+            "PAT_PY":        _g(cpl,  "PAT",     ly),
+        })
     return pd.DataFrame(rows)
 
 
-def build_cash_capex(act, aop, ly, act_months):
-    """
-    Cash flow and balance sheet data is only available for FY 2025-26 (last year).
-    For months where FY 2026-27 ACT cash data exists, use it; otherwise fall back
-    to FY 2025-26 actuals (labeled with their original LY month stamps) so the
-    board sees real figures rather than blanks.
-    """
-    # BS items in financial_data are stored in TTD$'000 (not raw TTD$) — multiply by 1000
-    BS_SCALE = 1000
+def build_pnl_breakdown(cpl, caop, act_months):
+    SEGS = {"CON": "CONSUMER SALES", "BIZ": "BUSINESS SALES",
+            "DPDI": "DPDI", "AMP": "AMPLIA", "OTH": "OTHER"}
 
-    def _cash_row(src_act, src_aop, month, fy):
-        cash_bal  = _get(src_act, "Consolidated", "CF: Closing Cash Balance", month, np.nan)
-        capex_act = _get(src_act, "Consolidated", "CF: Capex", month, np.nan)
-        capex_act = abs(capex_act) if not np.isnan(capex_act) else np.nan
-        # Use Cash Generated from Operations (positive = inflow) as proxy for operating CF
-        cgo       = _get(src_act, "Consolidated", "CF: Cash Generated from Operations", month, np.nan)
-        fcf       = (cgo - capex_act) if (not np.isnan(cgo) and not np.isnan(capex_act)) else np.nan
-        # BS items are in TTD$'000 — scale to raw TTD$
-        borrow_c  = _get(src_act, "Consolidated", "BS: Borrowings Current Portion", month, np.nan)
-        borrow_lt = _get(src_act, "Consolidated", "BS: Long-term Borrowings", month, np.nan)
-        cash_inv  = _get(src_act, "Consolidated", "BS: Cash & Short-term Investments", month, np.nan)
-        if not any(np.isnan(v) for v in [borrow_c, borrow_lt, cash_inv]):
-            net_debt = (abs(borrow_c) + abs(borrow_lt) - cash_inv) * BS_SCALE
-        else:
-            net_debt = np.nan
-        capex_plan_val = _get(src_aop, "Consolidated", "CF: Capex", month, np.nan)
-        capex_plan = abs(capex_plan_val) if not np.isnan(capex_plan_val) else np.nan
-        return {
-            "Month":           fmt_month(month, fy),
-            "Cash_Balance":    cash_bal,
-            "Net_Debt":        net_debt,
-            "Collections_Pct": 0,       # not available in financial_data
-            "FCF":             fcf,
-            "CAPEX_Actual":    capex_act,
-            "CAPEX_Plan":      capex_plan,
-        }
+    def make_row(mon, src, aop_src):
+        r = {"Month": mon}
+        for k, lbl in SEGS.items():
+            r[f"{lbl}_Rev"]     = _g(src,     f"{k}_REV", mon, 0)
+            r[f"{lbl}_Rev_AOP"] = _g(aop_src, f"{k}_REV", mon, 0)
+            r[f"{lbl}_COS"]     = _g(src,     f"{k}_COS", mon, 0)
+            r[f"{lbl}_COS_AOP"] = _g(aop_src, f"{k}_COS", mon, 0)
+        r["Total_Rev"]      = _g(src,     "TOT_REV",  mon, 0)
+        r["Total_Rev_AOP"]  = _g(aop_src, "TOT_REV",  mon, 0)
+        r["Total_COS"]      = _g(src,     "DIR_COST", mon, 0)
+        r["Total_COS_AOP"]  = _g(aop_src, "DIR_COST", mon, 0)
+        r["Total_OPEX"]     = _g(src,     "TOT_OPEX", mon, 0)
+        r["Total_OPEX_AOP"] = _g(aop_src, "TOT_OPEX", mon, 0)
+        r["EBITDA"]         = _g(src,     "EBITDA",   mon, 0)
+        r["EBITDA_AOP"]     = _g(aop_src, "EBITDA",   mon, 0)
+        return r
 
-    # Check whether CUR FY ACT contains any cash flow data
-    has_cf_in_cur = (act["Category"] == "Cash Flow").any() or (act["Category"] == "Balance Sheet").any()
+    rows = [make_row(fmt_month(m, LY_FY), cpl, {}) for m in MONTH_ORDER]
+    rows += [make_row(fmt_month(m, CUR_FY), cpl, caop) for m in act_months]
+    return pd.DataFrame(rows)
 
+
+def build_ebitda_bridge(cpl, caop, latest_mon):
+    g  = lambda src, k: _g(src, k, latest_mon, 0)
+    rv = g(cpl, "TOT_REV")  - g(caop, "TOT_REV")
+    dc = g(cpl, "DIR_COST") - g(caop, "DIR_COST")
+    ox = g(cpl, "TOT_OPEX") - g(caop, "TOT_OPEX")
+    bt = lambda v: "Positive" if v >= 0 else "Negative"
+    return pd.DataFrame([
+        {"Category": "AOP EBITDA",           "Value": g(caop,"EBITDA"), "Type": "Absolute",  "Sort_Order": 1},
+        {"Category": "Revenue Variance",      "Value": rv,               "Type": bt(rv),      "Sort_Order": 2},
+        {"Category": "Direct Costs Variance", "Value": dc,               "Type": bt(dc),      "Sort_Order": 3},
+        {"Category": "OPEX Variance",         "Value": ox,               "Type": bt(ox),      "Sort_Order": 4},
+        {"Category": "Actual EBITDA",         "Value": 0,                "Type": "Total",     "Sort_Order": 5},
+    ])
+
+
+def build_kpi_summary(cpl, caop, latest_mon, ly_mon):
+    ra = _g(cpl,  "TOT_REV", latest_mon, 0);  rp = _g(caop, "TOT_REV", latest_mon, 0);  rl = _g(cpl, "TOT_REV", ly_mon, 0)
+    ea = _g(cpl,  "EBITDA",  latest_mon, 0);  ep = _g(caop, "EBITDA",  latest_mon, 0);  el = _g(cpl, "EBITDA",  ly_mon, 0)
+    pa = _g(cpl,  "PAT",     latest_mon, 0);  pp = _g(caop, "PAT",     latest_mon, 0);  pl = _g(cpl, "PAT",     ly_mon, 0)
+    ma = ea / ra if ra else 0;  mp = ep / rp if rp else 0;  ml = el / rl if rl else 0
+    s  = lambda a, p: "🟢" if a >= p else "🔴"
+    return pd.DataFrame([
+        {"Month": latest_mon, "Section": "Financial", "KPI_Name": "Revenue",       "Actual": ra, "AOP": rp, "PY": rl, "Status": s(ra,rp), "Unit": "TT$M"},
+        {"Month": latest_mon, "Section": "Financial", "KPI_Name": "EBITDA",        "Actual": ea, "AOP": ep, "PY": el, "Status": s(ea,ep), "Unit": "TT$M"},
+        {"Month": latest_mon, "Section": "Financial", "KPI_Name": "PAT",           "Actual": pa, "AOP": pp, "PY": pl, "Status": s(pa,pp), "Unit": "TT$M"},
+        {"Month": latest_mon, "Section": "Financial", "KPI_Name": "EBITDA Margin", "Actual": ma, "AOP": mp, "PY": ml, "Status": s(ma,mp), "Unit": "%"},
+    ])
+
+
+def build_opex(cpl, aop_fy27, act_months):
     rows = []
-    if has_cf_in_cur:
-        # Use current FY data where available
-        for m in MONTH_ORDER:
-            rows.append(_cash_row(act if m in act_months else pd.DataFrame(columns=act.columns),
-                                  aop, m, CUR_FY))
-    else:
-        # Fall back to FY 2025-26 full-year actuals (most recent complete cash picture)
-        for m in MONTH_ORDER:
-            rows.append(_cash_row(ly, aop, m, LY_FY))
+
+    def actuals_for(mon):
+        p  = _g(cpl, "PERSONNEL", mon, np.nan)
+        m  = _g(cpl, "MAINT",     mon, np.nan)
+        bd = _g(cpl, "BAD_DEBT",  mon, np.nan)
+        tot= _g(cpl, "TOT_OPEX",  mon, np.nan)
+        oth = (tot - p - m - bd) if all(pd.notna(v) for v in [tot, p, m, bd]) else np.nan
+        return {"Personnel": p, "Maintenance": m, "Bad Debt": bd,
+                "Other Operating Expenses": oth,
+                "Consultancy & Professional Fees": np.nan,
+                "Advertising & PR": np.nan}
+
+    for m in MONTH_ORDER:
+        mon = fmt_month(m, LY_FY)
+        vals = actuals_for(mon)
+        for cat in CANONICAL_OPEX_CATS:
+            rows.append({"Month": mon, "Category": cat,
+                         "Actual": vals[cat], "Plan": np.nan,
+                         "Variance": 0, "Variance_Pct": 0})
+
+    for m in act_months:
+        mon = fmt_month(m, CUR_FY)
+        vals = actuals_for(mon)
+        for cat in CANONICAL_OPEX_CATS:
+            rows.append({"Month": mon, "Category": cat,
+                         "Actual": vals[cat],
+                         "Plan": aop_fy27.get((cat, mon), np.nan),
+                         "Variance": 0, "Variance_Pct": 0})
+
+    for m in [x for x in MONTH_ORDER if x not in act_months]:
+        mon = fmt_month(m, CUR_FY)
+        for cat in CANONICAL_OPEX_CATS:
+            rows.append({"Month": mon, "Category": cat,
+                         "Actual": np.nan,
+                         "Plan": aop_fy27.get((cat, mon), np.nan),
+                         "Variance": 0, "Variance_Pct": 0})
 
     return pd.DataFrame(rows)
 
 
-def build_consumer_sales(act, aop, ly, ly_aop, act_months, subs_df):
-    segment_map = {
-        "Prepaid":              ["Prepd Revenue."],
-        "Postpaid":             ["Postpd. Revenue."],
-        "WTTx":                 ["WTTX"],
-        "TV":                   ["TV"],
-        "Residential Security": ["Residential Security"],
-        "Other":                ["OTHER SERVICES", "Other Mobile Revenue.", "DATA", "Voice"],
-    }
-    _SUB_COLS = {"Prepaid": "Prepaid", "Postpaid": "Postpaid", "WTTx": "WTTx"}
+def _mar26_props(pnl, keys):
+    """Proportion of each key in total (using Mar-26 as the base month)."""
+    vals = {k: max(_g(pnl, k, "Mar-26", 0), 0) for k in keys}
+    total = sum(vals.values())
+    return {k: (v / total if total > 0 else 0) for k, v in vals.items()}
 
-    def get_subs(fy, month_full, segment):
-        col = _SUB_COLS.get(segment)
-        if col is None:
-            return 0
+
+def build_consumer_sales(cpl, caop, con_pl, subs_df, act_months):
+    SEG_KEYS = {"POSTPD_REV": "Postpaid", "PREPD_REV": "Prepaid", "WTTX_REV": "WTTx"}
+    props = _mar26_props(con_pl, list(SEG_KEYS))
+    # Mar-26 "Other" proportion relative to CPL CON_REV total
+    mar26_seg_sum = sum(_g(con_pl, k, "Mar-26", 0) for k in SEG_KEYS)
+    mar26_tot_rev = _g(cpl, "CON_REV", "Mar-26", 0)
+    other_prop = max(mar26_tot_rev - mar26_seg_sum, 0) / mar26_tot_rev if mar26_tot_rev else 0
+
+    def get_subs(fy, month_full, seg):
         abbr = pd.to_datetime(month_full, format="%B").strftime("%b")
         row = subs_df[(subs_df["FY"] == fy) & (subs_df["Month"] == abbr)]
-        if row.empty:
+        if row.empty or seg not in ["Prepaid", "Postpaid", "WTTx"]:
             return 0
-        val = row.iloc[0][col]
-        return int(val) if pd.notna(val) else 0
+        v = row.iloc[0].get(seg, 0)
+        return int(v) if pd.notna(v) else 0
 
     rows = []
-    # Pass 1: FY 2025-26 full year
+    # LY: segment revenue directly from con_pl
     for m in MONTH_ORDER:
-        for seg, descs in segment_map.items():
-            rev  = _get_sum(ly, "Consumer Sales", descs, m)
+        mon = fmt_month(m, LY_FY)
+        tot = _g(cpl, "CON_REV", mon)
+        for k, seg in SEG_KEYS.items():
+            rev = _g(con_pl, k, mon)
             subs = get_subs(LY_FY, m, seg)
-            arpu = rev / subs if subs > 0 and pd.notna(rev) else 0
-            rows.append({
-                "Month":          fmt_month(m, LY_FY),
-                "Segment":        seg,
-                "Revenue":        rev,
-                "Revenue_AOP":    _get_sum(ly_aop, "Consumer Sales", descs, m),
-                "Subscribers":    subs,
-                "Churn_Pct":      0,
-                "ARPU":           arpu,
-                "YoY_Change_Pct": 0,
-            })
-    # Pass 2: FY 2026-27 ACT months
+            rows.append({"Month": mon, "Segment": seg, "Revenue": rev,
+                         "Revenue_AOP": np.nan, "Subscribers": subs,
+                         "Churn_Pct": 0, "ARPU": rev/subs if subs and pd.notna(rev) else 0,
+                         "YoY_Change_Pct": 0})
+        for seg in ["TV", "Residential Security"]:
+            rows.append({"Month": mon, "Segment": seg, "Revenue": np.nan,
+                         "Revenue_AOP": np.nan, "Subscribers": 0,
+                         "Churn_Pct": 0, "ARPU": 0, "YoY_Change_Pct": 0})
+        seg_sum = sum(_g(con_pl, k, mon, 0) for k in SEG_KEYS)
+        other = (tot - seg_sum) if pd.notna(tot) else np.nan
+        rows.append({"Month": mon, "Segment": "Other", "Revenue": other,
+                     "Revenue_AOP": np.nan, "Subscribers": 0,
+                     "Churn_Pct": 0, "ARPU": 0, "YoY_Change_Pct": 0})
+
+    # CUR: proportional from Mar-26
     for m in act_months:
-        for seg, descs in segment_map.items():
-            act_rev = _get_sum(act, "Consumer Sales", descs, m)
-            ly_rev  = _get_sum(ly,  "Consumer Sales", descs, m)
-            subs    = get_subs(CUR_FY, m, seg)
-            arpu    = act_rev / subs if subs > 0 and pd.notna(act_rev) else 0
-            yoy     = ((act_rev - ly_rev) / abs(ly_rev)
-                       if pd.notna(ly_rev) and ly_rev != 0 and pd.notna(act_rev) else 0)
-            rows.append({
-                "Month":          fmt_month(m, CUR_FY),
-                "Segment":        seg,
-                "Revenue":        act_rev,
-                "Revenue_AOP":    _get_sum(aop, "Consumer Sales", descs, m),
-                "Subscribers":    subs,
-                "Churn_Pct":      0,
-                "ARPU":           arpu,
-                "YoY_Change_Pct": yoy,
-            })
+        mon = fmt_month(m, CUR_FY)
+        ly  = fmt_month(m, LY_FY)
+        tot = _g(cpl,  "CON_REV", mon)
+        aop = _g(caop, "CON_REV", mon)
+        for k, seg in SEG_KEYS.items():
+            rev  = tot * props[k] if pd.notna(tot) else np.nan
+            ly_r = _g(con_pl, k, ly)
+            yoy  = (rev - ly_r) / abs(ly_r) if (pd.notna(ly_r) and ly_r and pd.notna(rev)) else 0
+            subs = get_subs(CUR_FY, m, seg)
+            rows.append({"Month": mon, "Segment": seg, "Revenue": rev,
+                         "Revenue_AOP": aop * props[k] if pd.notna(aop) else np.nan,
+                         "Subscribers": subs,
+                         "Churn_Pct": 0, "ARPU": rev/subs if subs and pd.notna(rev) else 0,
+                         "YoY_Change_Pct": yoy})
+        for seg in ["TV", "Residential Security"]:
+            rows.append({"Month": mon, "Segment": seg, "Revenue": np.nan,
+                         "Revenue_AOP": np.nan, "Subscribers": 0,
+                         "Churn_Pct": 0, "ARPU": 0, "YoY_Change_Pct": 0})
+        other = tot * other_prop if pd.notna(tot) else np.nan
+        rows.append({"Month": mon, "Segment": "Other", "Revenue": other,
+                     "Revenue_AOP": np.nan, "Subscribers": 0,
+                     "Churn_Pct": 0, "ARPU": 0, "YoY_Change_Pct": 0})
+
     return pd.DataFrame(rows)
 
 
-def build_business_sales(act, aop, ly, ly_aop, act_months):
-    # Segment revenue sourced from financial_data; margin/contribution/MRR zeroed
-    # Note: "Total Carrier Revenue." is wholesale telecom; separate from enterprise circuits.
-    segment_map = {
-        "Circuit/Data": ["Domestic Circuit Revenues.", "International Circuit Revenues.", "Metro E"],
-        "Cloud":        ["Cloud Application Revenues."],
-        "Carrier":      ["Total Carrier Revenue."],
-        "Enterprise":   ["Enterprise Fixed", "Enterprise Mobile", "Enterprise Wireless Broadband",
-                         "Enterprise CPE Revenues."],
-        "Security":     ["Enterprise Security"],
-        "Other":        ["BlackBerry Services Revenues.", "Blink - On The Go.",
-                         "Directory Advertising Revenues.", "OTHER", "loT Revenues."],
+def build_business_sales(cpl, caop, biz_pl, act_months):
+    SEG_MAP = {
+        "Circuit/Data": ["CIRCUIT"],
+        "Cloud":        ["CLOUD"],
+        "Carrier":      ["CARRIER"],
+        "Enterprise":   ["ENT_MOB", "ENT_FIXED", "CPE"],
+        "Security":     ["SECURITY"],
+        "WTTx":         ["WTTX"],
+        "Other":        ["OTHER"],
         "IoT":          [],
     }
+
+    def seg_rev_from(pnl, keys, mon):
+        if not keys:
+            return np.nan
+        vals = [_g(pnl, k, mon) for k in keys]
+        valid = [v for v in vals if pd.notna(v)]
+        return sum(valid) if valid else np.nan
+
+    # Build Mar-26 proportions for CPL-level breakdown in CUR months
+    mar_segs = {seg: max(seg_rev_from(biz_pl, keys, "Mar-26") or 0, 0)
+                for seg, keys in SEG_MAP.items() if keys}
+    mar_tot = sum(mar_segs.values())
+    mar_props = {seg: (v / mar_tot if mar_tot else 0) for seg, v in mar_segs.items()}
+    # IoT gets 0 proportion
+    mar_props["IoT"] = 0
+
     rows = []
-    # Pass 1: FY 2025-26 full year
+    # LY: use biz_pl directly (Sep-22 to Mar-26 covers all LY months)
     for m in MONTH_ORDER:
-        for seg, descs in segment_map.items():
-            rows.append({
-                "Month":         fmt_month(m, LY_FY),
-                "Segment":       seg,
-                "Revenue":       _get_sum(ly,     "Business Sales", descs, m) if descs else np.nan,
-                "Revenue_AOP":   _get_sum(ly_aop, "Business Sales", descs, m) if descs else 0,
-                "Gross_Profit":  0,
-                "GP_Margin_Pct": 0,
-                "Contribution":  0,
-                "MRR":           0,
-                "Direct_Costs":  0,
-            })
-    # Pass 2: FY 2026-27 ACT months
+        mon = fmt_month(m, LY_FY)
+        for seg, keys in SEG_MAP.items():
+            rev = seg_rev_from(biz_pl, keys, mon)
+            rows.append({"Month": mon, "Segment": seg, "Revenue": rev,
+                         "Revenue_AOP": np.nan, "Gross_Profit": 0,
+                         "GP_Margin_Pct": 0, "Contribution": 0,
+                         "MRR": 0, "Direct_Costs": 0})
+
+    # CUR: proportional breakdown
     for m in act_months:
-        for seg, descs in segment_map.items():
-            rows.append({
-                "Month":         fmt_month(m, CUR_FY),
-                "Segment":       seg,
-                "Revenue":       _get_sum(act, "Business Sales", descs, m) if descs else np.nan,
-                "Revenue_AOP":   _get_sum(aop, "Business Sales", descs, m) if descs else 0,
-                "Gross_Profit":  0,
-                "GP_Margin_Pct": 0,
-                "Contribution":  0,
-                "MRR":           0,
-                "Direct_Costs":  0,
-            })
+        mon = fmt_month(m, CUR_FY)
+        tot = _g(cpl,  "BIZ_REV", mon)
+        aop = _g(caop, "BIZ_REV", mon)
+        for seg in SEG_MAP:
+            p = mar_props.get(seg, 0)
+            rows.append({"Month": mon, "Segment": seg,
+                         "Revenue": tot * p if pd.notna(tot) else np.nan,
+                         "Revenue_AOP": aop * p if pd.notna(aop) else np.nan,
+                         "Gross_Profit": 0, "GP_Margin_Pct": 0,
+                         "Contribution": 0, "MRR": 0, "Direct_Costs": 0})
+
     return pd.DataFrame(rows)
 
 
-def build_dpdi(raw_df, act_months):
-    # DPDI appears under two BU name variants in the source data
-    dpdi_bus = [
-        "Data, Product Development & Innovation",
-        "Dig, Product Development & Innovation",
+def build_dpdi(cpl, caop, dpdi_pl, act_months):
+    PRODS = [
+        ("E-Tender",   "E_TENDER"),
+        ("E-Health",   "E_HEALTH"),
+        ("E-Kiosk",    "E_KIOSK"),
+        ("PayPr",      "PAYPR"),
+        ("E-Cashbook", "E_CASHBOOK"),
+        ("E-Pay",      "E_PAY"),
+        ("Other",      "OTHER"),
     ]
-    dpdi_data   = raw_df[raw_df["BU"].isin(dpdi_bus)]
-    dpdi_act    = dpdi_data[(dpdi_data["FY"] == CUR_FY) & (dpdi_data["DataType"] == "ACT")]
-    dpdi_aop    = dpdi_data[(dpdi_data["FY"] == CUR_FY) & (dpdi_data["DataType"] == "AOP")]
-    dpdi_ly     = dpdi_data[(dpdi_data["FY"] == LY_FY)  & (dpdi_data["DataType"] == "ACT")]
-    dpdi_ly_aop = dpdi_data[(dpdi_data["FY"] == LY_FY)  & (dpdi_data["DataType"] == "AOP")]
-    products    = sorted(dpdi_data["Description"].unique())  # union across both FYs
-
-    def _dpdi_row(src_act, src_aop, prod, month, fy):
-        rev_s = src_act.loc[(src_act["Description"] == prod) & (src_act["Month"] == month), "Value"]
-        aop_s = src_aop.loc[(src_aop["Description"] == prod) & (src_aop["Month"] == month), "Value"]
-        return {
-            "Month":         fmt_month(month, fy),
-            "Product":       prod,
-            "Revenue":       float(rev_s.iloc[0]) if len(rev_s) else np.nan,
-            "Revenue_AOP":   float(aop_s.iloc[0]) if len(aop_s) else np.nan,
-            "Gross_Profit":  0,
-            "GP_Margin_Pct": 0,
-            "EBITDA":        0,
-            "Direct_Costs":  0,
-        }
+    # Mar-26 proportions for CUR months
+    mar_vals = {name: max(_g(dpdi_pl, k, "Mar-26", 0), 0) for name, k in PRODS}
+    mar_tot  = sum(mar_vals.values())
+    mar_props = {name: (v / mar_tot if mar_tot else 0) for name, v in mar_vals.items()}
 
     rows = []
-    # Pass 1: FY 2025-26 full year
     for m in MONTH_ORDER:
-        for prod in products:
-            rows.append(_dpdi_row(dpdi_ly, dpdi_ly_aop, prod, m, LY_FY))
-    # Pass 2: FY 2026-27 ACT months
+        mon = fmt_month(m, LY_FY)
+        for name, key in PRODS:
+            rows.append({"Month": mon, "Product": name,
+                         "Revenue": _g(dpdi_pl, key, mon),
+                         "Revenue_AOP": np.nan,
+                         "Gross_Profit": 0, "GP_Margin_Pct": 0,
+                         "EBITDA": 0, "Direct_Costs": 0})
+
     for m in act_months:
-        for prod in products:
-            rows.append(_dpdi_row(dpdi_act, dpdi_aop, prod, m, CUR_FY))
+        mon = fmt_month(m, CUR_FY)
+        tot = _g(cpl,  "DPDI_REV", mon)
+        aop = _g(caop, "DPDI_REV", mon)
+        for name, _ in PRODS:
+            p = mar_props[name]
+            rows.append({"Month": mon, "Product": name,
+                         "Revenue": tot * p if pd.notna(tot) else np.nan,
+                         "Revenue_AOP": aop * p if pd.notna(aop) else np.nan,
+                         "Gross_Profit": 0, "GP_Margin_Pct": 0,
+                         "EBITDA": 0, "Direct_Costs": 0})
+
     return pd.DataFrame(rows)
 
 
-def build_amplia_financial(act, aop, ly, ly_aop, act_months):
-    # Divisional EBITDA/PAT/OPEX not broken out in financial_data; revenue & COS available via Consolidated
-    def _amplia_row(src_act, src_aop, month, fy):
-        rev = _get(src_act, "Consolidated", "AMPLIA REVENUE", month)
-        dc  = abs(_get(src_act, "Consolidated", "AMPLIA COS", month, 0))
-        gp  = (rev - dc) if (not np.isnan(rev) and not np.isnan(dc)) else np.nan
-        return {
-            "Month":        fmt_month(month, fy),
-            "Revenue":      rev,
-            "Revenue_AOP":  _get(src_aop, "Consolidated", "AMPLIA REVENUE", month),
-            "Gross_Profit": gp,
-            "EBITDA":       0,
-            "EBITDA_AOP":   0,
-            "PAT":          0,
-            "OPEX":         0,
-            "Direct_Costs": dc,
-        }
-
+def build_amplia_financial(caop, amp_fin, act_months):
     rows = []
-    # Pass 1: FY 2025-26 full year
     for m in MONTH_ORDER:
-        rows.append(_amplia_row(ly, ly_aop, m, LY_FY))
-    # Pass 2: FY 2026-27 ACT months
+        mon = fmt_month(m, LY_FY)
+        rev = _g(amp_fin, "TOT_REV", mon)
+        gp  = _g(amp_fin, "GP",      mon)
+        ebi = _g(amp_fin, "EBITDA",  mon)
+        pat = _g(amp_fin, "PAT",     mon)
+        dc  = (rev - gp) if (pd.notna(rev) and pd.notna(gp)) else np.nan
+        rows.append({"Month": mon, "Revenue": rev, "Revenue_AOP": np.nan,
+                     "Gross_Profit": gp, "EBITDA": ebi, "EBITDA_AOP": np.nan,
+                     "PAT": pat, "OPEX": 0, "Direct_Costs": dc})
+
     for m in act_months:
-        rows.append(_amplia_row(act, aop, m, CUR_FY))
+        mon = fmt_month(m, CUR_FY)
+        rev = _g(amp_fin, "TOT_REV", mon)
+        gp  = _g(amp_fin, "GP",      mon)
+        ebi = _g(amp_fin, "EBITDA",  mon)
+        pat = _g(amp_fin, "PAT",     mon)
+        dc  = (rev - gp) if (pd.notna(rev) and pd.notna(gp)) else np.nan
+        rows.append({"Month": mon, "Revenue": rev,
+                     "Revenue_AOP": _g(caop, "AMP_REV", mon),
+                     "Gross_Profit": gp, "EBITDA": ebi, "EBITDA_AOP": np.nan,
+                     "PAT": pat, "OPEX": 0, "Direct_Costs": dc})
+
     return pd.DataFrame(rows)
 
 
-def build_ebitda_bridge(act, aop, latest_month):
-    """Single-month waterfall: AOP EBITDA → actual EBITDA for latest_month."""
-    def g(src, desc, default=0):
-        return _get(src, "Consolidated", desc, latest_month, default)
-
-    ebitda_aop = g(aop, "EBITDA")
-    rev_act    = g(act, "TOTAL REVENUE")
-    rev_aop    = g(aop, "TOTAL REVENUE")
-    dc_act     = g(act, "DIRECT COSTS")   # negative in source; ACT - AOP gives EBITDA impact
-    dc_aop     = g(aop, "DIRECT COSTS")
-    opex_act   = g(act, "Total OPEX")     # negative in source (Category='EBITDA')
-    opex_aop   = g(aop, "Total OPEX")
-
-    rev_var  = rev_act  - rev_aop
-    dc_var   = dc_act   - dc_aop    # less-negative ACT → positive (costs below plan → EBITDA up)
-    opex_var = opex_act - opex_aop  # same convention
-
-    def btype(v):
-        return "Positive" if v >= 0 else "Negative"
-
-    # Last row (Sort_Order=5) is overwritten by data_loader with sum of rows 1-4 = ACT EBITDA
-    return pd.DataFrame([
-        {"Category": "AOP EBITDA",            "Value": ebitda_aop, "Type": "Absolute",      "Sort_Order": 1},
-        {"Category": "Revenue Variance",       "Value": rev_var,    "Type": btype(rev_var),  "Sort_Order": 2},
-        {"Category": "Direct Costs Variance",  "Value": dc_var,     "Type": btype(dc_var),   "Sort_Order": 3},
-        {"Category": "OPEX Variance",          "Value": opex_var,   "Type": btype(opex_var), "Sort_Order": 4},
-        {"Category": "Actual EBITDA",          "Value": 0,          "Type": "Total",         "Sort_Order": 5},
-    ])
-
-
-def build_kpi_summary(act, aop, ly, latest_month):
-    def g(src, desc):
-        return _get(src, "Consolidated", desc, latest_month, 0)
-
-    label = fmt_month(latest_month, CUR_FY)
-    status = lambda a, p: "🟢" if a >= p else "🔴"
-
-    rev_a, rev_p, rev_l   = g(act,"TOTAL REVENUE"), g(aop,"TOTAL REVENUE"), g(ly,"TOTAL REVENUE")
-    ebi_a, ebi_p, ebi_l   = g(act,"EBITDA"),        g(aop,"EBITDA"),        g(ly,"EBITDA")
-    pat_a, pat_p, pat_l   = g(act,"Profit After Taxation"), g(aop,"Profit After Taxation"), g(ly,"Profit After Taxation")
-    mgn_a, mgn_p, mgn_l   = g(act,"EBITDA %"),      g(aop,"EBITDA %"),      g(ly,"EBITDA %")
-
-    # TT$M rows: raw TTD$ values (data_loader divides by 1,000,000)
-    # % rows:    decimal values (data_loader multiplies by 100)
-    return pd.DataFrame([
-        {"Month": label, "Section": "Financial", "KPI_Name": "Revenue",       "Actual": rev_a, "AOP": rev_p, "PY": rev_l, "Status": status(rev_a, rev_p), "Unit": "TT$M"},
-        {"Month": label, "Section": "Financial", "KPI_Name": "EBITDA",        "Actual": ebi_a, "AOP": ebi_p, "PY": ebi_l, "Status": status(ebi_a, ebi_p), "Unit": "TT$M"},
-        {"Month": label, "Section": "Financial", "KPI_Name": "PAT",           "Actual": pat_a, "AOP": pat_p, "PY": pat_l, "Status": status(pat_a, pat_p), "Unit": "TT$M"},
-        {"Month": label, "Section": "Financial", "KPI_Name": "EBITDA Margin", "Actual": mgn_a, "AOP": mgn_p, "PY": mgn_l, "Status": status(mgn_a, mgn_p), "Unit": "%"},
-    ])
-
+# ── Amplia commercial (from separate KPI file, unchanged logic) ───────────────
 
 def _amp_metric(df, metric_label, fy_label):
-    """Return the 12 monthly values (cols 2-13) for a given metric + FY row in the Amplia KPI sheet."""
-    metric_rows = df[df[0] == metric_label].index
-    if len(metric_rows) == 0:
+    idx = df[df[0] == metric_label].index
+    if len(idx) == 0:
         return [np.nan] * 12
-    start = metric_rows[0]
-    for i in range(start, min(start + 20, len(df))):
+    for i in range(idx[0], min(idx[0] + 20, len(df))):
         if df.loc[i, 1] == fy_label:
             return df.loc[i, 2:13].tolist()
     return [np.nan] * 12
@@ -525,7 +541,6 @@ def build_amplia_commercial(amp_kpi):
     gross_bud = _amp_metric(amp_kpi, "Gross Adds",   "FY25/26 Budget")
     churn_act = _amp_metric(amp_kpi, "Amplia Churn", "FY25/26 Actual")
     churn_bud = _amp_metric(amp_kpi, "Amplia Churn", "FY25/26 Budget")
-
     rows = []
     for i, m in enumerate(MONTH_ORDER):
         ga = gross_act[i]
@@ -538,60 +553,41 @@ def build_amplia_commercial(amp_kpi):
             "Gross_Additions_AOP": int(gross_bud[i]) if pd.notna(gross_bud[i]) else 0,
             "Monthly_Churn":       int(churn_act[i]) if pd.notna(churn_act[i]) else 0,
             "Churn_AOP":           int(churn_bud[i]) if pd.notna(churn_bud[i]) else 0,
-            "Net_Port":            0,
-            "Channel":             "Total",
-            "Sales_Count":         int(ga),
-            "Sales_Target":        int(gross_bud[i]) if pd.notna(gross_bud[i]) else 0,
+            "Net_Port": 0, "Channel": "Total",
+            "Sales_Count":  int(ga),
+            "Sales_Target": int(gross_bud[i]) if pd.notna(gross_bud[i]) else 0,
         })
     return pd.DataFrame(rows)
 
 
-def build_pnl_breakdown(act, aop, ly, ly_aop, act_months):
-    """Rolling 13-month consolidated P&L cascade: Revenue by group → Total → COS → GP → OPEX → EBITDA."""
-    groups  = ["CONSUMER SALES", "BUSINESS SALES", "AMPLIA", "DPDI", "OTHER"]
-    rev_map = {g: f"{g} REVENUE" for g in groups}
-    cos_map = {g: f"{g} COS"     for g in groups}
-
-    def row(src, src_aop, m, fy):
-        r = {"Month": fmt_month(m, fy)}
-        for g in groups:
-            r[f"{g}_Rev"]     = _get(src,     "Consolidated", rev_map[g], m, 0)
-            r[f"{g}_Rev_AOP"] = _get(src_aop, "Consolidated", rev_map[g], m, 0)
-            r[f"{g}_COS"]     = _get(src,     "Consolidated", cos_map[g], m, 0)
-            r[f"{g}_COS_AOP"] = _get(src_aop, "Consolidated", cos_map[g], m, 0)
-        r["Total_Rev"]      = _get(src,     "Consolidated", "TOTAL REVENUE", m, 0)
-        r["Total_Rev_AOP"]  = _get(src_aop, "Consolidated", "TOTAL REVENUE", m, 0)
-        r["Total_COS"]      = _get(src,     "Consolidated", "DIRECT COSTS",  m, 0)
-        r["Total_COS_AOP"]  = _get(src_aop, "Consolidated", "DIRECT COSTS",  m, 0)
-        r["Total_OPEX"]     = _get(src,     "Consolidated", "Total OPEX",    m, 0)
-        r["Total_OPEX_AOP"] = _get(src_aop, "Consolidated", "Total OPEX",    m, 0)
-        r["EBITDA"]         = _get(src,     "Consolidated", "EBITDA",        m, 0)
-        r["EBITDA_AOP"]     = _get(src_aop, "Consolidated", "EBITDA",        m, 0)
-        return r
-
-    rows = []
-    for m in MONTH_ORDER:
-        rows.append(row(ly, ly_aop, m, LY_FY))
-    for m in act_months:
-        rows.append(row(act, aop, m, CUR_FY))
-    return pd.DataFrame(rows)
-
+# ── Main ───────────────────────────────────────────────────────────────────────
 
 def main():
     print(f"Reading {SRC} ...")
-    raw = pd.read_excel(SRC, sheet_name="financial_data", header=1)
-    raw.columns = ["FY", "Period", "Month", "DataType", "BU", "Description", "Category", "Subcategory", "Value"]
+    xl = pd.ExcelFile(SRC)
 
-    act    = raw[(raw["FY"] == CUR_FY) & (raw["DataType"] == "ACT")].copy()
-    aop    = raw[(raw["FY"] == CUR_FY) & (raw["DataType"] == "AOP")].copy()
-    ly     = raw[(raw["FY"] == LY_FY)  & (raw["DataType"] == "ACT")].copy()
-    ly_aop = raw[(raw["FY"] == LY_FY)  & (raw["DataType"] == "AOP")].copy()
+    # Detect which CUR FY months have actual data in Consolidated P&L
+    cpl_raw = xl.parse("Consolidated P&L", header=None)
+    act_months = []
+    for offset, m in enumerate(MONTH_ORDER):
+        col = FY_COL[CUR_FY] + offset
+        v = cpl_raw.iloc[CPL["TOT_REV"], col]
+        if pd.notna(v) and v != 0:
+            act_months.append(m)
 
-    act_months = [m for m in MONTH_ORDER if m in act["Month"].values]
     latest_month = act_months[-1] if act_months else MONTH_ORDER[0]
-    ly_months = [m for m in MONTH_ORDER if m in ly["Month"].values]
-    print(f"  Current FY ({CUR_FY}) ACT months: {act_months or ['(none)']}")
-    print(f"  Last Year  ({LY_FY}) ACT months:  {ly_months}")
+    latest_mon   = fmt_month(latest_month, CUR_FY)
+    ly_mon       = fmt_month(latest_month, LY_FY)
+    print(f"  CUR FY ({CUR_FY}) ACT months: {act_months or ['(none)']}")
+    print(f"  Latest month: {latest_mon}")
+
+    print("  Parsing sheets ...")
+    cpl    = _read_consol_pl(xl)
+    caop   = _read_consol_aop(xl)
+    con_pl = _read_consumer_pl(xl)
+    biz_pl = _read_business_pl(xl)
+    dpdi_pl= _read_dpdi_pl(xl)
+    amp_fin= _read_amplia_fin(xl)
 
     print(f"Reading {SUBS_SRC} ...")
     subs_df = pd.read_excel(SUBS_SRC, sheet_name="monthly_pivot", header=1)
@@ -601,24 +597,39 @@ def main():
 
     print(f"Reading {AOP_OPEX_SRC} ...")
     aop_fy27 = _load_aop_opex_fy27()
-    print(f"  FY2027 OPEX plan entries loaded: {len(aop_fy27)}")
+    print(f"  FY2027 OPEX plan entries: {len(aop_fy27)}")
+
+    # Preserve Cash_CAPEX from existing output (not available in new source)
+    print(f"Preserving Cash_CAPEX from {DST} ...")
+    try:
+        cash_capex_df = pd.read_excel(DST, sheet_name="Cash_CAPEX")
+        print(f"  Loaded {len(cash_capex_df)} rows")
+    except Exception:
+        cash_capex_df = pd.DataFrame(columns=[
+            "Month","Cash_Balance","Net_Debt","Collections_Pct",
+            "Collections_Pct_Gov","Collections_Pct_NonGov",
+            "FCF","CAPEX_Actual","CAPEX_Plan",
+        ])
+        print("  No existing Cash_CAPEX found — using empty DataFrame")
 
     sheets = {
-        "KPI_Summary":       build_kpi_summary(act, aop, ly, latest_month) if act_months
-                             else pd.DataFrame(columns=["Month","Section","KPI_Name","Actual","AOP","PY","Status","Unit"]),
-        "Financial_Monthly": build_financial_monthly(act, aop, ly, ly_aop, act_months),
-        "EBITDA_Bridge":     build_ebitda_bridge(act, aop, latest_month) if act_months
-                             else pd.DataFrame(columns=["Category","Value","Type","Sort_Order"]),
-        "OPEX":              build_opex(act, aop, ly, ly_aop, act_months, aop_fy27),
-        "Cash_CAPEX":        build_cash_capex(act, aop, ly, act_months),
-        "Consumer_Sales":    build_consumer_sales(act, aop, ly, ly_aop, act_months, subs_df),
-        "Business_Sales":    build_business_sales(act, aop, ly, ly_aop, act_months),
+        "KPI_Summary":       build_kpi_summary(cpl, caop, latest_mon, ly_mon)
+                             if act_months else pd.DataFrame(
+                                 columns=["Month","Section","KPI_Name","Actual","AOP","PY","Status","Unit"]),
+        "Financial_Monthly": build_financial_monthly(cpl, caop, act_months),
+        "EBITDA_Bridge":     build_ebitda_bridge(cpl, caop, latest_mon)
+                             if act_months else pd.DataFrame(
+                                 columns=["Category","Value","Type","Sort_Order"]),
+        "OPEX":              build_opex(cpl, aop_fy27, act_months),
+        "Cash_CAPEX":        cash_capex_df,
+        "Consumer_Sales":    build_consumer_sales(cpl, caop, con_pl, subs_df, act_months),
+        "Business_Sales":    build_business_sales(cpl, caop, biz_pl, act_months),
         "Pipeline":          pd.DataFrame(columns=["Month","Stage","Deal_Count","Value_TTD_M","Avg_Deal_Size","Win_Rate_Pct"]),
         "Renewals":          pd.DataFrame(columns=["Customer","Product_Service","ACV_TTD_M","Expiry_Date","Risk_Level","Status","Action_Plan"]),
-        "DPDI":              build_dpdi(raw, act_months),
-        "AMPLIA_Financial":  build_amplia_financial(act, aop, ly, ly_aop, act_months),
+        "DPDI":              build_dpdi(cpl, caop, dpdi_pl, act_months),
+        "AMPLIA_Financial":  build_amplia_financial(caop, amp_fin, act_months),
         "AMPLIA_Commercial": build_amplia_commercial(amp_kpi),
-        "PnL_Breakdown":     build_pnl_breakdown(act, aop, ly, ly_aop, act_months),
+        "PnL_Breakdown":     build_pnl_breakdown(cpl, caop, act_months),
     }
 
     print(f"\nWriting {DST} ...")
