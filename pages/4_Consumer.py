@@ -87,6 +87,15 @@ def _card(title, value_str, sub_str, sub_color, extra_str="", accent="#00ff88",
     )
 
 
+def _get_gross_adds(row):
+    """Return Gross_Adds from a DataFrame row/Series if populated, else None."""
+    try:
+        v = float(row["Gross_Adds"])
+        return v if v > 0 else None
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def _commentary(text):
     return (
         '<div style="background:#0f1e10;border-radius:10px;padding:18px 20px;'
@@ -255,15 +264,16 @@ with tab2:
         ) if spark else ""
         return (
             f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
-            f'border:1px solid #2a2a4a;border-top:3px solid {accent}">'
-            f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
+            f'border:1px solid #2a2a4a;border-top:3px solid {accent};'
+            f'height:100%;box-sizing:border-box">'
+            f'<div style="font-size:17px;color:#7788aa;font-weight:600;text-transform:uppercase;'
             f'letter-spacing:1px;margin-bottom:8px">{label}</div>'
-            f'<div style="font-size:26px;font-weight:800;color:white;line-height:1.1;'
+            f'<div style="font-size:34px;font-weight:800;color:white;line-height:1.1;'
             f'margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
             f'{value}</div>'
-            f'<div style="font-size:14px;color:{l1_col};font-weight:600;margin-bottom:3px">'
+            f'<div style="font-size:18px;color:{l1_col};font-weight:600;margin-bottom:3px">'
             f'{line1}</div>'
-            f'<div style="font-size:14px;color:{l2_col};font-weight:600">{line2}</div>'
+            f'<div style="font-size:18px;color:{l2_col};font-weight:600">{line2}</div>'
             f'{b_html}{sp_html}'
             f'</div>'
         )
@@ -274,8 +284,10 @@ with tab2:
     pre_subs_open  = float(_arpu_totals.get(_prev_subs_month, 0.0))
     pre_subs_close = subs_lat
     pre_subs_net   = pre_subs_close - pre_subs_open
-    pre_subs_disc  = pre_subs_open * churn_pre / 100 if (churn_pre and pre_subs_open > 0) else 0.0
-    pre_subs_gross = max(0.0, pre_subs_net + pre_subs_disc)
+    _pre_ga        = _get_gross_adds(pre_latest.iloc[0]) if not pre_latest.empty else None
+    pre_subs_gross = _pre_ga if _pre_ga is not None else 0.0
+    pre_subs_disc  = max(0.0, pre_subs_open + pre_subs_gross - pre_subs_close)
+    churn_derived  = pre_subs_disc / pre_subs_open * 100 if pre_subs_open > 0 else 0.0
 
     # ── 4 KPI boxes ──────────────────────────────────────────────────────────
     r_aop_col = "#22c55e" if (rev_aop_pct or 0) >= 0 else "#ef4444"
@@ -309,28 +321,26 @@ with tab2:
                        s_l1, s_l1_col, s_l2, s_l2_col, "#22c55e", subs_spark)
 
     # Subscriber movements card
-    _net_col   = "#22c55e" if pre_subs_net >= 0 else "#ef4444"
-    _churn_lbl = f"Churn ({churn_pre:.1f}%)" if churn_pre is not None else "Churn"
+    _churn_lbl = f"Churn ({churn_derived:.1f}%)"
     _mov_rows  = [
         ("Opening",    f"{pre_subs_open/1000:.1f}K",   "#aabbcc"),
         ("Gross Adds", f"+{pre_subs_gross/1000:.1f}K", "#22c55e"),
         (_churn_lbl,   f"−{pre_subs_disc/1000:.1f}K",  "#ef4444"),
-        ("Net",        f"{pre_subs_net/1000:+.1f}K",   _net_col),
         ("Closing",    f"{pre_subs_close/1000:.1f}K",  "white"),
     ]
     _mov_html = "".join(
         f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
         f'border-bottom:1px solid #1e2a4a;">'
-        f'<span style="font-size:13px;color:#7788aa">{lbl}</span>'
-        f'<span style="font-size:15px;font-weight:700;color:{col}">{val}</span>'
+        f'<span style="font-size:19px;color:#7788aa">{lbl}</span>'
+        f'<span style="font-size:22px;font-weight:700;color:{col}">{val}</span>'
         f'</div>'
         for lbl, val, col in _mov_rows
     )
     _c2 = (
         f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
         f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
-        f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
-        f'letter-spacing:1px;margin-bottom:10px">Movements — {_arpu_latest_month}</div>'
+        f'<div style="font-size:18px;color:#7788aa;font-weight:600;text-transform:uppercase;'
+        f'letter-spacing:1px;margin-bottom:10px">Movements —{_arpu_latest_month}</div>'
         f'{_mov_html}'
         f'</div>'
     )
@@ -560,10 +570,10 @@ with tab3:
     _pp_subs_mon   = _pp_sub_sorted.iloc[-1]["Month"] if not _pp_sub_sorted.empty else "Apr-26"
     pp_subs_close  = float(_pp_sub_sorted.iloc[-1]["Subscribers"]) if not _pp_sub_sorted.empty else pp_subs_lat
     pp_subs_open   = float(_pp_sub_sorted.iloc[-2]["Subscribers"]) if len(_pp_sub_sorted) >= 2 else pp_subs_close
-    pp_subs_net_c  = pp_subs_close - pp_subs_open
-    _pp_chrt       = pp_churn if (pp_churn and pp_churn > 0) else 1.5
-    pp_subs_disc_c = pp_subs_open * _pp_chrt / 100
-    pp_subs_gross_c = max(0.0, pp_subs_net_c + pp_subs_disc_c)
+    _pp_ga          = _get_gross_adds(_pp_sub_sorted.iloc[-1]) if not _pp_sub_sorted.empty else None
+    pp_subs_gross_c = _pp_ga if _pp_ga is not None else 0.0
+    pp_subs_disc_c  = max(0.0, pp_subs_open + pp_subs_gross_c - pp_subs_close)
+    pp_churn_derived = pp_subs_disc_c / pp_subs_open * 100 if pp_subs_open > 0 else 0.0
 
     # ── 4 KPI boxes ──────────────────────────────────────────────────────────
     pp_r_aop_col = "#22c55e" if (pp_aop_pct or 0) >= 0 else "#ef4444"
@@ -596,28 +606,26 @@ with tab3:
     _pp_c_subs = _pre_kpi(f"Subscribers — {_pp_subs_mon}", _fmt_k(pp_subs_close),
                            _pp_s_l1, _pp_s_l1_col, _pp_s_l2, _pp_s_l2_col, "#22c55e", pp_subs_spark)
 
-    _pp_net_col    = "#22c55e" if pp_subs_net_c >= 0 else "#ef4444"
-    _pp_churn_lbl  = f"Churn ({pp_churn:.1f}%)" if pp_churn is not None else "Churn"
+    _pp_churn_lbl  = f"Churn ({pp_churn_derived:.1f}%)"
     _pp_mov_rows   = [
         ("Opening",     f"{pp_subs_open/1000:.1f}K",     "#aabbcc"),
         ("Gross Adds",  f"+{pp_subs_gross_c/1000:.1f}K", "#22c55e"),
         (_pp_churn_lbl, f"−{pp_subs_disc_c/1000:.1f}K",  "#ef4444"),
-        ("Net",         f"{pp_subs_net_c/1000:+.1f}K",   _pp_net_col),
         ("Closing",     f"{pp_subs_close/1000:.1f}K",    "white"),
     ]
     _pp_mov_html = "".join(
         f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
         f'border-bottom:1px solid #1e2a4a;">'
-        f'<span style="font-size:13px;color:#7788aa">{lbl}</span>'
-        f'<span style="font-size:15px;font-weight:700;color:{col}">{val}</span>'
+        f'<span style="font-size:19px;color:#7788aa">{lbl}</span>'
+        f'<span style="font-size:22px;font-weight:700;color:{col}">{val}</span>'
         f'</div>'
         for lbl, val, col in _pp_mov_rows
     )
     _pp_c2 = (
         f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
         f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
-        f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
-        f'letter-spacing:1px;margin-bottom:10px">Movements — {_pp_subs_mon}</div>'
+        f'<div style="font-size:18px;color:#7788aa;font-weight:600;text-transform:uppercase;'
+        f'letter-spacing:1px;margin-bottom:10px">Movements —{_pp_subs_mon}</div>'
         f'{_pp_mov_html}'
         f'</div>'
     )
@@ -648,7 +656,8 @@ with tab3:
         _chv  = _curr["Churn_Pct"]
         _chrt = (float(_chv) if pd.notna(_chv) and float(_chv) > 0 else 1.5)
         _disc = _open * _chrt / 100
-        _gros = max(0.0, (_clos - _open) + _disc)
+        _ga   = _get_gross_adds(_curr)
+        _gros = _ga if _ga is not None else max(0.0, (_clos - _open) + _disc)
         _mov_rows.append({
             "Month":   _curr["Month"],
             "Opening": _open,
@@ -681,16 +690,18 @@ with tab3:
     if not _pp_plans_raw.empty and "Plan" in _pp_plans_raw.columns:
         pp_plan_names = _pp_plans_raw["Plan"].tolist()
         pp_plan_vals  = _pp_plans_raw["Subscribers"].tolist()
+        _pp_dummy = False
     else:
         pp_plan_names = ["Basic Voice", "Basic Data", "Standard Bundle", "Premium Bundle", "Enterprise"]
         pp_plan_vals  = [45_000, 38_000, 22_000, 15_000, 8_000]
+        _pp_dummy = True
     # ─────────────────────────────────────────────────────────────────────────
 
     # ── Charts: Active Plans  |  Revenue by Bundle Type ─────────────────────
     ml, mr = st.columns([55, 45])
 
     with ml:
-        _pp_plan_colors = ["#f59e0b", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"]
+        _pp_plan_colors = ["#f59e0b", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8", "#6b7280"]
         _pp_plan_total  = sum(pp_plan_vals)
         _pp_dw = 0.52
         fig = go.Figure(go.Pie(
@@ -712,7 +723,7 @@ with tab3:
             font=dict(color="white"), height=500,
             title=dict(
                 text="<b>Subscribers by Active Plan</b>"
-                     " <span style='color:#f87171;font-size:11px'>⚠ dummy data</span>",
+                     + (" <span style='color:#f87171;font-size:11px'>⚠ dummy data</span>" if _pp_dummy else ""),
                 font=dict(size=16, color="white"), x=0,
             ),
             legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=14, color="#aabbcc"),
@@ -833,10 +844,10 @@ with tab4:
     _wx_subs_mon   = _wx_sub_sorted.iloc[-1]["Month"] if not _wx_sub_sorted.empty else "Apr-26"
     wx_subs_close  = float(_wx_sub_sorted.iloc[-1]["Subscribers"]) if not _wx_sub_sorted.empty else wx_subs_lat
     wx_subs_open   = float(_wx_sub_sorted.iloc[-2]["Subscribers"]) if len(_wx_sub_sorted) >= 2 else wx_subs_close
-    wx_subs_net_c  = wx_subs_close - wx_subs_open
-    _wx_chrt       = wx_churn if (wx_churn and wx_churn > 0) else 1.5
-    wx_subs_disc_c = wx_subs_open * _wx_chrt / 100
-    wx_subs_gross_c = max(0.0, wx_subs_net_c + wx_subs_disc_c)
+    _wx_ga          = _get_gross_adds(_wx_sub_sorted.iloc[-1]) if not _wx_sub_sorted.empty else None
+    wx_subs_gross_c = _wx_ga if _wx_ga is not None else 0.0
+    wx_subs_disc_c  = max(0.0, wx_subs_open + wx_subs_gross_c - wx_subs_close)
+    wx_churn_derived = wx_subs_disc_c / wx_subs_open * 100 if wx_subs_open > 0 else 0.0
 
     # ── 4 KPI boxes ──────────────────────────────────────────────────────────
     wx_r_aop_col = "#22c55e" if (wx_aop_pct or 0) >= 0 else "#ef4444"
@@ -869,28 +880,26 @@ with tab4:
     _wx_c_subs = _pre_kpi(f"Subscribers — {_wx_subs_mon}", _fmt_k(wx_subs_close),
                            _wx_s_l1, _wx_s_l1_col, _wx_s_l2, _wx_s_l2_col, "#22c55e", wx_subs_spark)
 
-    _wx_net_col    = "#22c55e" if wx_subs_net_c >= 0 else "#ef4444"
-    _wx_churn_lbl  = f"Churn ({wx_churn:.1f}%)" if wx_churn is not None else "Churn"
+    _wx_churn_lbl  = f"Churn ({wx_churn_derived:.1f}%)"
     _wx_mov_rows   = [
         ("Opening",     f"{wx_subs_open/1000:.1f}K",     "#aabbcc"),
         ("Gross Adds",  f"+{wx_subs_gross_c/1000:.1f}K", "#22c55e"),
         (_wx_churn_lbl, f"−{wx_subs_disc_c/1000:.1f}K",  "#ef4444"),
-        ("Net",         f"{wx_subs_net_c/1000:+.1f}K",   _wx_net_col),
         ("Closing",     f"{wx_subs_close/1000:.1f}K",    "white"),
     ]
     _wx_mov_html = "".join(
         f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
         f'border-bottom:1px solid #1e2a4a;">'
-        f'<span style="font-size:13px;color:#7788aa">{lbl}</span>'
-        f'<span style="font-size:15px;font-weight:700;color:{col}">{val}</span>'
+        f'<span style="font-size:19px;color:#7788aa">{lbl}</span>'
+        f'<span style="font-size:22px;font-weight:700;color:{col}">{val}</span>'
         f'</div>'
         for lbl, val, col in _wx_mov_rows
     )
     _wx_c2 = (
         f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
         f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
-        f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
-        f'letter-spacing:1px;margin-bottom:10px">Movements — {_wx_subs_mon}</div>'
+        f'<div style="font-size:18px;color:#7788aa;font-weight:600;text-transform:uppercase;'
+        f'letter-spacing:1px;margin-bottom:10px">Movements —{_wx_subs_mon}</div>'
         f'{_wx_mov_html}'
         f'</div>'
     )
@@ -920,7 +929,8 @@ with tab4:
         _chv  = _curr["Churn_Pct"]
         _chrt = (float(_chv) if pd.notna(_chv) and float(_chv) > 0 else 1.5)
         _disc = _open * _chrt / 100
-        _gros = max(0.0, (_clos - _open) + _disc)
+        _ga   = _get_gross_adds(_curr)
+        _gros = _ga if _ga is not None else max(0.0, (_clos - _open) + _disc)
         _wx_mov_rows.append({
             "Month":   _curr["Month"],
             "Opening": _open,
@@ -953,9 +963,11 @@ with tab4:
     if not _wx_plans_raw.empty and "Plan" in _wx_plans_raw.columns:
         wx_plan_names = _wx_plans_raw["Plan"].tolist()
         wx_plan_vals  = _wx_plans_raw["Subscribers"].tolist()
+        _wx_dummy = False
     else:
         wx_plan_names = ["Voice Only", "Bundles", "Data Only"]
         wx_plan_vals  = [8_000, 35_000, 62_000]
+        _wx_dummy = True
     # ─────────────────────────────────────────────────────────────────────────
 
     # ── Charts: Plan Type | Revenue by Service Type ──────────────────────────
@@ -984,7 +996,7 @@ with tab4:
             font=dict(color="white"), height=500,
             title=dict(
                 text="<b>Subscribers by Plan Type</b>"
-                     " <span style='color:#f87171;font-size:11px'>⚠ dummy data</span>",
+                     + (" <span style='color:#f87171;font-size:11px'>⚠ dummy data</span>" if _wx_dummy else ""),
                 font=dict(size=16, color="white"), x=0,
             ),
             legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=14, color="#aabbcc"),
@@ -1117,10 +1129,56 @@ with tab_v2:
     v2_wx_trend    = wttx.set_index("Month")["Revenue"].reindex(v2_all_months).fillna(0).tolist()
     v2_other_trend = v2_other_by_mo.reindex(v2_all_months).fillna(0).tolist()
 
-    gp_est = v2_t_rev * 0.42
-    dc_est = v2_t_rev * 0.58
-    gp_aop = v2_t_aop * 0.42 if v2_t_aop else None
-    gp_vp  = _v2vp(gp_est, gp_aop)
+    # Direct Costs and Gross Profit from PnL_Breakdown (real COS data)
+    v2_pnl     = data["PnL_Breakdown"]
+    v2_pnl_sel = v2_pnl[v2_pnl["Month"] == sel_month]
+    v2_pnl_py  = v2_pnl[v2_pnl["Month"] == v2_py_mon]
+
+    if not v2_pnl_sel.empty:
+        dc_act     = float(v2_pnl_sel["CONSUMER SALES_COS"].values[0])
+        cs_rev_pnl = float(v2_pnl_sel["CONSUMER SALES_Rev"].values[0])
+        gp_act     = cs_rev_pnl - dc_act
+        dc_is_ph   = gp_is_ph = False
+    else:
+        dc_act   = v2_t_rev * 0.58
+        gp_act   = v2_t_rev * 0.42
+        dc_is_ph = gp_is_ph = True
+
+    dc_py = gp_py = None
+    if not v2_pnl_py.empty:
+        dc_py_v    = float(v2_pnl_py["CONSUMER SALES_COS"].values[0])
+        cs_rev_py_v = float(v2_pnl_py["CONSUMER SALES_Rev"].values[0])
+        dc_py      = dc_py_v
+        gp_py      = cs_rev_py_v - dc_py_v
+
+    dc_trend = f"{dc_act - dc_py:+.1f} vs PY" if dc_py is not None else "—"
+    dc_col   = "#22c55e" if (dc_py is not None and dc_act <= dc_py) else "#ef4444"
+    gp_trend = f"{gp_act - gp_py:+.1f} vs PY" if gp_py is not None else "—"
+    gp_col   = "#22c55e" if (gp_py is not None and gp_act >= gp_py) else "#8899bb"
+
+    # Usage metrics (MoU / GB per sub) from Consumer_Usage sheet
+    v2_usage     = data.get("Consumer_Usage", pd.DataFrame())
+    v2_usage_sel = v2_usage[v2_usage["Month"] == sel_month] if not v2_usage.empty else pd.DataFrame()
+
+    def _usage_val(col):
+        if v2_usage_sel.empty or col not in v2_usage_sel.columns:
+            return None, True
+        v = v2_usage_sel[col].values[0]
+        if pd.isna(v) or v == 0:
+            return None, True
+        return float(v), False
+
+    pp_mou, pp_mou_ph   = _usage_val("Postpaid_MoU_Per_Sub")
+    pre_mou, pre_mou_ph = _usage_val("Prepaid_MoU_Per_Sub")
+    pp_gb, pp_gb_ph     = _usage_val("Postpaid_GB_Per_Sub")
+
+    pp_mou_trend, pp_mou_col   = "—", "#8899bb"
+    pre_mou_trend, pre_mou_col = "—", "#8899bb"
+    pp_gb_trend,  pp_gb_col    = "", "#8899bb"
+
+    pp_mou_str  = f"{pp_mou:.0f} mins" if pp_mou else "Data Pending"
+    pre_mou_str = f"{pre_mou:.0f} mins" if pre_mou else "Data Pending"
+    pp_gb_str   = f"{pp_gb:.1f} GB"     if pp_gb  else "Data Pending"
 
     seg_vars_cmt = {
         "Postpaid": _v2vp(pp_rev, pp_aop),
@@ -1154,12 +1212,12 @@ with tab_v2:
         return (
             f'<div style="background:#161B22;border-radius:10px;padding:14px 12px;'
             f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
-            f'<div style="font-size:13px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'<div style="font-size:19px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.5px;margin-bottom:8px">{label}</div>'
-            f'<div style="font-size:26px;font-weight:800;color:white;margin-bottom:8px;'
+            f'<div style="font-size:42px;font-weight:800;color:white;margin-bottom:8px;'
             f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
-            f'<div style="font-size:14px;font-weight:600;margin-bottom:3px">{aop_html}</div>'
-            f'<div style="font-size:14px;font-weight:600">{yoy_html}</div>'
+            f'<div style="font-size:20px;font-weight:600;margin-bottom:3px">{aop_html}</div>'
+            f'<div style="font-size:20px;font-weight:600">{yoy_html}</div>'
             f'{spark_html}'
             f'</div>'
         )
@@ -1172,15 +1230,15 @@ with tab_v2:
 
     def r2_card(label, val_str, trend_str, trend_col, is_ph=False, accent="#4a9eff", note=""):
         dot = _AMBER_DOT if is_ph else ""
-        note_h = (f'<div style="font-size:10px;color:#f59e0b;margin-top:4px;font-style:italic">'
-                  f'{note}</div>') if note else ""
+        note_h = (f'<div style="font-size:13px;color:#f59e0b;margin-top:4px;font-style:italic">'
+                  f'{note or "&nbsp;"}</div>')
         return (
             f'<div style="background:#161B22;border-radius:10px;padding:12px 14px;'
-            f'border:1px solid #252545;border-top:2px solid {accent};height:100%">'
-            f'<div style="font-size:13px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'border:1px solid #252545;border-top:2px solid {accent};height:100%;min-height:130px">'
+            f'<div style="font-size:19px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.2px;margin-bottom:5px;display:flex;align-items:center">{label}{dot}</div>'
-            f'<div style="font-size:20px;font-weight:800;color:white;margin-bottom:4px">{val_str}</div>'
-            f'<div style="font-size:14px;color:{trend_col};font-weight:600">{trend_str}</div>'
+            f'<div style="font-size:32px;font-weight:800;color:white;margin-bottom:4px">{val_str}</div>'
+            f'<div style="font-size:20px;color:{trend_col};font-weight:600">{trend_str or "&nbsp;"}</div>'
             f'{note_h}</div>'
         )
 
@@ -1239,69 +1297,49 @@ with tab_v2:
         # Row 2a
         ra1, ra2, ra3 = st.columns(3)
         ra1.markdown(r2_card(
-            "Direct Costs", f"{dc_est:.1f}",
-            f"~{dc_est/v2_t_rev*100:.0f}% of revenue" if v2_t_rev else "—",
-            "#8899bb", is_ph=True, accent="#ef4444", note="est. (58% proxy)",
+            "Direct Costs", f"{dc_act:.1f}",
+            dc_trend, dc_col,
+            is_ph=dc_is_ph, accent="#ef4444",
+            note="est. (58% proxy)" if dc_is_ph else "",
         ), unsafe_allow_html=True)
         ra2.markdown(r2_card(
-            "Postpaid MoU / Sub", "181 mins",
-            "−8.2% vs PY", "#ef4444",
-            is_ph=True, accent="#4a9eff", note="Placeholder",
+            "Postpaid MoU / Sub", pp_mou_str,
+            pp_mou_trend, pp_mou_col,
+            is_ph=pp_mou_ph, accent="#4a9eff",
+            note="",
         ), unsafe_allow_html=True)
         ra3.markdown(r2_card(
-            "Prepaid MoU / Sub", "94 mins",
-            "−5.1% vs PY", "#ef4444",
-            is_ph=True, accent="#a78bfa", note="Placeholder",
+            "Prepaid MoU / Sub", pre_mou_str,
+            pre_mou_trend, pre_mou_col,
+            is_ph=pre_mou_ph, accent="#a78bfa",
+            note="",
         ), unsafe_allow_html=True)
 
         st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
 
-        # ── Prepaid data usage ────────────────────────────────────────────
-        _usage_df = load_prepaid_data_usage()
-        if not _usage_df.empty:
-            _u_latest = _usage_df.iloc[-1]
-            _u_month  = _u_latest["Month"]
-            _u_gb     = _u_latest["gb_per_user"]
-            # YoY: find the row 12 months prior
-            _u_dt_latest = pd.to_datetime(_u_month, format="%b-%y", errors="coerce")
-            _u_dt_py     = _u_dt_latest - pd.DateOffset(months=12)
-            _u_py_row    = _usage_df[
-                pd.to_datetime(_usage_df["Month"], format="%b-%y", errors="coerce") == _u_dt_py
-            ]
-            if not _u_py_row.empty and _u_py_row.iloc[0]["gb_per_user"] > 0:
-                _u_yoy  = (_u_gb - _u_py_row.iloc[0]["gb_per_user"]) / _u_py_row.iloc[0]["gb_per_user"] * 100
-                _u_trend_str = f"{_u_yoy:+.1f}% vs PY ({_u_month})"
-                _u_trend_col = "#22c55e" if _u_yoy >= 0 else "#ef4444"
-            else:
-                _u_trend_str = f"Latest: {_u_month}"
-                _u_trend_col = "#7788aa"
-            _gb_val_str  = f"{_u_gb:.1f} GB"
-            _gb_is_ph    = False
-            _gb_note     = f"Data to {_u_month}"
-        else:
-            _gb_val_str  = "2.1 GB"
-            _u_trend_str = "+18.3% vs PY"
-            _u_trend_col = "#22c55e"
-            _gb_is_ph    = True
-            _gb_note     = "Placeholder"
-
         # Row 2b
+        pre_gb, pre_gb_ph        = _usage_val("Prepaid_GB_Sub")
+        pre_gb_trend, pre_gb_col = "", "#8899bb"
+        pre_gb_str = f"{pre_gb:.1f} GB" if pre_gb else "Data Pending"
+
         rb1, rb2, rb3 = st.columns(3)
-        gp_col_str = "#22c55e" if (gp_vp is not None and gp_vp >= 0) else "#ef4444"
         rb1.markdown(r2_card(
-            "Gross Profit", f"{gp_est:.1f}",
-            f"{gp_vp:+.1f}% vs AOP" if gp_vp is not None else "—",
-            gp_col_str, is_ph=True, accent="#22c55e", note="est. (42% proxy)",
+            "Gross Profit", f"{gp_act:.1f}",
+            gp_trend, gp_col,
+            is_ph=gp_is_ph, accent="#22c55e",
+            note="est. (42% proxy)" if gp_is_ph else "",
         ), unsafe_allow_html=True)
         rb2.markdown(r2_card(
-            "Postpaid GB / Sub", "4.8 GB",
-            "+22.5% vs PY", "#22c55e",
-            is_ph=True, accent="#4a9eff", note="Placeholder",
+            "Postpaid GB / Sub", pp_gb_str,
+            pp_gb_trend, pp_gb_col,
+            is_ph=pp_gb_ph, accent="#4a9eff",
+            note="",
         ), unsafe_allow_html=True)
         rb3.markdown(r2_card(
-            "Prepaid GB / Sub", _gb_val_str,
-            _u_trend_str, _u_trend_col,
-            is_ph=_gb_is_ph, accent="#a78bfa", note=_gb_note,
+            "Prepaid GB / Sub", pre_gb_str,
+            pre_gb_trend, pre_gb_col,
+            is_ph=pre_gb_ph, accent="#a78bfa",
+            note="",
         ), unsafe_allow_html=True)
 
     with col_R:
@@ -1329,14 +1367,14 @@ with tab_v2:
                 line=dict(color="rgba(255,255,255,0.35)", width=2),
             ),
             textinfo="text",
-            textfont=dict(color="white", size=11),
+            textfont=dict(color="white", size=15),
             textposition="inside",
             domain=dict(x=[0, _dom_x]),
             customdata=d_segs,
             hovertemplate="<b>%{customdata}</b><br>%{value:.1f} (%{percent})<extra></extra>",
             title=dict(
                 text=f"<b>{d_total:.1f}</b>",
-                font=dict(size=12, color="white"),
+                font=dict(size=16, color="white"),
                 position="middle center",
             ),
         ))
@@ -1344,10 +1382,10 @@ with tab_v2:
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="white"), height=_fig_h,
             title=dict(text=f"<b>{sel_month} Revenue Mix</b>",
-                       font=dict(size=13, color="white"), x=0),
+                       font=dict(size=17, color="white"), x=0),
             legend=dict(
                 bgcolor="rgba(0,0,0,0)",
-                font=dict(size=12, color="white"),
+                font=dict(size=15, color="white"),
                 orientation="v",
                 x=_dom_x + 0.04, y=0.5,
                 xanchor="left",
@@ -1397,9 +1435,9 @@ with tab_v2:
     st.markdown(
         f'<div style="background:#161B22;border-radius:12px;padding:18px 22px;'
         f'border:1px solid #1a3520;border-left:4px solid #22c55e">'
-        f'<div style="font-size:10px;color:#f59e0b;font-weight:700;text-transform:uppercase;'
+        f'<div style="font-size:13px;color:#f59e0b;font-weight:700;text-transform:uppercase;'
         f'letter-spacing:2px;margin-bottom:12px">&#x25A0;&nbsp;Commentary</div>'
-        f'<div style="font-size:13px;color:#aaccaa;line-height:1.75">{cmt_text}</div>'
+        f'<div style="font-size:16px;color:#aaccaa;line-height:1.75">{cmt_text}</div>'
         f'</div>',
         unsafe_allow_html=True,
     )

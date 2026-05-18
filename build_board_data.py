@@ -279,9 +279,9 @@ def build_kpi_summary(cpl, caop, latest_mon, ly_mon):
     ma = ea / ra if ra else 0;  mp = ep / rp if rp else 0;  ml = el / rl if rl else 0
     s  = lambda a, p: "🟢" if a >= p else "🔴"
     return pd.DataFrame([
-        {"Month": latest_mon, "Section": "Financial", "KPI_Name": "Revenue",       "Actual": ra, "AOP": rp, "PY": rl, "Status": s(ra,rp), "Unit": "TT$M"},
-        {"Month": latest_mon, "Section": "Financial", "KPI_Name": "EBITDA",        "Actual": ea, "AOP": ep, "PY": el, "Status": s(ea,ep), "Unit": "TT$M"},
-        {"Month": latest_mon, "Section": "Financial", "KPI_Name": "PAT",           "Actual": pa, "AOP": pp, "PY": pl, "Status": s(pa,pp), "Unit": "TT$M"},
+        {"Month": latest_mon, "Section": "Financial", "KPI_Name": "Revenue",       "Actual": ra, "AOP": rp, "PY": rl, "Status": s(ra,rp), "Unit": ""},
+        {"Month": latest_mon, "Section": "Financial", "KPI_Name": "EBITDA",        "Actual": ea, "AOP": ep, "PY": el, "Status": s(ea,ep), "Unit": ""},
+        {"Month": latest_mon, "Section": "Financial", "KPI_Name": "PAT",           "Actual": pa, "AOP": pp, "PY": pl, "Status": s(pa,pp), "Unit": ""},
         {"Month": latest_mon, "Section": "Financial", "KPI_Name": "EBITDA Margin", "Actual": ma, "AOP": mp, "PY": ml, "Status": s(ma,mp), "Unit": "%"},
     ])
 
@@ -473,24 +473,34 @@ def build_dpdi(cpl, caop, dpdi_pl, act_months):
     rows = []
     for m in MONTH_ORDER:
         mon = fmt_month(m, LY_FY)
+        tot_dc = _g(dpdi_pl, "DIR_COST", mon) or 0.0
         for name, key in PRODS:
+            rev = _g(dpdi_pl, key, mon)
+            dc  = tot_dc * mar_props[name]
+            gp  = (rev - dc) if pd.notna(rev) else np.nan
             rows.append({"Month": mon, "Product": name,
-                         "Revenue": _g(dpdi_pl, key, mon),
+                         "Revenue": rev,
                          "Revenue_AOP": np.nan,
-                         "Gross_Profit": 0, "GP_Margin_Pct": 0,
-                         "EBITDA": 0, "Direct_Costs": 0})
+                         "Gross_Profit": gp, "GP_Margin_Pct": 0,
+                         "EBITDA": 0, "Direct_Costs": dc})
 
     for m in act_months:
-        mon = fmt_month(m, CUR_FY)
-        tot = _g(cpl,  "DPDI_REV", mon)
-        aop = _g(caop, "DPDI_REV", mon)
+        mon     = fmt_month(m, CUR_FY)
+        tot     = _g(cpl,  "DPDI_REV", mon)
+        aop     = _g(caop, "DPDI_REV", mon)
+        tot_dc  = _g(cpl,  "DPDI_COS", mon) or 0.0
+        aop_dc  = _g(caop, "DPDI_COS", mon) or 0.0
         for name, _ in PRODS:
-            p = mar_props[name]
+            p   = mar_props[name]
+            rev = tot * p if pd.notna(tot) else np.nan
+            dc  = tot_dc * p
+            gp  = (rev - dc) if pd.notna(rev) else np.nan
             rows.append({"Month": mon, "Product": name,
-                         "Revenue": tot * p if pd.notna(tot) else np.nan,
+                         "Revenue": rev,
                          "Revenue_AOP": aop * p if pd.notna(aop) else np.nan,
-                         "Gross_Profit": 0, "GP_Margin_Pct": 0,
-                         "EBITDA": 0, "Direct_Costs": 0})
+                         "Gross_Profit": gp, "GP_Margin_Pct": 0,
+                         "EBITDA": 0, "Direct_Costs": dc,
+                         "Direct_Costs_AOP": aop_dc * p})
 
     return pd.DataFrame(rows)
 

@@ -102,6 +102,8 @@ def load_all_data():
             bs = data["Business_Sales"].merge(pnl, on="Month", how="left")
             segs_per_month = bs.groupby("Month")["Segment"].transform("count")
             for col, src in [("Direct_Costs", "_pnl_dc"), ("Direct_Costs_AOP", "_pnl_dc_aop")]:
+                if col not in bs.columns:
+                    bs[col] = 0.0
                 blank = bs[col].isna() | (bs[col] == 0)
                 bs.loc[blank, col] = bs.loc[blank, src] / segs_per_month[blank]
             bs.drop(columns=["_pnl_dc", "_pnl_dc_aop"], inplace=True)

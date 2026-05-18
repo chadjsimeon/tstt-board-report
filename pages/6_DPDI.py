@@ -15,15 +15,17 @@ sel_month = st.sidebar.selectbox("Month", months, index=len(months) - 1)
 
 # ── Selected month — exclude products with no revenue and no AOP ──────────────
 snap = dpdi[dpdi["Month"] == sel_month].copy()
-ytd  = snap.groupby("Product")[
-    ["Revenue", "Revenue_AOP", "Gross_Profit", "EBITDA", "Direct_Costs"]
-].sum()
+_agg_cols = ["Revenue", "Revenue_AOP", "Gross_Profit", "EBITDA", "Direct_Costs"]
+if "Direct_Costs_AOP" in snap.columns:
+    _agg_cols.append("Direct_Costs_AOP")
+ytd  = snap.groupby("Product")[_agg_cols].sum()
 ytd = ytd[(ytd["Revenue"] != 0) | (ytd["Revenue_AOP"] != 0)]
 
 total_rev    = ytd["Revenue"].sum()
 total_aop    = ytd["Revenue_AOP"].sum()
 total_gp     = ytd["Gross_Profit"].sum()
 total_dc     = ytd["Direct_Costs"].sum()
+total_dc_aop = ytd["Direct_Costs_AOP"].sum() if "Direct_Costs_AOP" in ytd.columns else 0.0
 total_ebitda = ytd["EBITDA"].sum()
 
 has_egovtt      = "e-GOVTT" in ytd.index
@@ -38,8 +40,9 @@ excl_var_pct = (excl_rev  - excl_aop)  / abs(excl_aop)  * 100 if excl_aop  else 
 gp_margin    = total_gp / total_rev * 100 if total_rev else 0
 
 ebitda_display = f"({abs(total_ebitda):.1f})" if total_ebitda < 0 else f"{total_ebitda:.1f}"
-dc_below_aop   = total_dc < total_aop
-dc_sub_text    = "Below AOP ↓" if dc_below_aop else f"{(total_dc - total_aop) / abs(total_aop) * 100:+.1f}% vs AOP"
+_dc_aop_ref    = total_dc_aop if total_dc_aop else total_aop
+dc_below_aop   = total_dc < _dc_aop_ref
+dc_sub_text    = "Below AOP ↓" if dc_below_aop else f"{(total_dc - _dc_aop_ref) / abs(_dc_aop_ref) * 100:+.1f}% vs AOP"
 dc_sub_color   = "#00ff88" if dc_below_aop else "#FF4444"
 
 # ── Page header ───────────────────────────────────────────────────────────────
@@ -98,7 +101,7 @@ with col_left:
             y=prod,
             text=f"<b>{av:,.0f}</b> / {bv:,.0f}",
             showarrow=False,
-            font=dict(color="#aaaacc", size=13, family="Inter, sans-serif"),
+            font=dict(color="#aaaacc", size=16, family="Inter, sans-serif"),
             xanchor="left",
             yanchor="middle",
         )
@@ -120,18 +123,18 @@ with col_left:
         barmode="overlay",
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white", family="Inter, sans-serif", size=13),
+        font=dict(color="white", family="Inter, sans-serif", size=16),
         height=380,
         title=dict(text="<b>Revenue by Product — YTD vs AOP</b>",
-                   font=dict(size=15, color="white"), x=0),
-        xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=13),
+                   font=dict(size=20, color="white"), x=0),
+        xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=15),
                    range=[0, max_x], showline=False, zeroline=False),
-        yaxis=dict(tickfont=dict(color="white", size=13), showgrid=False,
+        yaxis=dict(tickfont=dict(color="white", size=15), showgrid=False,
                    autorange="reversed"),
-        margin=dict(l=10, r=140, t=44, b=30),
+        margin=dict(l=10, r=160, t=70, b=30),
         annotations=annotations,
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=13),
-                    orientation="h", y=-0.1, x=0),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=15),
+                    orientation="h", y=1.12, x=0),
     )
     st.plotly_chart(fig_bar, use_container_width=True)
 
@@ -161,17 +164,17 @@ with col_right:
     ))
     fig_trend.update_layout(
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white", family="Inter, sans-serif", size=13),
+        font=dict(color="white", family="Inter, sans-serif", size=16),
         height=380,
         title=dict(text="<b>Revenue Trend — 13 Months vs AOP</b>",
-                   font=dict(size=15, color="white"), x=0),
-        xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=13),
+                   font=dict(size=20, color="white"), x=0),
+        xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=15),
                    showline=False, zeroline=False),
-        yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=13),
+        yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=15),
                    zeroline=False),
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=13),
-                    orientation="h", y=-0.12, x=0),
-        margin=dict(l=10, r=10, t=44, b=30),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=15),
+                    orientation="h", y=1.12, x=0),
+        margin=dict(l=10, r=10, t=70, b=30),
     )
     st.plotly_chart(fig_trend, use_container_width=True)
 

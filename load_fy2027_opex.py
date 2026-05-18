@@ -75,7 +75,7 @@ for row in combined.itertuples(index=False):
 
 wb.save(BOARD_DATA)
 print("Done — TSTT_Board_Data.xlsx updated with FY2027 OPEX plan.")
-print("\nAnnual plan by category (TT$M):")
+print("\nAnnual plan by category:")
 for cat, total in plan.groupby("Category")["Plan"].sum().sort_values(ascending=False).items():
-    print(f"  {cat:<30} TT${total/1e6:>8.2f}M")
-print(f"\n  {'TOTAL':<30} TT${plan['Plan'].sum()/1e6:>8.2f}M")
+    print(f"  {cat:<30} {total/1e6:>8.2f}")
+print(f"\n  {'TOTAL':<30} {plan['Plan'].sum()/1e6:>8.2f}")

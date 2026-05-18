@@ -1,6 +1,6 @@
 ================================================================================
   TSTT BOARD REPORT — DATA UPDATE GUIDE
-  Last updated: May 2026
+  Last updated: May 2026 (v2 — ETL source, billing/collections, load_fy2027_opex)
 ================================================================================
 
 HOW TO RUN THE DASHBOARD
@@ -162,11 +162,62 @@ Row positions used (0-based):
     Row offset 4 → 181–360 days  (merged into 90–360 display)
     Row offset 5 → 360+ days
 
+────────────────────────────────────────────────────────────────────────────────
+D. BILLINGS
+   File: billing (M).xlsx
+   Page: Cash, Working Capital & CAPEX (Collections section)
+────────────────────────────────────────────────────────────────────────────────
+Sheet: "Sheet 1"
+
+The dashboard computes Collections % as:
+  this month's collections / prior month's billings
+
+Structure:
+  Column      Description
+  ─────────── ──────────────────────────────────────────────────────────────
+  LOB         Line of business — "Business Sales" or "Consumer Sales"
+              (cell is merged/blank for sub-rows; dashboard uses ffill)
+  Grouping    Sub-grouping — "Govt", "Non-Govt", or "Total"
+  [months]    One column per month; header must be in Mon-YY format (Apr-26)
+              Values are raw TT$ billing amounts
+
+Required LOB / Grouping combinations used by the dashboard:
+  Business Sales | Govt
+  Business Sales | Non-Govt
+  Consumer Sales | Total
+
+To update: add a new column (header Mon-YY) with billing values for each row.
+
+────────────────────────────────────────────────────────────────────────────────
+E. COLLECTIONS
+   File: collections (FULL).xlsx
+   Page: Cash, Working Capital & CAPEX (Collections section)
+────────────────────────────────────────────────────────────────────────────────
+Sheet: "Sheet 1"
+
+Identical structure to billing (M).xlsx above.
+Values are raw TT$ collection amounts for each LOB/Grouping per month.
+
+Required LOB / Grouping combinations:
+  Business Sales | Govt
+  Business Sales | Non-Govt
+  Consumer Sales | Total
+
+To update: add a new column (header Mon-YY) with collection values for each row.
+
+NOTE: The three Collections_Pct columns in the Cash_CAPEX sheet
+(Collections_Pct, Collections_Pct_Gov, Collections_Pct_NonGov) are no longer
+used by the collections widget. The widget now reads billing (M).xlsx and
+collections (FULL).xlsx directly. Leave those columns blank or at 0.
+
 
 ================================================================================
-  ETL SCRIPT — build_board_data.py
+  ETL SCRIPTS
 ================================================================================
 
+────────────────────────────────────────────────────────────────────────────────
+build_board_data.py — MAIN ETL
+────────────────────────────────────────────────────────────────────────────────
 You do NOT need to run this manually every month unless the raw source data
 format changes. The output (TSTT_Board_Data.xlsx) is committed to the repo
 and is what the dashboard reads directly.
@@ -176,12 +227,26 @@ If you do need to rebuild TSTT_Board_Data.xlsx from source:
     python build_board_data.py
 
 Source files the ETL reads:
-  financial_data.xlsx              — raw financial actuals (long format)
-  subscriber_base_apw.xlsx         — subscriber base by APW (used for Consumer_Sales)
-  Amplia Metrics 2024-2025 February 2026.xlsx  — Amplia KPI data
-  OPEX_AOP_FY2027.xlsx             — OPEX Annual Operating Plan for FY2027
+  Consolidated Contribution Statements.xlsx  — raw P&L actuals (multi-sheet)
+  subscriber_base_apw.xlsx                   — subscriber base by APW
+  Amplia Metrics 2024-2025 February 2026.xlsx — Amplia KPI data
+  OPEX_AOP_FY2027.xlsx                       — OPEX Annual Operating Plan FY2027
 
 All source files must be in the project root folder.
+
+────────────────────────────────────────────────────────────────────────────────
+load_fy2027_opex.py — OPEX AOP LOADER (one-time / refresh only)
+────────────────────────────────────────────────────────────────────────────────
+Appends FY2027 OPEX plan rows (Apr-26 to Mar-27) into the OPEX sheet of
+TSTT_Board_Data.xlsx without touching any other sheets.
+Run this when OPEX_AOP_FY2027.xlsx is updated or replaced:
+
+    python load_fy2027_opex.py
+
+Requirements:
+  - TSTT_Board_Data.xlsx must be CLOSED in Excel before running
+  - OPEX_AOP_FY2027.xlsx must be in the project root folder
+  - The script preserves any existing FY2027 actuals when re-running
 
 
 ================================================================================
@@ -584,9 +649,15 @@ For each new reporting month (e.g. adding May-26):
   [ ] 18. Update Prepaid data usage file with new month row
               dd_prepaid_data_usage_mth.xlsx  (sheet: Result 1)
 
-  [ ] 19. If AR Aging column has moved, update APR = XX in pages/3_Cash_CAPEX.py
+  [ ] 19. Add a new column (Mon-YY) to billing (M).xlsx  (sheet: Sheet 1)
+              with billing amounts for each LOB/Grouping row
 
-  [ ] 20. Run:  streamlit run app.py
+  [ ] 20. Add a new column (Mon-YY) to collections (FULL).xlsx  (sheet: Sheet 1)
+              with collection amounts for each LOB/Grouping row
+
+  [ ] 21. If AR Aging column has moved, update APR = XX in pages/3_Cash_CAPEX.py
+
+  [ ] 22. Run:  streamlit run app.py
                Then clear the cache if data looks stale:
                Click the ⋮ menu (top-right of browser) → Clear cache
 

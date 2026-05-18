@@ -188,7 +188,7 @@ def _pill_row(label, d):
         show_lbl = pv > 2 or (key == "360p" and capped)
         lbl = (
             f'<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);'
-            f'font-size:0.72rem;font-weight:700;color:rgba(0,0,0,0.85);white-space:nowrap">'
+            f'font-size:0.9rem;font-weight:700;color:rgba(0,0,0,0.85);white-space:nowrap">'
             f'{pa:.0f}%</span>'
         ) if show_lbl else ""
 
@@ -217,8 +217,8 @@ def _pill_row(label, d):
     return (
         f'<div style="margin-bottom:8px">'
         f'<div style="display:flex;justify-content:space-between;margin-bottom:4px">'
-        f'<span style="font-size:1.1rem;color:white;font-weight:600">{label}</span>'
-        f'<span style="font-size:1.1rem;color:#aaaacc;font-weight:700">{d["total"]:,.1f}</span>'
+        f'<span style="font-size:1.3rem;color:white;font-weight:600">{label}</span>'
+        f'<span style="font-size:1.3rem;color:#aaaacc;font-weight:700">{d["total"]:,.1f}</span>'
         f'</div>'
         f'<div style="display:flex;gap:2px;height:38px;width:{pct_w:.1f}%">{"".join(parts)}</div>'
         f'</div>'
@@ -227,7 +227,7 @@ def _pill_row(label, d):
 ar_legend = "".join(
     f'<div style="display:flex;align-items:center;gap:5px">'
     f'<span style="width:10px;height:10px;border-radius:2px;background:{c};display:inline-block"></span>'
-    f'<span style="font-size:0.85rem;color:#8899aa;white-space:nowrap">{bl}</span></div>'
+    f'<span style="font-size:1rem;color:#8899aa;white-space:nowrap">{bl}</span></div>'
     for bl, _, c in AR_BUCKETS
 )
 
@@ -259,10 +259,10 @@ def _kpi(label, value, sub, color):
     return (
         f'<div style="flex:1;background:#161B22;padding:12px 16px;border:1px solid #21262d;'
         f'border-left:3px solid {color};border-radius:10px">'
-        f'<div style="font-size:0.85rem;font-weight:700;color:#556677;text-transform:uppercase;'
+        f'<div style="font-size:1rem;font-weight:700;color:#556677;text-transform:uppercase;'
         f'letter-spacing:1.2px;margin-bottom:8px">{label}</div>'
-        f'<div style="font-size:2rem;font-weight:800;color:white;line-height:1">{value}</div>'
-        f'<div style="font-size:0.9rem;color:{color};font-weight:600;margin-top:6px">{sub}</div>'
+        f'<div style="font-size:2.2rem;font-weight:800;color:white;line-height:1">{value}</div>'
+        f'<div style="font-size:1.05rem;color:{color};font-weight:600;margin-top:6px">{sub}</div>'
         f'</div>'
     )
 
@@ -307,9 +307,9 @@ with c_ar:
     st.markdown(f"""
 <div style="background:#161B22;border-radius:8px;padding:12px 18px;
             border:1px solid #21262d;margin-top:8px">
-  <div style="font-size:0.85rem;font-weight:700;color:#00e676;text-transform:uppercase;
+  <div style="font-size:1.05rem;font-weight:700;color:#00e676;text-transform:uppercase;
               letter-spacing:2px;margin-bottom:8px">AR Aging</div>
-  <div style="font-size:0.95rem;color:#556677;margin-bottom:12px">
+  <div style="font-size:1.1rem;color:#556677;margin-bottom:12px">
     Total <strong style="color:#aaaacc">{AR_TOTAL:,.1f}</strong>
     &nbsp;·&nbsp; Gov <strong style="color:#aaaacc">{gov['total']:,.1f}</strong>
     &nbsp;·&nbsp; Non-Gov <strong style="color:#aaaacc">{non_gov['total']:,.1f}</strong>
@@ -323,21 +323,21 @@ with c_ar:
     def _coll_box(label, coll_val, pct_val, accent):
         color = _pct_color(pct_val)
         if pct_val is not None:
-            main = f'<div style="font-size:2.6rem;font-weight:800;color:{color};line-height:1">{pct_val:.1f}%</div>'
+            main = f'<div style="font-size:2.9rem;font-weight:800;color:{color};line-height:1">{pct_val:.1f}%</div>'
         elif coll_val is not None:
-            main = '<div style="font-size:1rem;font-weight:600;color:#556677;margin-top:4px">Billings pending</div>'
+            main = '<div style="font-size:1.1rem;font-weight:600;color:#556677;margin-top:4px">Billings pending</div>'
         else:
-            main = '<div style="font-size:1rem;font-weight:600;color:#3a4455;line-height:1.3">Data pending</div>'
+            main = '<div style="font-size:1.1rem;font-weight:600;color:#3a4455;line-height:1.3">Data pending</div>'
         return (
             f'<div style="flex:1;background:#161B22;border:1px solid #21262d;'
             f'border-top:2px solid {accent};border-radius:8px;padding:14px 16px">'
-            f'<div style="font-size:0.85rem;font-weight:700;color:{accent};text-transform:uppercase;'
+            f'<div style="font-size:1rem;font-weight:700;color:{accent};text-transform:uppercase;'
             f'letter-spacing:1px;margin-bottom:8px">{label}</div>'
             f'{main}</div>'
         )
 
     st.markdown(
-        f'<div style="font-size:0.9rem;font-weight:700;color:#556677;text-transform:uppercase;'
+        f'<div style="font-size:1.05rem;font-weight:700;color:#556677;text-transform:uppercase;'
         f'letter-spacing:1.5px;margin-top:10px;margin-bottom:8px">'
         f'Collections — {latest_month} vs {prior_month or "—"} billings</div>'
         f'<div style="display:flex;gap:8px;margin-bottom:8px">'
@@ -355,27 +355,27 @@ with c_ar:
     st.markdown(f"""
 <div style="background:#161B22;border-radius:8px;padding:12px 18px;
             border:1px solid #21262d;margin-top:10px">
-  <div style="font-size:0.85rem;font-weight:700;color:#00e676;text-transform:uppercase;
+  <div style="font-size:1.05rem;font-weight:700;color:#00e676;text-transform:uppercase;
               letter-spacing:2px;margin-bottom:12px">CAPEX Spend to Date</div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-    <span style="color:#aaaacc;font-size:16px">YTD vs Annual Budget</span>
-    <span style="color:{cap_pct_color};font-weight:800;font-size:30px">{capex_progress:.1f}%</span>
+    <span style="color:#aaaacc;font-size:18px">YTD vs Annual Budget</span>
+    <span style="color:{cap_pct_color};font-weight:800;font-size:34px">{capex_progress:.1f}%</span>
   </div>
   <div style="background:#1e1e3a;border-radius:6px;height:16px;overflow:hidden;margin-bottom:16px">
     <div style="background:{cap_bar_color};width:{capex_progress:.1f}%;height:100%;border-radius:6px"></div>
   </div>
   <div style="display:flex;justify-content:space-between">
     <div>
-      <div style="color:{cap_pct_color};font-size:22px;font-weight:700">{capex_act:,.0f}</div>
-      <div style="color:#6688aa;font-size:15px;margin-top:4px">spent YTD</div>
+      <div style="color:{cap_pct_color};font-size:26px;font-weight:700">{capex_act:,.0f}</div>
+      <div style="color:#6688aa;font-size:17px;margin-top:4px">spent YTD</div>
     </div>
     <div style="text-align:center">
-      <div style="color:{cap_rem_color};font-size:22px;font-weight:700">{cap_rem_sign}{abs(capex_remaining):,.0f}</div>
-      <div style="color:#6688aa;font-size:15px;margin-top:4px">{cap_rem_label}</div>
+      <div style="color:{cap_rem_color};font-size:26px;font-weight:700">{cap_rem_sign}{abs(capex_remaining):,.0f}</div>
+      <div style="color:#6688aa;font-size:17px;margin-top:4px">{cap_rem_label}</div>
     </div>
     <div style="text-align:right">
-      <div style="color:#aaaacc;font-size:22px;font-weight:700">{capex_plan:,.0f}</div>
-      <div style="color:#6688aa;font-size:15px;margin-top:4px">annual budget</div>
+      <div style="color:#aaaacc;font-size:26px;font-weight:700">{capex_plan:,.0f}</div>
+      <div style="color:#6688aa;font-size:17px;margin-top:4px">annual budget</div>
     </div>
   </div>
 </div>""", unsafe_allow_html=True)

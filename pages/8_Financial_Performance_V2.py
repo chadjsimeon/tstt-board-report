@@ -190,7 +190,7 @@ with chart_col:
         fill="tozeroy", fillcolor="rgba(74,158,255,0.07)",
     ))
     fig.update_layout(
-        height=560,
+        height=380,
         paper_bgcolor=CARD_BG, plot_bgcolor=CARD_BG,
         font=dict(color="white"),
         title=dict(text="<b>Revenue, Gross Profit & EBITDA — 13-Month Trend</b>",
