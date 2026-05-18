@@ -277,7 +277,7 @@ with tab2:
     pre_subs_disc  = pre_subs_open * churn_pre / 100 if (churn_pre and pre_subs_open > 0) else 0.0
     pre_subs_gross = max(0.0, pre_subs_net + pre_subs_disc)
 
-    # ── Row 1 — 3 KPI cards ──────────────────────────────────────────────────
+    # ── 4 KPI boxes ──────────────────────────────────────────────────────────
     r_aop_col = "#22c55e" if (rev_aop_pct or 0) >= 0 else "#ef4444"
     r_l1 = (f"{rev_aop_m:+.1f} | {rev_aop_pct:+.1f}% vs AOP"
             if rev_aop_pct is not None else "— vs AOP")
@@ -292,12 +292,23 @@ with tab2:
     a_l2 = (f"vs PY: {arpu_py_pct:+.1f}%"
             if arpu_py_pct is not None else "vs PY: —")
 
-    _c1 = _pre_kpi("Prepaid Revenue", f"{apr26_rev:.1f}",
-                   r_l1, r_aop_col, r_l2, "#f59e0b", "#a78bfa", rev_spark)
-    _c3 = _pre_kpi("ARPU", f"${arpu_lat:.0f}",
-                   a_l1, a_l1_col, a_l2, a_l2_col, "#f59e0b", arpu_spark)
+    s_l1_col = ("#22c55e" if (subs_aop_pct or 0) >= 0
+                else "#ef4444" if subs_aop_pct is not None else "#7788aa")
+    s_l1 = (f"{subs_aop_m/1000:+.1f}K | {subs_aop_pct:+.1f}% vs AOP"
+            if subs_aop_pct is not None else "— vs AOP")
+    s_l2_col = ("#22c55e" if (subs_py_pct or 0) >= 0
+                else "#ef4444" if subs_py_pct is not None else "#7788aa")
+    s_l2 = (f"vs PY: {subs_py_pct:+.1f}%"
+            if subs_py_pct is not None else "vs PY: —")
 
-    # Subscriber card — movement breakdown
+    _c1     = _pre_kpi("Prepaid Revenue", f"{apr26_rev:.1f}",
+                       r_l1, r_aop_col, r_l2, "#f59e0b", "#a78bfa", rev_spark)
+    _c3     = _pre_kpi("ARPU", f"${arpu_lat:.0f}",
+                       a_l1, a_l1_col, a_l2, a_l2_col, "#f59e0b", arpu_spark)
+    _c_subs = _pre_kpi(f"Subscribers — {_arpu_latest_month}", _fmt_k(subs_lat),
+                       s_l1, s_l1_col, s_l2, s_l2_col, "#22c55e", subs_spark)
+
+    # Subscriber movements card
     _net_col   = "#22c55e" if pre_subs_net >= 0 else "#ef4444"
     _churn_lbl = f"Churn ({churn_pre:.1f}%)" if churn_pre is not None else "Churn"
     _mov_rows  = [
@@ -319,11 +330,19 @@ with tab2:
         f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
         f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
         f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
-        f'letter-spacing:1px;margin-bottom:8px">Subscribers — {_arpu_latest_month}</div>'
-        f'<div style="font-size:26px;font-weight:800;color:white;line-height:1.1;margin-bottom:10px">'
-        f'{_fmt_k(pre_subs_close)}</div>'
+        f'letter-spacing:1px;margin-bottom:10px">Movements — {_arpu_latest_month}</div>'
         f'{_mov_html}'
         f'</div>'
+    )
+
+    st.markdown(
+        f'<div style="display:flex;gap:12px;margin-bottom:16px">'
+        f'<div style="flex:1">{_c1}</div>'
+        f'<div style="flex:1">{_c3}</div>'
+        f'<div style="flex:1">{_c_subs}</div>'
+        f'<div style="flex:1">{_c2}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
     )
 
     # ── Avg daily revenue calc ────────────────────────────────────────────────
@@ -340,7 +359,7 @@ with tab2:
     pre_daily["Daily_Rev"] = pre_daily["Revenue"]     / pre_daily["Days"]
     pre_daily["Daily_AOP"] = pre_daily["Revenue_AOP"] / pre_daily["Days"]
 
-    # ── ARPU Category — Prepaid Subs and REV by ARPU buckets.xlsx ───────────
+    # ── ARPU Category ─────────────────────────────────────────────────────────
     _BUCKET_ORDER = [
         "Very Low (0-5)", "Low (5-30)", "Medium (30-120)",
         "High (120-300)", "Very High (>300)",
@@ -359,19 +378,11 @@ with tab2:
                             "Medium (30-120)": 130_000, "High (120-300)": 60_000,
                             "Very High (>300)": 25_000}
         _arpu_data_label = None
-    # ─────────────────────────────────────────────────────────────────────────
 
-    # ── Row 2 — Avg Daily Revenue + ARPU Category ─────────────────────────────
+    # ── Charts: Avg Daily Revenue  |  Subscribers by ARPU Category ───────────
     ml, mr = st.columns([55, 45])
 
     with ml:
-        st.markdown(
-            f'<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">'
-            f'<div style="flex:1">{_c1}</div>'
-            f'<div style="flex:1">{_c3}</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
         dvr     = pre_daily["Daily_Rev"].dropna().values
         dvr_pad = (dvr.max() - dvr.min()) * 0.18 if len(dvr) > 1 else 0.05
         fig = go.Figure()
@@ -393,8 +404,6 @@ with tab2:
         st.plotly_chart(fig, use_container_width=True)
 
     with mr:
-        st.markdown(_c2, unsafe_allow_html=True)
-        st.markdown("<div style='margin-top:12px'></div>", unsafe_allow_html=True)
         _cat_names  = list(pre_arpu_cats.keys())
         _cat_vals   = list(pre_arpu_cats.values())
         _cat_colors = ["#6b7280", "#6366f1", "#a78bfa", "#f59e0b", "#22c55e"]
