@@ -68,8 +68,9 @@ def _kpi_tile(label, value, sub="", sub_color="#8888aa", accent="#4a9eff"):
 
 
 inject_css()
-data = load_all_data()
+data     = load_all_data()
 biz      = data["Business_Sales"]
+biz_mrr  = data.get("Business_Sales_MRR", pd.DataFrame())
 pipeline = data["Pipeline"]
 renewals = data["Renewals"]
 
@@ -297,12 +298,24 @@ with tab_fp:
     fp_tv_m   = fp_t_rev - fp_t_aop
 
     mob_rev = _col(biz_latest, "Mobile");  mob_aop = _col(biz_latest, "Mobile_AOP");  mob_py  = _col(biz_py_snap, "Mobile")
-    mrr_rev = _col(biz_latest, "MRR") or 0.0; mrr_aop = _col(biz_latest, "MRR_AOP");  mrr_py  = _col(biz_py_snap, "MRR")
-    usg_rev = _col(biz_latest, "USAGE");   usg_aop = _col(biz_latest, "USAGE_AOP"); usg_py  = _col(biz_py_snap, "USAGE")
-    occ_rev = _col(biz_latest, "OCC");     occ_aop = _col(biz_latest, "OCC_AOP");   occ_py  = _col(biz_py_snap, "OCC")
     dc_rev  = _col(biz_latest, "Direct_Costs") or 0.0
     dc_aop  = _col(biz_latest, "Direct_Costs_AOP")
     dc_py   = _col(biz_py_snap, "Direct_Costs")
+
+    # MRR / USAGE / OCC sourced from Business_Sales_MRR sheet (no AOP)
+    def _mrr_col(df, col):
+        if df.empty or col not in df.columns: return None
+        v = df[col].sum()
+        return float(v) if pd.notna(v) and v != 0 else None
+
+    mrr_sel = biz_mrr[biz_mrr["Month"] == sel_month]  if not biz_mrr.empty else pd.DataFrame()
+    mrr_py_snap = biz_mrr[biz_mrr["Month"] == biz_py_mon] if not biz_mrr.empty else pd.DataFrame()
+    mrr_rev = _mrr_col(mrr_sel, "MRR")
+    usg_rev = _mrr_col(mrr_sel, "USAGE")
+    occ_rev = _mrr_col(mrr_sel, "OCC")
+    mrr_py  = _mrr_col(mrr_py_snap, "MRR")
+    usg_py  = _mrr_col(mrr_py_snap, "USAGE")
+    occ_py  = _mrr_col(mrr_py_snap, "OCC")
 
     gp_col_v = _col(biz_latest, "Gross_Profit")
     gp_rev   = gp_col_v if gp_col_v is not None else (fp_t_rev - dc_rev)
@@ -319,25 +332,30 @@ with tab_fp:
     subs_py  = _col(biz_py_snap, "Mobile_Subs")
     arpu_val = (mob_rev * 1_000_000 / mob_subs) if (mob_rev and mob_subs) else None
 
-    def _trend(col):
-        if col not in biz.columns: return None
-        return biz.groupby("Month", sort=False)[col].sum().reindex(biz_months_all).fillna(0).tolist()
+    def _trend(col, df=None):
+        src = df if df is not None else biz
+        if col not in src.columns: return None
+        months_ref = src["Month"].unique().tolist() if df is not None else biz_months_all
+        return src.groupby("Month", sort=False)[col].sum().reindex(months_ref).fillna(0).tolist()
 
     fp_total_trend = _trend("Revenue")
-    mob_trend = _trend("Mobile")
-    mrr_trend = _trend("MRR")
-    usg_trend = _trend("USAGE")
-    occ_trend = _trend("OCC")
+    mob_trend      = _trend("Mobile")
+    mrr_trend      = _trend("MRR",   biz_mrr) if not biz_mrr.empty else None
+    usg_trend      = _trend("USAGE", biz_mrr) if not biz_mrr.empty else None
+    occ_trend      = _trend("OCC",   biz_mrr) if not biz_mrr.empty else None
 
     FP_ACCENTS = ["#00d4a0", "#4a9eff", "#a78bfa", "#f59e0b", "#ff6b6b"]
 
     # ── Card builders ─────────────────────────────────────────────────────
-    def fp_r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None):
+    def fp_r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None, hide_aop=False):
         col = "#22c55e" if (aop_pct is not None and aop_pct >= 0) else "#ef4444"
-        aop_html = (
-            f'<span style="color:{col}">{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP&nbsp;|&nbsp;{aop_m_str}</span>'
-            if aop_pct is not None else '<span style="color:#445566">— vs AOP</span>'
-        )
+        if hide_aop:
+            aop_html = '<span style="color:transparent">&nbsp;</span>'
+        else:
+            aop_html = (
+                f'<span style="color:{col}">{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP&nbsp;|&nbsp;{aop_m_str}</span>'
+                if aop_pct is not None else '<span style="color:#445566">— vs AOP</span>'
+            )
         yoy_html = (
             f'<span style="color:#f59e0b;font-weight:700">{yoy_str}</span>'
             if yoy_str else '<span style="color:#445566">— vs PY</span>'
@@ -349,12 +367,12 @@ with tab_fp:
         return (
             f'<div style="background:#161B22;border-radius:10px;padding:16px 14px;'
             f'border:1px solid #252545;border-top:3px solid {accent}">'
-            f'<div style="font-size:13px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'<div style="font-size:16px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.5px;margin-bottom:8px">{label}</div>'
-            f'<div style="font-size:32px;font-weight:800;color:white;margin-bottom:8px;'
+            f'<div style="font-size:42px;font-weight:800;color:white;margin-bottom:8px;'
             f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
-            f'<div style="font-size:15px;font-weight:600;margin-bottom:4px">{aop_html}</div>'
-            f'<div style="font-size:15px;font-weight:600">{yoy_html}</div>'
+            f'<div style="font-size:19px;font-weight:600;margin-bottom:4px">{aop_html}</div>'
+            f'<div style="font-size:19px;font-weight:600">{yoy_html}</div>'
             f'{spark_html}</div>'
         )
 
@@ -362,11 +380,11 @@ with tab_fp:
         return (
             f'<div style="background:#161B22;border-radius:10px;padding:14px 16px;'
             f'border:1px solid #252545;border-top:2px solid {accent};height:100%">'
-            f'<div style="font-size:13px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'<div style="font-size:16px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.2px;margin-bottom:5px">{label}</div>'
-            f'<div style="font-size:26px;font-weight:800;color:white;margin-bottom:6px">{val_str}</div>'
-            f'<div style="font-size:15px;color:{aop_col};font-weight:600;margin-bottom:3px">{aop_str}</div>'
-            f'<div style="font-size:15px;color:#f59e0b;font-weight:600">{py_str}</div>'
+            f'<div style="font-size:38px;font-weight:800;color:white;margin-bottom:6px">{val_str}</div>'
+            f'<div style="font-size:19px;color:{aop_col};font-weight:600;margin-bottom:3px">{aop_str}</div>'
+            f'<div style="font-size:19px;color:#f59e0b;font-weight:600">{py_str}</div>'
             f'</div>'
         )
 
@@ -383,21 +401,22 @@ with tab_fp:
     gp_aop_str   = f"{gp_vp:+.1f}% vs AOP | {gp_vm:+.1f}" if gp_vp is not None else f"{gp_margin_pct:.1f}% margin"
     gp_py_str    = f"{gp_rev - gp_py:+.1f} vs PY" if gp_py is not None else f"{gp_margin_pct:.1f}% margin"
 
-    subs_str = f"{int(mob_subs):,}" if mob_subs is not None else "—"
-    if mob_subs is not None and subs_aop is not None:
-        s_vp = _vp(mob_subs, subs_aop)
+    subs_str = f"{int(mob_subs):,}" if mob_subs else "—"
+    s_vp = _vp(mob_subs, subs_aop) if (mob_subs and subs_aop) else None
+    if s_vp is not None:
         s_vm = int(mob_subs - subs_aop)
         subs_aop_str = f"{s_vp:+.1f}% vs AOP | {s_vm:+,} subs"
-        subs_aop_col = "#22c55e" if (s_vp or 0) >= 0 else "#ef4444"
+        subs_aop_col = "#22c55e" if s_vp >= 0 else "#ef4444"
     else:
         subs_aop_str, subs_aop_col = "— vs AOP", "#445566"
-    if mob_subs is not None and subs_py is not None:
-        s_py_pct = _vp(mob_subs, subs_py)
-        subs_py_str = f"{s_py_pct:+.1f}% vs PY | {int(mob_subs - subs_py):+,} subs"
-    else:
-        subs_py_str = "— vs PY"
+    s_py_pct = _vp(mob_subs, subs_py) if (mob_subs and subs_py) else None
+    subs_py_str = (f"{s_py_pct:+.1f}% vs PY | {int(mob_subs - subs_py):+,} subs"
+                   if s_py_pct is not None else "— vs PY")
 
-    arpu_str = f"{arpu_val:,.0f}" if arpu_val is not None else "—"
+    arpu_str = f"{arpu_val:,.0f}" if arpu_val else "—"
+    arpu_py  = (mob_py * 1_000_000 / subs_py) if (mob_py and subs_py) else None
+    arpu_py_str = (f"{arpu_val - arpu_py:+,.0f} vs PY | {(arpu_val - arpu_py)/arpu_py*100:+.1f}%"
+                   if (arpu_val and arpu_py) else "— vs PY")
 
     def _r1_col_card(col_name, label, accent, trend):
         rv  = _col(biz_latest, col_name)
@@ -447,20 +466,31 @@ with tab_fp:
                                    accent=FP_ACCENTS[0]), unsafe_allow_html=True)
             st.markdown(_sp, unsafe_allow_html=True)
             st.markdown(fp_r2_card("ARPU (Mobile)", arpu_str,
-                                   "Mobile Rev ÷ Subs", "#aaaacc", "— vs PY",
+                                   "&nbsp;", "#aaaacc", arpu_py_str,
                                    accent=FP_ACCENTS[1]), unsafe_allow_html=True)
 
     with right_area:
         c3, c4, c5 = st.columns(3)
+
+        def _mrr_card(label, rv, py, accent, trend):
+            rv_f = rv if rv is not None else 0.0
+            return fp_r1_card(
+                label,
+                f"{rv_f:.1f}" if rv is not None else "—",
+                None, "—",
+                f"{rv_f - py:+.1f} vs PY" if py is not None else None,
+                accent, spark_series=trend, hide_aop=True,
+            )
+
         with c3:
-            st.markdown(_r1_col_card("MRR",   "MRR",   FP_ACCENTS[2], mrr_trend), unsafe_allow_html=True)
+            st.markdown(_mrr_card("MRR",   mrr_rev, mrr_py, FP_ACCENTS[2], mrr_trend), unsafe_allow_html=True)
         with c4:
-            st.markdown(_r1_col_card("USAGE", "USAGE", FP_ACCENTS[3], usg_trend), unsafe_allow_html=True)
+            st.markdown(_mrr_card("USAGE", usg_rev, usg_py, FP_ACCENTS[3], usg_trend), unsafe_allow_html=True)
         with c5:
-            st.markdown(_r1_col_card("OCC",   "OCC",   FP_ACCENTS[4], occ_trend), unsafe_allow_html=True)
+            st.markdown(_mrr_card("OCC", occ_rev, occ_py, FP_ACCENTS[4], occ_trend), unsafe_allow_html=True)
 
         st.markdown(_sp, unsafe_allow_html=True)
-        _trend_months = biz_months_all
+        _trend_months = biz_mrr["Month"].tolist() if not biz_mrr.empty else biz_months_all
         fig_lines = go.Figure()
         for _name, _vals, _color in [
             ("MRR",   mrr_trend  or [0] * len(_trend_months), FP_ACCENTS[2]),
@@ -475,15 +505,15 @@ with tab_fp:
             ))
         fig_lines.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=280,
+            font=dict(color="white"), height=420,
             title=dict(text="<b>MRR / OCC / USAGE Trend</b>",
                        font=dict(size=15, color="white"), x=0),
             xaxis=dict(showgrid=False, tickfont=dict(size=15), tickangle=-30),
             yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)",
                        tickfont=dict(size=15), tickprefix="$"),
-            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=14, color="white"),
-                        orientation="h", x=0, y=1.15, yanchor="bottom"),
-            margin=dict(l=10, r=10, t=44, b=10),
+            legend=dict(bgcolor="rgba(20,20,40,0.8)", font=dict(size=14, color="white"),
+                        orientation="v", x=1.01, y=1, xanchor="left", yanchor="top"),
+            margin=dict(l=10, r=100, t=44, b=10),
         )
         st.plotly_chart(fig_lines, use_container_width=True)
 

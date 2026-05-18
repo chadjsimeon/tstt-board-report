@@ -11,10 +11,14 @@ data = load_all_data()
 dpdi = data["DPDI"]
 months = get_month_order(dpdi)
 
-# ── YTD aggregates ────────────────────────────────────────────────────────────
-ytd = dpdi.groupby("Product")[
+sel_month = st.sidebar.selectbox("Month", months, index=len(months) - 1)
+
+# ── Selected month — exclude products with no revenue and no AOP ──────────────
+snap = dpdi[dpdi["Month"] == sel_month].copy()
+ytd  = snap.groupby("Product")[
     ["Revenue", "Revenue_AOP", "Gross_Profit", "EBITDA", "Direct_Costs"]
 ].sum()
+ytd = ytd[(ytd["Revenue"] != 0) | (ytd["Revenue_AOP"] != 0)]
 
 total_rev    = ytd["Revenue"].sum()
 total_aop    = ytd["Revenue_AOP"].sum()
@@ -39,7 +43,7 @@ dc_sub_text    = "Below AOP ↓" if dc_below_aop else f"{(total_dc - total_aop) 
 dc_sub_color   = "#00ff88" if dc_below_aop else "#FF4444"
 
 # ── Page header ───────────────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(f"""
 <div style="padding:1.2rem 0 0.5rem 0">
   <div style="font-size:0.65rem;font-weight:700;color:#445566;text-transform:uppercase;
               letter-spacing:2.5px;margin-bottom:0.5rem">
@@ -49,78 +53,41 @@ st.markdown("""
     DPDI Financial Overview
   </div>
   <div style="font-size:0.8rem;color:#7788aa">
-    YTD March 2026 &nbsp;&nbsp;|&nbsp;&nbsp; All figures in  unless stated
+    {sel_month} &nbsp;&nbsp;|&nbsp;&nbsp; All figures in TTD'000 unless stated
   </div>
 </div>
 <hr style="border:none;border-top:1px solid #1a1a2a;margin:0.9rem 0 1.2rem 0">
 """, unsafe_allow_html=True)
 
 # ── KPI cards ─────────────────────────────────────────────────────────────────
-st.markdown(f"""
-<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:1.5rem">
+def _dpdi_card(label, value_str, sub_str, sub_color, accent, note=""):
+    return (
+        f'<div style="background:#161B22;border-radius:10px;padding:14px 16px;'
+        f'border:1px solid #252545;border-top:2px solid {accent};height:100%;min-height:165px">'
+        f'<div style="font-size:19px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+        f'letter-spacing:1.2px;margin-bottom:5px">{label}</div>'
+        f'<div style="font-size:42px;font-weight:800;color:white;margin-bottom:6px">{value_str}</div>'
+        f'<div style="font-size:21px;color:{sub_color};font-weight:600;margin-bottom:3px">{sub_str or "&nbsp;"}</div>'
+        f'<div style="font-size:15px;color:#556677;font-weight:600">{note or "&nbsp;"}</div>'
+        f'</div>'
+    )
 
-  <div style="background:#161B22;padding:15px 14px 12px;border-bottom:2px solid #cc2222">
-    <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
-                letter-spacing:1.4px;margin-bottom:7px">TOTAL REVENUE</div>
-    <div style="font-size:1.4rem;font-weight:700;color:#FF4444;line-height:1.1">
-        {total_rev:.1f}</div>
-    <div style="font-size:0.7rem;color:#FF4444;margin-top:5px;font-weight:600">
-        {rev_var_pct:+.1f}% vs AOP</div>
-  </div>
-
-  <div style="background:#161B22;padding:15px 14px 12px;border-bottom:2px solid #cc2222">
-    <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
-                letter-spacing:1.4px;margin-bottom:7px">EXCL. E-GOVTT REV</div>
-    <div style="font-size:1.4rem;font-weight:700;color:#FF4444;line-height:1.1">
-        {excl_rev:.1f}</div>
-    <div style="font-size:0.7rem;color:#FF4444;margin-top:5px;font-weight:600">
-        {excl_var_pct:+.1f}% vs AOP</div>
-  </div>
-
-  <div style="background:#161B22;padding:15px 14px 12px;border-bottom:2px solid #444444">
-    <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
-                letter-spacing:1.4px;margin-bottom:7px">GROSS PROFIT</div>
-    <div style="font-size:1.4rem;font-weight:700;color:#ffffff;line-height:1.1">
-        {total_gp:.1f}</div>
-    <div style="font-size:0.7rem;color:#aaaaaa;margin-top:5px">GP Margin: {gp_margin:.1f}%</div>
-  </div>
-
-  <div style="background:#161B22;padding:15px 14px 12px;border-bottom:2px solid #444444">
-    <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
-                letter-spacing:1.4px;margin-bottom:7px">DIRECT COSTS</div>
-    <div style="font-size:1.4rem;font-weight:700;color:#ffffff;line-height:1.1">
-        {total_dc:.1f}</div>
-    <div style="font-size:0.7rem;color:{dc_sub_color};margin-top:5px;font-weight:600">
-        {dc_sub_text}</div>
-  </div>
-
-  <div style="background:#161B22;padding:15px 14px 12px;border-bottom:2px solid #cc2222">
-    <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
-                letter-spacing:1.4px;margin-bottom:7px">EBITDA</div>
-    <div style="font-size:1.4rem;font-weight:700;color:#FF4444;line-height:1.1">
-        {ebitda_display}</div>
-    <div style="font-size:0.7rem;color:#556677;margin-top:5px">OpEx-heavy BU</div>
-  </div>
-
-  <div style="background:#161B22;padding:15px 14px 12px;border-bottom:2px solid #00aa55">
-    <div style="font-size:0.75rem;font-weight:700;color:#445566;text-transform:uppercase;
-                letter-spacing:1.4px;margin-bottom:7px">E-GOVTT PIPELINE</div>
-    <div style="font-size:1.4rem;font-weight:700;color:#00ff88;line-height:1.1">
-        {egovtt_pipeline:.1f}</div>
-    <div style="font-size:0.7rem;color:#00ff88;margin-top:5px;font-weight:600">
-        Key opportunity →</div>
-  </div>
-
-</div>
-""", unsafe_allow_html=True)
+K = 1000
+c1, c2, c3, c4, c5 = st.columns(5)
+c1.markdown(_dpdi_card("Total Revenue",    f"{total_rev*K:,.0f}",       f"{rev_var_pct:+.1f}% vs AOP",    "#ef4444", "#ef4444"), unsafe_allow_html=True)
+c2.markdown(_dpdi_card("Excl. e-GOVTT",   f"{excl_rev*K:,.0f}",        f"{excl_var_pct:+.1f}% vs AOP",   "#ef4444", "#ef4444"), unsafe_allow_html=True)
+c3.markdown(_dpdi_card("Direct Costs",     f"{total_dc*K:,.0f}",        dc_sub_text,                       dc_sub_color, "#ff6b6b"), unsafe_allow_html=True)
+c4.markdown(_dpdi_card("Gross Profit",     f"{total_gp*K:,.0f}",        f"GP Margin: {gp_margin:.1f}%",   "#8899bb", "#22c55e"), unsafe_allow_html=True)
+c5.markdown(_dpdi_card("e-GOVTT Pipeline", f"{egovtt_pipeline*K:,.0f}", "Key opportunity →",              "#00ff88", "#00aa55"), unsafe_allow_html=True)
+st.markdown("<div style='margin-bottom:1.5rem'></div>", unsafe_allow_html=True)
 
 # ── Two-column charts ─────────────────────────────────────────────────────────
 col_left, col_right = st.columns(2)
 
 with col_left:
     products_list = ytd.index.tolist()
-    actual_vals   = [ytd.loc[p, "Revenue"]     for p in products_list]
-    aop_vals      = [ytd.loc[p, "Revenue_AOP"] for p in products_list]
+    actual_vals   = [ytd.loc[p, "Revenue"]     * K for p in products_list]
+    aop_vals      = [ytd.loc[p, "Revenue_AOP"] * K for p in products_list]
 
     safe_max = max(max(actual_vals + [0.001]), max(aop_vals + [0.001]))
     max_x    = safe_max * 1.6
@@ -129,9 +96,9 @@ with col_left:
         dict(
             x=max(av, bv) + safe_max * 0.06,
             y=prod,
-            text=f"<b>{av:.1f}</b> / {bv:.1f}",
+            text=f"<b>{av:,.0f}</b> / {bv:,.0f}",
             showarrow=False,
-            font=dict(color="#aaaacc", size=10, family="Inter, sans-serif"),
+            font=dict(color="#aaaacc", size=13, family="Inter, sans-serif"),
             xanchor="left",
             yanchor="middle",
         )
@@ -153,58 +120,60 @@ with col_left:
         barmode="overlay",
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white", family="Inter, sans-serif", size=11),
+        font=dict(color="white", family="Inter, sans-serif", size=13),
         height=380,
         title=dict(text="<b>Revenue by Product — YTD vs AOP</b>",
-                   font=dict(size=13, color="white"), x=0),
+                   font=dict(size=15, color="white"), x=0),
         xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=13),
                    range=[0, max_x], showline=False, zeroline=False),
-        yaxis=dict(tickfont=dict(color="white", size=11), showgrid=False,
+        yaxis=dict(tickfont=dict(color="white", size=13), showgrid=False,
                    autorange="reversed"),
-        margin=dict(l=10, r=130, t=44, b=30),
+        margin=dict(l=10, r=140, t=44, b=30),
         annotations=annotations,
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=12),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=13),
                     orientation="h", y=-0.1, x=0),
     )
     st.plotly_chart(fig_bar, use_container_width=True)
 
 with col_right:
-    excl = dpdi[dpdi["Product"] != "e-GOVTT"].groupby("Month")[
-        ["Revenue", "Revenue_AOP"]
-    ].sum().reset_index()
-    excl["_ord"] = excl["Month"].apply(lambda m: months.index(m) if m in months else 99)
-    excl = excl.sort_values("_ord").drop(columns=["_ord"])
-
-    fig_line = go.Figure()
-    fig_line.add_trace(go.Scatter(
-        x=excl["Month"], y=excl["Revenue"],
-        name="Actual excl. e-GOVTT",
-        mode="lines+markers",
-        line=dict(color="#00ff88", width=2.5),
-        marker=dict(size=6, color="#00ff88"),
-    ))
-    fig_line.add_trace(go.Scatter(
-        x=excl["Month"], y=excl["Revenue_AOP"],
-        name="AOP excl. e-GOVTT",
-        mode="lines+markers",
-        line=dict(color="#FFD700", width=2, dash="dash"),
-        marker=dict(size=5, color="#FFD700"),
-    ))
-    fig_line.update_layout(
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white", family="Inter, sans-serif", size=11),
-        height=380,
-        title=dict(text="<b>Monthly Revenue — Actual vs AOP excl. e-GOVTT</b>",
-                   font=dict(size=13, color="white"), x=0),
-        xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=13)),
-        yaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=13),
-                   ticksuffix="M"),
-        margin=dict(l=10, r=10, t=44, b=30),
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=12),
-                    orientation="h", y=-0.1, x=0),
+    sel_idx   = months.index(sel_month)
+    trend_months = months[max(0, sel_idx - 12): sel_idx + 1]
+    trend_df  = (
+        dpdi[dpdi["Month"].isin(trend_months)]
+        .groupby("Month")[["Revenue", "Revenue_AOP"]]
+        .sum()
+        .reindex(trend_months)
     )
-    st.plotly_chart(fig_line, use_container_width=True)
+    t_rev  = [v * K for v in trend_df["Revenue"].tolist()]
+    t_aop  = [v * K for v in trend_df["Revenue_AOP"].tolist()]
+
+    fig_trend = go.Figure()
+    fig_trend.add_trace(go.Scatter(
+        x=trend_months, y=t_aop, name="AOP Target",
+        mode="lines",
+        line=dict(color="#55aa66", width=2, dash="dot"),
+    ))
+    fig_trend.add_trace(go.Scatter(
+        x=trend_months, y=t_rev, name="Actual Revenue",
+        mode="lines+markers",
+        line=dict(color="#00cc55", width=2.5),
+        marker=dict(size=6, color="#00cc55"),
+    ))
+    fig_trend.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white", family="Inter, sans-serif", size=13),
+        height=380,
+        title=dict(text="<b>Revenue Trend — 13 Months vs AOP</b>",
+                   font=dict(size=15, color="white"), x=0),
+        xaxis=dict(gridcolor="#111111", tickfont=dict(color="#556677", size=13),
+                   showline=False, zeroline=False),
+        yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=13),
+                   zeroline=False),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#aaaaaa", size=13),
+                    orientation="h", y=-0.12, x=0),
+        margin=dict(l=10, r=10, t=44, b=30),
+    )
+    st.plotly_chart(fig_trend, use_container_width=True)
 
 # ── Key commentary ────────────────────────────────────────────────────────────
 st.markdown("""
