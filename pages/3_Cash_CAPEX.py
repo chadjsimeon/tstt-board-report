@@ -154,7 +154,7 @@ _ar_max  = max(gov["total"], non_gov["total"])
 _CAP_360 = 38  # max visual % allocated to 360+d bar
 
 def _pill_row(label, d):
-    pct_w = d["total"] / _ar_max * 100 if _ar_max else 0
+    pct_w = 100
     total  = d["total"] or 1
 
     # Actual percentages used for labels — never distorted
