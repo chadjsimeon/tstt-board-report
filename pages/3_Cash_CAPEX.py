@@ -179,7 +179,7 @@ def _pill_row(label, d):
         pv = visual[key]    # visual flex width
 
         # Label always shows actual %, revealed if bar is wide enough
-        show_lbl = pv > 7 or (key == "360p" and capped)
+        show_lbl = pv > 2 or (key == "360p" and capped)
         lbl = (
             f'<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);'
             f'font-size:0.72rem;font-weight:700;color:rgba(0,0,0,0.85);white-space:nowrap">'
