@@ -158,15 +158,15 @@ def _pill_row(label, d):
         if d[key] <= 0: continue
         p = d[key] / d["total"] * 100 if d["total"] else 0
         lbl = (f'<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);'
-               f'font-size:0.58rem;font-weight:700;color:rgba(0,0,0,0.75);white-space:nowrap">{p:.0f}%</span>'
+               f'font-size:0.72rem;font-weight:700;color:rgba(0,0,0,0.75);white-space:nowrap">{p:.0f}%</span>'
                if p > 8 else "")
         parts.append(f'<div title="{bl}: {d[key]:,.1f}" style="flex:{max(d[key],0.001):.3f};'
                      f'min-width:14px;background:{color};border-radius:4px;height:100%;'
                      f'position:relative;overflow:hidden">{lbl}</div>')
     return (f'<div style="margin-bottom:8px">'
             f'<div style="display:flex;justify-content:space-between;margin-bottom:4px">'
-            f'<span style="font-size:0.85rem;color:white;font-weight:600">{label}</span>'
-            f'<span style="font-size:0.85rem;color:#aaaacc;font-weight:700">{d["total"]:,.1f}</span>'
+            f'<span style="font-size:1.1rem;color:white;font-weight:600">{label}</span>'
+            f'<span style="font-size:1.1rem;color:#aaaacc;font-weight:700">{d["total"]:,.1f}</span>'
             f'</div>'
             f'<div style="display:flex;gap:0;height:38px;width:{pct_w:.1f}%">{"".join(parts)}</div>'
             f'</div>')
@@ -174,7 +174,7 @@ def _pill_row(label, d):
 ar_legend = "".join(
     f'<div style="display:flex;align-items:center;gap:5px">'
     f'<span style="width:10px;height:10px;border-radius:2px;background:{c};display:inline-block"></span>'
-    f'<span style="font-size:0.7rem;color:#8899aa;white-space:nowrap">{bl}</span></div>'
+    f'<span style="font-size:0.85rem;color:#8899aa;white-space:nowrap">{bl}</span></div>'
     for bl, _, c in AR_BUCKETS
 )
 
@@ -194,8 +194,8 @@ cap_rem_sign  = "+" if capex_remaining < 0 else ""
 st.markdown(
     f'<div style="padding:6px 0 10px 0;border-bottom:1px solid #21262d;margin-bottom:10px;'
     f'display:flex;justify-content:space-between;align-items:center">'
-    f'<span style="font-size:1.1rem;font-weight:700;color:white">Cash · Working Capital · CAPEX</span>'
-    f'<span style="font-size:0.78rem;color:#556677;background:#161B22;padding:4px 12px;'
+    f'<span style="font-size:1.4rem;font-weight:700;color:white">Cash · Working Capital · CAPEX</span>'
+    f'<span style="font-size:1rem;color:#556677;background:#161B22;padding:4px 14px;'
     f'border-radius:20px;border:1px solid #21262d">{period_label}</span>'
     f'</div>',
     unsafe_allow_html=True,
@@ -206,10 +206,10 @@ def _kpi(label, value, sub, color):
     return (
         f'<div style="flex:1;background:#161B22;padding:12px 16px;border:1px solid #21262d;'
         f'border-left:3px solid {color};border-radius:10px">'
-        f'<div style="font-size:0.65rem;font-weight:700;color:#556677;text-transform:uppercase;'
-        f'letter-spacing:1.2px;margin-bottom:6px">{label}</div>'
-        f'<div style="font-size:1.35rem;font-weight:800;color:white;line-height:1">{value}</div>'
-        f'<div style="font-size:0.7rem;color:{color};font-weight:600;margin-top:5px">{sub}</div>'
+        f'<div style="font-size:0.85rem;font-weight:700;color:#556677;text-transform:uppercase;'
+        f'letter-spacing:1.2px;margin-bottom:8px">{label}</div>'
+        f'<div style="font-size:2rem;font-weight:800;color:white;line-height:1">{value}</div>'
+        f'<div style="font-size:0.9rem;color:{color};font-weight:600;margin-top:6px">{sub}</div>'
         f'</div>'
     )
 
@@ -242,9 +242,9 @@ with c_chart:
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"), height=220, showlegend=False,
         margin=dict(l=8, r=8, t=28, b=8),
-        title=dict(text="<b>Cash Balance Trend</b>", font=dict(size=13, color="white"), x=0),
-        xaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=11), showline=False),
-        yaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=11),
+        title=dict(text="<b>Cash Balance Trend</b>", font=dict(size=16, color="white"), x=0),
+        xaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=14), showline=False),
+        yaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=14),
                    range=[y_min - pad, y_max + pad], zeroline=False),
     )
     st.plotly_chart(fig, use_container_width=True)
@@ -255,25 +255,22 @@ with c_coll:
     def _coll_box(label, coll_val, pct_val, accent):
         color = _pct_color(pct_val)
         if pct_val is not None:
-            main = f'<div style="font-size:1.8rem;font-weight:800;color:{color};line-height:1">{pct_val:.1f}%</div>'
-            sub  = f'<div style="font-size:0.68rem;color:#556677;margin-top:4px">{coll_val:,.0f} collected</div>'
+            main = f'<div style="font-size:2.6rem;font-weight:800;color:{color};line-height:1">{pct_val:.1f}%</div>'
         elif coll_val is not None:
-            main = f'<div style="font-size:1.4rem;font-weight:800;color:{color};line-height:1">{coll_val:,.0f}</div>'
-            sub  = '<div style="font-size:0.65rem;color:#556677;margin-top:4px">collected · billings pending</div>'
+            main = '<div style="font-size:1rem;font-weight:600;color:#556677;margin-top:4px">Billings pending</div>'
         else:
-            main = '<div style="font-size:0.95rem;font-weight:600;color:#3a4455;line-height:1.3">Data pending</div>'
-            sub  = ''
+            main = '<div style="font-size:1rem;font-weight:600;color:#3a4455;line-height:1.3">Data pending</div>'
         return (
             f'<div style="flex:1;background:#161B22;border:1px solid #21262d;'
-            f'border-top:2px solid {accent};border-radius:8px;padding:12px 14px">'
-            f'<div style="font-size:0.62rem;font-weight:700;color:{accent};text-transform:uppercase;'
-            f'letter-spacing:1px;margin-bottom:6px">{label}</div>'
-            f'{main}{sub}</div>'
+            f'border-top:2px solid {accent};border-radius:8px;padding:14px 16px">'
+            f'<div style="font-size:0.85rem;font-weight:700;color:{accent};text-transform:uppercase;'
+            f'letter-spacing:1px;margin-bottom:8px">{label}</div>'
+            f'{main}</div>'
         )
 
     st.markdown(
-        f'<div style="font-size:0.65rem;font-weight:700;color:#556677;text-transform:uppercase;'
-        f'letter-spacing:1.5px;margin-bottom:6px">Collections — {latest_month} vs {prior_month or "—"} billings</div>'
+        f'<div style="font-size:0.9rem;font-weight:700;color:#556677;text-transform:uppercase;'
+        f'letter-spacing:1.5px;margin-bottom:8px">Collections — {latest_month} vs {prior_month or "—"} billings</div>'
         f'<div style="display:flex;gap:8px;margin-bottom:8px">'
         f'{_coll_box("Government",     govt_coll,     govt_pct,     "#4488ff")}'
         f'{_coll_box("Non-Government", nongov_coll,   nongov_pct,   "#a78bfa")}'
@@ -292,9 +289,9 @@ with c_ar:
     st.markdown(f"""
 <div style="background:#161B22;border-radius:8px;padding:12px 18px;
             border:1px solid #21262d;margin-top:8px">
-  <div style="font-size:0.65rem;font-weight:700;color:#00e676;text-transform:uppercase;
-              letter-spacing:2px;margin-bottom:6px">AR Aging</div>
-  <div style="font-size:0.75rem;color:#556677;margin-bottom:10px">
+  <div style="font-size:0.85rem;font-weight:700;color:#00e676;text-transform:uppercase;
+              letter-spacing:2px;margin-bottom:8px">AR Aging</div>
+  <div style="font-size:0.95rem;color:#556677;margin-bottom:12px">
     Total <strong style="color:#aaaacc">{AR_TOTAL:,.1f}</strong>
     &nbsp;·&nbsp; Gov <strong style="color:#aaaacc">{gov['total']:,.1f}</strong>
     &nbsp;·&nbsp; Non-Gov <strong style="color:#aaaacc">{non_gov['total']:,.1f}</strong>
@@ -308,27 +305,27 @@ with c_capex:
     st.markdown(f"""
 <div style="background:#161B22;border-radius:8px;padding:12px 18px;
             border:1px solid #21262d;margin-top:8px">
-  <div style="font-size:0.65rem;font-weight:700;color:#00e676;text-transform:uppercase;
-              letter-spacing:2px;margin-bottom:10px">CAPEX Spend to Date</div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-    <span style="color:#aaaacc;font-size:13px">YTD vs Annual Budget</span>
-    <span style="color:{cap_pct_color};font-weight:800;font-size:22px">{capex_progress:.1f}%</span>
+  <div style="font-size:0.85rem;font-weight:700;color:#00e676;text-transform:uppercase;
+              letter-spacing:2px;margin-bottom:12px">CAPEX Spend to Date</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span style="color:#aaaacc;font-size:16px">YTD vs Annual Budget</span>
+    <span style="color:{cap_pct_color};font-weight:800;font-size:30px">{capex_progress:.1f}%</span>
   </div>
-  <div style="background:#1e1e3a;border-radius:6px;height:14px;overflow:hidden;margin-bottom:14px">
+  <div style="background:#1e1e3a;border-radius:6px;height:16px;overflow:hidden;margin-bottom:16px">
     <div style="background:{cap_bar_color};width:{capex_progress:.1f}%;height:100%;border-radius:6px"></div>
   </div>
   <div style="display:flex;justify-content:space-between">
     <div>
-      <div style="color:{cap_pct_color};font-size:18px;font-weight:700">{capex_act:,.0f}</div>
-      <div style="color:#6688aa;font-size:12px;margin-top:2px">spent YTD</div>
+      <div style="color:{cap_pct_color};font-size:22px;font-weight:700">{capex_act:,.0f}</div>
+      <div style="color:#6688aa;font-size:15px;margin-top:4px">spent YTD</div>
     </div>
     <div style="text-align:center">
-      <div style="color:{cap_rem_color};font-size:18px;font-weight:700">{cap_rem_sign}{abs(capex_remaining):,.0f}</div>
-      <div style="color:#6688aa;font-size:12px;margin-top:2px">{cap_rem_label}</div>
+      <div style="color:{cap_rem_color};font-size:22px;font-weight:700">{cap_rem_sign}{abs(capex_remaining):,.0f}</div>
+      <div style="color:#6688aa;font-size:15px;margin-top:4px">{cap_rem_label}</div>
     </div>
     <div style="text-align:right">
-      <div style="color:#aaaacc;font-size:18px;font-weight:700">{capex_plan:,.0f}</div>
-      <div style="color:#6688aa;font-size:12px;margin-top:2px">annual budget</div>
+      <div style="color:#aaaacc;font-size:22px;font-weight:700">{capex_plan:,.0f}</div>
+      <div style="color:#6688aa;font-size:15px;margin-top:4px">annual budget</div>
     </div>
   </div>
 </div>""", unsafe_allow_html=True)
