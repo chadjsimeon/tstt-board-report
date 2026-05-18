@@ -297,6 +297,7 @@ with c_chart:
     )
 
 with c_ar:
+    # AR Aging
     st.markdown(f"""
 <div style="background:#161B22;border-radius:8px;padding:12px 18px;
             border:1px solid #21262d;margin-top:8px">
@@ -312,12 +313,7 @@ with c_ar:
   <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px">{ar_legend}</div>
 </div>""", unsafe_allow_html=True)
 
-# ── Row 2: Collections  |  CAPEX ─────────────────────────────────────────────
-c_coll, c_capex = st.columns([55, 45])
-
-with c_coll:
-    prior_lbl = f" | prior month: {prior_month}" if prior_month else ""
-
+    # Collections
     def _coll_box(label, coll_val, pct_val, accent):
         color = _pct_color(pct_val)
         if pct_val is not None:
@@ -336,7 +332,8 @@ with c_coll:
 
     st.markdown(
         f'<div style="font-size:0.9rem;font-weight:700;color:#556677;text-transform:uppercase;'
-        f'letter-spacing:1.5px;margin-bottom:8px">Collections — {latest_month} vs {prior_month or "—"} billings</div>'
+        f'letter-spacing:1.5px;margin-top:10px;margin-bottom:8px">'
+        f'Collections — {latest_month} vs {prior_month or "—"} billings</div>'
         f'<div style="display:flex;gap:8px;margin-bottom:8px">'
         f'{_coll_box("Government",     govt_coll,     govt_pct,     "#4488ff")}'
         f'{_coll_box("Non-Government", nongov_coll,   nongov_pct,   "#a78bfa")}'
@@ -348,10 +345,10 @@ with c_coll:
         unsafe_allow_html=True,
     )
 
-with c_capex:
+    # CAPEX
     st.markdown(f"""
 <div style="background:#161B22;border-radius:8px;padding:12px 18px;
-            border:1px solid #21262d;margin-top:8px">
+            border:1px solid #21262d;margin-top:10px">
   <div style="font-size:0.85rem;font-weight:700;color:#00e676;text-transform:uppercase;
               letter-spacing:2px;margin-bottom:12px">CAPEX Spend to Date</div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
