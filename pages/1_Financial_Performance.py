@@ -70,20 +70,32 @@ with tab0:
 
     latest_pnl = pnl.iloc[-1]
 
-    # ── Row 1: Revenue by group ───────────────────────────────────────────────
-    col1, col2 = st.columns(2)
-    with col1:
+    # ── Two-column layout: left = trend charts stacked, right = Rev vs PY ───────
+    col_left, col_right = st.columns(2)
+
+    with col_left:
         fig = stacked_bar(
             pnl, x="Month", y_cols=rev_cols,
             title="Revenue by Group — Trend",
             colors=GRP_COLORS,
         )
-        # Override legend labels to short names
         for i, trace in enumerate(fig.data):
             trace.name = GRP_LABELS[i] if i < len(GRP_LABELS) else trace.name
         st.plotly_chart(fig, use_container_width=True)
 
-    with col2:
+        pnl_abs = pnl.copy()
+        for c in cos_cols:
+            pnl_abs[c] = pnl_abs[c].abs()
+        fig = stacked_bar(
+            pnl_abs, x="Month", y_cols=cos_cols,
+            title="Cost of Sales by Group (, abs)",
+            colors=GRP_COLORS,
+        )
+        for i, trace in enumerate(fig.data):
+            trace.name = GRP_LABELS[i] if i < len(GRP_LABELS) else trace.name
+        st.plotly_chart(fig, use_container_width=True)
+
+    with col_right:
         _lat_dt  = pd.to_datetime(latest_pnl["Month"], format="%b-%y", errors="coerce")
         _py_mon  = (_lat_dt - pd.DateOffset(months=12)).strftime("%b-%y") if pd.notna(_lat_dt) else None
         _py_pnl  = pnl[pnl["Month"] == _py_mon].iloc[0] if _py_mon and (_py_mon in pnl["Month"].values) else None
@@ -92,20 +104,18 @@ with tab0:
         py_vals  = [float(_py_pnl[f"{g}_Rev"]) if _py_pnl is not None else 0.0 for g in GROUPS]
 
         # Drop groups where both current and PY are zero
-        _mask     = [not (a == 0.0 and p == 0.0) for a, p in zip(act_vals, py_vals)]
-        _labels   = [l for l, m in zip(GRP_LABELS,  _mask) if m]
-        _colors   = [c for c, m in zip(GRP_COLORS,  _mask) if m]
-        act_vals  = [v for v, m in zip(act_vals, _mask) if m]
-        py_vals   = [v for v, m in zip(py_vals,  _mask) if m]
-        var_vals  = [a - p for a, p in zip(act_vals, py_vals)]
+        _mask    = [not (a == 0.0 and p == 0.0) for a, p in zip(act_vals, py_vals)]
+        _labels  = [l for l, m in zip(GRP_LABELS, _mask) if m]
+        _colors  = [c for c, m in zip(GRP_COLORS, _mask) if m]
+        act_vals = [v for v, m in zip(act_vals, _mask) if m]
+        py_vals  = [v for v, m in zip(py_vals,  _mask) if m]
+        var_vals = [a - p for a, p in zip(act_vals, py_vals)]
 
         _var_colors = ["#22c55e" if v >= 0 else "#ef4444" for v in var_vals]
 
-        # For negative actual bars textposition="outside" goes below the axis —
-        # suppress those on the trace and handle them via annotations at y=0.
-        # Actual bar is the right bar of each pair; offset ≈ +0.18 from category centre.
+        # Negative actual bars: suppress trace text (goes below axis), use annotation at y=0
         _ACT_OFFSET = 0.18
-        _trace_text  = [f"{v:+.1f}" if act_vals[i] >= 0 else "" for i, v in enumerate(var_vals)]
+        _trace_text = [f"{v:+.1f}" if act_vals[i] >= 0 else "" for i, v in enumerate(var_vals)]
         _annotations = [
             dict(
                 x=i + _ACT_OFFSET, y=0, xref="x", yref="y",
@@ -134,11 +144,10 @@ with tab0:
 
         _y_min = min(0, min(act_vals), min(py_vals)) * 1.15
         _y_max = max(max(act_vals), max(py_vals)) * 1.22
-        annotations = _annotations
 
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=380, barmode="group",
+            font=dict(color="white"), height=760, barmode="group",
             bargap=0.25, bargroupgap=0.08,
             title=dict(text=f"<b>{latest_pnl['Month']} Revenue vs PY by Group</b>",
                        font=dict(size=13, color="white"), x=0),
@@ -147,31 +156,7 @@ with tab0:
             legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="white"),
                         orientation="h", y=1.02, x=1, xanchor="right"),
             margin=dict(l=10, r=10, t=44, b=10),
-            annotations=annotations,
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    # ── Row 2: COS by group + P&L cascade trend ───────────────────────────────
-    col3, col4 = st.columns(2)
-    with col3:
-        pnl_abs = pnl.copy()
-        for c in cos_cols:
-            pnl_abs[c] = pnl_abs[c].abs()
-        fig = stacked_bar(
-            pnl_abs, x="Month", y_cols=cos_cols,
-            title="Cost of Sales by Group (, abs)",
-            colors=GRP_COLORS,
-        )
-        for i, trace in enumerate(fig.data):
-            trace.name = GRP_LABELS[i] if i < len(GRP_LABELS) else trace.name
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col4:
-        fig = line_chart(
-            pnl, x="Month",
-            y_cols=["Total_Rev", "Total_COS", "Total_OPEX", "EBITDA"],
-            title="P&L Cascade Trend",
-            colors=[BLUE, RED, ORANGE, GREEN],
+            annotations=_annotations,
         )
         st.plotly_chart(fig, use_container_width=True)
 
