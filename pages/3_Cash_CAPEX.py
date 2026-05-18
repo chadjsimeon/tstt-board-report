@@ -4,7 +4,7 @@ st.set_page_config(page_title="TSTT | Cash & CAPEX", page_icon="💵", layout="w
 
 import pandas as pd
 import plotly.graph_objects as go
-from utils.data_loader import load_all_data
+from utils.data_loader import load_all_data, load_ar, load_collections_billing
 from utils.charts import inject_css
 
 inject_css()
@@ -18,52 +18,11 @@ st.markdown("""<style>
 }
 </style>""", unsafe_allow_html=True)
 
-# ── Data loaders ──────────────────────────────────────────────────────────────
-@st.cache_data
-def load_collections():
-    try:
-        df = pd.read_excel("collections (FULL).xlsx", sheet_name="Sheet 1")
-        df["LOB"] = df["LOB"].ffill()
-        return df
-    except Exception:
-        return None
-
-@st.cache_data
-def load_billings():
-    try:
-        df = pd.read_excel("billing (M).xlsx", sheet_name="Sheet 1")
-        df["LOB"] = df["LOB"].ffill()
-        return df
-    except Exception:
-        return None
-
-@st.cache_data
-def load_ar():
-    try:
-        df = pd.read_excel(
-            "Receivables Executive Summary.xlsx",
-            sheet_name="Exec. Summary Receivables",
-            header=None,
-        )
-    except Exception:
-        return None
-    APR = 74
-    def v(r):
-        val = df.iloc[r, APR]
-        return float(val) if pd.notna(val) and isinstance(val, (int, float)) else 0.0
-    gov = {"0_30": v(22)+v(40), "31_60": v(23)+v(41), "61_90": v(24)+v(42),
-           "90_360": v(25)+v(26)+v(43)+v(44), "360p": v(27)+v(45), "total": v(28)+v(46)}
-    tot = {"0_30": v(4), "31_60": v(5), "61_90": v(6),
-           "90_360": v(7)+v(8), "360p": v(9), "total": v(10)}
-    non_gov = {k: tot[k] - gov[k] for k in tot}
-    return {"gov": gov, "non_gov": non_gov, "total": tot}
-
 # ── Main data ─────────────────────────────────────────────────────────────────
-data    = load_all_data()
-cc      = data["Cash_CAPEX"]
-coll_df = load_collections()
-bill_df = load_billings()
-ar      = load_ar()
+data = load_all_data()
+cc   = data["Cash_CAPEX"]
+ar   = load_ar()
+cb   = load_collections_billing()
 
 latest = cc.iloc[-1]
 first  = cc.iloc[0]
@@ -94,45 +53,32 @@ try:
 except Exception:
     period_label = str(latest["Month"])
 
-# ── Collections % = this month collections / prior month billings ─────────────
+# ── Collections — read from Collections_Billing sheet ─────────────────────────
 latest_month = str(latest["Month"])
+prior_month  = None  # no longer derived from billing column headers
 
-def _month_cols(df):
-    return [c for c in df.columns if c not in ("LOB", "Grouping")] if df is not None else []
+cb_latest = cb[cb["Month"] == latest_month] if not cb.empty else pd.DataFrame()
 
-def _prior_month(month, df):
-    cols = _month_cols(df)
-    if not cols or month not in cols:
+def _cb_val(group_filter, col, exclude=None):
+    if cb_latest.empty or col not in cb_latest.columns:
         return None
-    idx = cols.index(month)
-    return cols[idx - 1] if idx > 0 else None
-
-def _lookup(df, lob, grouping, month):
-    if df is None or month is None or month not in df.columns:
-        return None
-    rows = df[(df["LOB"] == lob) & (df["Grouping"] == grouping)]
+    mask = cb_latest["Group"].str.upper().str.contains(group_filter.upper(), na=False)
+    if exclude:
+        mask &= ~cb_latest["Group"].str.upper().str.contains(exclude.upper(), na=False)
+    rows = cb_latest[mask]
     if rows.empty:
         return None
-    val = rows.iloc[0][month]
+    val = pd.to_numeric(rows.iloc[0][col], errors="coerce")
     return float(val) if pd.notna(val) else None
 
-prior_month   = _prior_month(latest_month, bill_df)
+govt_coll     = _cb_val("GOV", "Collections", exclude="NON")
+nongov_coll   = _cb_val("NON", "Collections")
+consumer_coll = _cb_val("CONSUMER", "Collections")
+amplia_coll   = None  # not in master template
 
-govt_coll     = _lookup(coll_df, "Business Sales", "Govt",     latest_month)
-nongov_coll   = _lookup(coll_df, "Business Sales", "Non-Govt", latest_month)
-consumer_coll = _lookup(coll_df, "Consumer Sales", "Total",    latest_month)
-amplia_coll   = None  # not yet in source data
-
-govt_bill     = _lookup(bill_df, "Business Sales", "Govt",     prior_month)
-nongov_bill   = _lookup(bill_df, "Business Sales", "Non-Govt", prior_month)
-consumer_bill = _lookup(bill_df, "Consumer Sales", "Total",    prior_month)
-
-def _pct(coll, bill):
-    return (coll / bill * 100) if (coll is not None and bill and bill != 0) else None
-
-govt_pct     = _pct(govt_coll,     govt_bill)
-nongov_pct   = _pct(nongov_coll,   nongov_bill)
-consumer_pct = _pct(consumer_coll, consumer_bill)
+govt_pct     = _cb_val("GOV", "Collections_Pct", exclude="NON")
+nongov_pct   = _cb_val("NON", "Collections_Pct")
+consumer_pct = _cb_val("CONSUMER", "Collections_Pct")
 
 def _pct_color(pct):
     if pct is None: return "#4488ff"
@@ -339,7 +285,7 @@ with c_ar:
     st.markdown(
         f'<div style="font-size:1.05rem;font-weight:700;color:#556677;text-transform:uppercase;'
         f'letter-spacing:1.5px;margin-top:10px;margin-bottom:8px">'
-        f'Collections — {latest_month} vs {prior_month or "—"} billings</div>'
+        f'Collections — {latest_month}</div>'
         f'<div style="display:flex;gap:8px;margin-bottom:8px">'
         f'{_coll_box("Government",     govt_coll,     govt_pct,     "#4488ff")}'
         f'{_coll_box("Non-Government", nongov_coll,   nongov_pct,   "#a78bfa")}'

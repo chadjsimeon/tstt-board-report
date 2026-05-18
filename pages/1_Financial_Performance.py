@@ -284,36 +284,39 @@ with tab2:
 
 with tab3:
     st.markdown("#### EBITDA Bridge — YTD Apr 2026")
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        fig = waterfall_chart(
-            bridge,
-            x_col="Category", y_col="Value", type_col="Type",
-            title="EBITDA Bridge: AOP → Actual",
-            height=460,
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col2:
-        st.markdown("**Bridge Components**")
-        for _, row in bridge.iterrows():
-            val = row["Value"]
-            t   = row["Type"]
-            if t == "Absolute":
-                color = "🔵"
-            elif t == "Positive":
-                color = "🟢"
-            elif t == "Negative":
-                color = "🔴"
-            else:
-                color = "🔵"
-            st.markdown(
-                f"{color} **{row['Category']}** — `{val:,.0f}`"
+    if bridge.empty:
+        st.info("No EBITDA Bridge data available.")
+    else:
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            fig = waterfall_chart(
+                bridge,
+                x_col="Category", y_col="Value", type_col="Type",
+                title="EBITDA Bridge: AOP → Actual",
+                height=460,
             )
+            st.plotly_chart(fig, use_container_width=True)
 
-        aop    = bridge[bridge["Sort_Order"] == 1]["Value"].values[0]
-        actual = bridge.iloc[-1]["Value"]
-        gap    = actual - aop
-        st.markdown("---")
-        st.metric("AOP EBITDA",    f"{aop:,.0f}")
-        st.metric("Actual EBITDA", f"{actual:,.0f}", delta=f"{gap:+,.0f} vs AOP")
+        with col2:
+            st.markdown("**Bridge Components**")
+            for _, row in bridge.iterrows():
+                val = row["Value"]
+                t   = row["Type"]
+                if t == "Absolute":
+                    color = "🔵"
+                elif t == "Positive":
+                    color = "🟢"
+                elif t == "Negative":
+                    color = "🔴"
+                else:
+                    color = "🔵"
+                st.markdown(
+                    f"{color} **{row['Category']}** — `{val:,.0f}`"
+                )
+
+            aop    = bridge[bridge["Sort_Order"] == 1]["Value"].values[0]
+            actual = bridge.iloc[-1]["Value"]
+            gap    = actual - aop
+            st.markdown("---")
+            st.metric("AOP EBITDA",    f"{aop:,.0f}")
+            st.metric("Actual EBITDA", f"{actual:,.0f}", delta=f"{gap:+,.0f} vs AOP")

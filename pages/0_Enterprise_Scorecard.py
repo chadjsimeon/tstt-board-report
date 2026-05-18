@@ -19,11 +19,12 @@ data    = load_all_data()
 kpi_all = data["KPI_Summary"]
 
 # ── Derive period label from data ─────────────────────────────────────────────
+period_label = "—"
 try:
     period_raw   = kpi_all["Month"].dropna().iloc[-1]
     period_label = datetime.strptime(period_raw, "%b-%y").strftime("%B %Y")
 except Exception:
-    period_label = period_raw
+    pass
 
 # ── KPI direction sets ────────────────────────────────────────────────────────
 HIGHER_BETTER = {

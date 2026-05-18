@@ -1,331 +1,490 @@
 import pandas as pd
 import streamlit as st
 
-EXCEL_PATH       = "TSTT_Board_Data.xlsx"
-ARPU_BUCKET_PATH      = "Prepaid Subs and REV by ARPU buckets.xlsx"
-PREPAID_USAGE_PATH    = "dd_prepaid_data_usage_mth.xlsx"
-M = 1_000_000  # raw  →  conversion factor
+MASTER_PATH = "TSTT_Master_Data_Template.xlsx"
+M = 1_000_000  # raw TTD → millions
+
+
+# ── Sheet reader ───────────────────────────────────────────────────────────────
+def _read_sheet(xls, sheet_name):
+    """4-row header structure: title / subtitle / column headers / descriptions.
+    header=2 reads row 3 as column names; iloc[1:] drops the description row."""
+    df = pd.read_excel(xls, sheet_name=sheet_name, header=2)
+    return df.iloc[1:].reset_index(drop=True).dropna(how="all")
+
+
+def _norm_month(series):
+    """Normalise a Month column to 'Mon-YY' string (handles datetime or string inputs)."""
+    as_dt = pd.to_datetime(series, errors="coerce")
+    result = series.astype(str).str.strip()
+    valid = as_dt.notna()
+    if valid.any():
+        result = result.copy()
+        result[valid] = as_dt[valid].dt.strftime("%b-%y")
+    return result
 
 
 def _scale(df, cols):
-    """Divide named monetary columns by 1,000,000 (raw  → )."""
+    """Divide listed columns by 1 000 000 (raw TTD → millions)."""
     for c in cols:
         if c in df.columns:
             df[c] = pd.to_numeric(df[c], errors="coerce") / M
     return df
 
 
-def _pct(df, cols):
-    """Multiply percentage columns from decimal form (0.44) to display form (44)."""
+def _pct_col(df, cols):
+    """Multiply listed columns by 100 (decimal 0.025 → display 2.5)."""
     for c in cols:
         if c in df.columns:
             df[c] = pd.to_numeric(df[c], errors="coerce") * 100
     return df
 
 
+# ── Main data loader ───────────────────────────────────────────────────────────
 @st.cache_data
 def load_all_data():
-    xls = pd.ExcelFile(EXCEL_PATH)
+    xls  = pd.ExcelFile(MASTER_PATH)
     data = {}
-    for sheet in xls.sheet_names:
-        data[sheet] = pd.read_excel(xls, sheet_name=sheet)
 
-    # ── Scale monetary columns from raw  to  ──────────────────────────
-    if "Financial_Monthly" in data:
-        data["Financial_Monthly"] = _scale(data["Financial_Monthly"], [
-            "Revenue", "EBITDA", "PAT",
-            "Revenue_AOP", "EBITDA_AOP", "PAT_AOP",
-        ])
-        data["Financial_Monthly"] = _pct(data["Financial_Monthly"], ["EBITDA_Margin"])
-        # Derive PY columns from 12 months prior in the same series
-        fin = data["Financial_Monthly"].copy()
-        fin["_dt"] = pd.to_datetime(fin["Month"], format="%b-%y", errors="coerce")
-        for col in ["Revenue", "EBITDA", "PAT"]:
-            lk = fin.dropna(subset=["_dt"]).set_index("_dt")[col]
-            fin[f"{col}_PY"] = fin["_dt"].apply(
-                lambda dt, lk=lk: lk.get(dt - pd.DateOffset(months=12))
-            )
-        fin.drop(columns=["_dt"], inplace=True)
-        data["Financial_Monthly"] = fin
+    # ── P&L_Segments ─────────────────────────────────────────────────────────
+    pnl_seg = _read_sheet(xls, "P&L_Segments")
+    pnl_seg["Month"]   = _norm_month(pnl_seg["Month"])
+    pnl_seg["Segment"] = pnl_seg["Segment"].astype(str).str.strip().str.upper()
+    _money_cols = ["Revenue", "Revenue_AOP", "Revenue_PY",
+                   "COS", "COS_AOP", "Gross_Profit", "GP_AOP",
+                   "OPEX", "OPEX_AOP", "EBITDA", "EBITDA_AOP",
+                   "PAT", "PAT_AOP", "Bad_Debt"]
+    for c in _money_cols:
+        if c in pnl_seg.columns:
+            pnl_seg[c] = pd.to_numeric(pnl_seg[c], errors="coerce")
 
-    if "Cash_CAPEX" in data:
-        data["Cash_CAPEX"] = _scale(data["Cash_CAPEX"], [
-            "Cash_Balance", "Net_Debt", "FCF", "CAPEX_Actual", "CAPEX_Plan",
-        ])
-        data["Cash_CAPEX"] = _pct(data["Cash_CAPEX"], [
-            "Collections_Pct", "Collections_Pct_Gov", "Collections_Pct_NonGov",
-        ])
-
-    if "Consumer_Sales" in data:
-        cs = data["Consumer_Sales"]
-        if "ARPU" not in cs.columns:
-            cs["ARPU"] = (cs["Revenue"] / cs["Subscribers"].replace(0, pd.NA)).fillna(0)
-        if "ARPU_AOP" not in cs.columns:
-            cs["ARPU_AOP"] = 0.0
-        data["Consumer_Sales"] = cs
-        data["Consumer_Sales"] = _scale(data["Consumer_Sales"], [
-            "Revenue", "Revenue_AOP",
-        ])
-        data["Consumer_Sales"] = _pct(data["Consumer_Sales"], ["YoY_Change_Pct"])
-        cs = data["Consumer_Sales"].copy()
-        cs["_dt"] = pd.to_datetime(cs["Month"], format="%b-%y", errors="coerce")
-        cs = cs.sort_values(["Segment", "_dt"]).reset_index(drop=True)
-        cs["_prev_subs"] = cs.groupby("Segment")["Subscribers"].shift(1)
-        cs["_derived_churn"] = (
-            (cs["_prev_subs"] - cs["Subscribers"]) / cs["_prev_subs"] * 100
-        ).where(cs["_prev_subs"] > 0)
-        # Use user-supplied Churn_Pct (entered as %, e.g. 2 = 2%) where present;
-        # fall back to the derived subscriber-movement estimate where blank or zero.
-        if "Churn_Pct" in cs.columns:
-            _user = pd.to_numeric(cs["Churn_Pct"], errors="coerce")
-            cs["Churn_Pct"] = _user.where(_user.notna() & (_user != 0), cs["_derived_churn"])
-        else:
-            cs["Churn_Pct"] = cs["_derived_churn"]
-        cs.drop(columns=["_dt", "_prev_subs", "_derived_churn"], inplace=True)
-        data["Consumer_Sales"] = cs
-
-    if "Business_Sales" in data:
-        data["Business_Sales"] = _scale(data["Business_Sales"], [
-            "Revenue", "Revenue_AOP", "Gross_Profit", "GP_AOP", "Contribution",
-            "MRR", "MRR_AOP", "Direct_Costs", "Direct_Costs_AOP",
-            "Mobile", "Mobile_AOP", "USAGE", "USAGE_AOP", "OCC", "OCC_AOP",
-        ])
-        data["Business_Sales"] = _pct(data["Business_Sales"], ["GP_Margin_Pct"])
-
-        # Auto-populate Direct_Costs and Direct_Costs_AOP from PnL_Breakdown
-        # PnL_Breakdown hasn't been scaled yet here, so divide raw values by M
-        if "PnL_Breakdown" in data:
-            pnl = data["PnL_Breakdown"][["Month", "BUSINESS SALES_COS", "BUSINESS SALES_COS_AOP"]].copy()
-            pnl["_pnl_dc"]     = pd.to_numeric(pnl["BUSINESS SALES_COS"],     errors="coerce") / M
-            pnl["_pnl_dc_aop"] = pd.to_numeric(pnl["BUSINESS SALES_COS_AOP"], errors="coerce") / M
-            pnl = pnl[["Month", "_pnl_dc", "_pnl_dc_aop"]]
-            bs = data["Business_Sales"].merge(pnl, on="Month", how="left")
-            segs_per_month = bs.groupby("Month")["Segment"].transform("count")
-            for col, src in [("Direct_Costs", "_pnl_dc"), ("Direct_Costs_AOP", "_pnl_dc_aop")]:
-                if col not in bs.columns:
-                    bs[col] = 0.0
-                blank = bs[col].isna() | (bs[col] == 0)
-                bs.loc[blank, col] = bs.loc[blank, src] / segs_per_month[blank]
-            bs.drop(columns=["_pnl_dc", "_pnl_dc_aop"], inplace=True)
-            # Derive Gross_Profit and GP_AOP from Revenue - Direct_Costs
-            bs["Gross_Profit"] = bs["Revenue"] - bs["Direct_Costs"]
-            aop_available = bs["Revenue_AOP"].notna() & (bs["Revenue_AOP"] != 0) & \
-                            bs["Direct_Costs_AOP"].notna() & (bs["Direct_Costs_AOP"] != 0)
-            bs.loc[aop_available, "GP_AOP"] = (
-                bs.loc[aop_available, "Revenue_AOP"] - bs.loc[aop_available, "Direct_Costs_AOP"]
-            )
-            data["Business_Sales"] = bs
-
-    if "Business_Sales_MRR" in data:
-        mrr = data["Business_Sales_MRR"].copy()
-        mrr["Month"] = (
-            pd.to_datetime(mrr["Month"].astype(str), format="%b %Y", errors="coerce")
-            .dt.strftime("%b-%y")
+    # ── Financial_Monthly ────────────────────────────────────────────────────
+    _agg = ["Revenue", "Revenue_AOP", "Revenue_PY",
+            "EBITDA", "EBITDA_AOP", "PAT", "PAT_AOP"]
+    fin = pnl_seg.groupby("Month")[_agg].sum().reset_index()
+    # EBITDA_Margin computed before scaling (ratio unchanged by scaling)
+    fin["EBITDA_Margin"] = (fin["EBITDA"] / fin["Revenue"].replace(0, pd.NA)).fillna(0)
+    fin = _scale(fin, ["Revenue", "Revenue_AOP", "Revenue_PY",
+                        "EBITDA", "EBITDA_AOP", "PAT", "PAT_AOP"])
+    fin["EBITDA_Margin"] = fin["EBITDA_Margin"] * 100  # decimal → %
+    fin["_dt"] = pd.to_datetime(fin["Month"], format="%b-%y", errors="coerce")
+    fin = fin.sort_values("_dt", na_position="last").reset_index(drop=True)
+    for col in ["Revenue", "EBITDA", "PAT"]:
+        lk = fin.dropna(subset=["_dt"]).set_index("_dt")[col]
+        fin[f"{col}_PY"] = fin["_dt"].apply(
+            lambda dt, lk=lk: lk.get(dt - pd.DateOffset(months=12))
         )
-        data["Business_Sales_MRR"] = _scale(mrr, ["MRR", "USAGE", "OCC"])
+    fin.drop(columns=["_dt"], inplace=True)
+    data["Financial_Monthly"] = fin
 
-    if "Pipeline" in data:
-        data["Pipeline"] = _scale(data["Pipeline"], ["Value_TTD_M", "Avg_Deal_Size"])
-        data["Pipeline"] = _pct(data["Pipeline"], ["Win_Rate_Pct"])
+    # ── PnL_Breakdown ────────────────────────────────────────────────────────
+    # Wide format: one row per Month; per-segment and aggregate columns
+    METRIC_MAP = {
+        "Revenue": "Rev", "Revenue_AOP": "Rev_AOP", "Revenue_PY": "Rev_PY",
+        "COS": "COS",     "COS_AOP": "COS_AOP",
+        "Gross_Profit": "GP", "GP_AOP": "GP_AOP",
+        "OPEX": "OPEX",   "OPEX_AOP": "OPEX_AOP",
+        "EBITDA": "EBITDA", "EBITDA_AOP": "EBITDA_AOP",
+    }
+    months_order = list(dict.fromkeys(pnl_seg["Month"].dropna().tolist()))
+    bd_rows = []
+    for month in months_order:
+        m_data = pnl_seg[pnl_seg["Month"] == month]
+        row = {"Month": month}
+        for _, sr in m_data.iterrows():
+            seg = sr["Segment"]
+            for src, short in METRIC_MAP.items():
+                if src in pnl_seg.columns:
+                    row[f"{seg}_{short}"] = sr[src]
+        row["Total_Rev"]     = m_data["Revenue"].sum()
+        row["Total_Rev_AOP"] = m_data["Revenue_AOP"].sum()
+        row["Total_Rev_PY"]  = m_data["Revenue_PY"].sum()
+        row["Total_COS"]     = m_data["COS"].sum()
+        row["Total_COS_AOP"] = m_data["COS_AOP"].sum()
+        row["Total_GP"]      = m_data["Gross_Profit"].sum()
+        row["Total_OPEX"]    = m_data["OPEX"].sum()
+        row["EBITDA"]        = m_data["EBITDA"].sum()
+        bd_rows.append(row)
 
-    if "Renewals" in data:
-        data["Renewals"] = _scale(data["Renewals"], ["ACV_TTD_M"])
+    breakdown = pd.DataFrame(bd_rows) if bd_rows else pd.DataFrame(columns=["Month"])
+    # Scale all non-Month columns (raw TTD → millions)
+    breakdown = _scale(breakdown, [c for c in breakdown.columns if c != "Month"])
+    # Ensure segment columns expected by page 1 always exist
+    for seg in ["CONSUMER SALES", "BUSINESS SALES", "AMPLIA", "DPDI", "OTHER"]:
+        for sfx in ["Rev", "COS", "GP", "Rev_AOP", "COS_AOP", "GP_AOP", "OPEX", "EBITDA"]:
+            col = f"{seg}_{sfx}"
+            if col not in breakdown.columns:
+                breakdown[col] = 0.0
+    data["PnL_Breakdown"] = breakdown
 
-    if "DPDI" in data:
-        data["DPDI"] = _scale(data["DPDI"], [
-            "Revenue", "Revenue_AOP", "Gross_Profit", "EBITDA", "Direct_Costs",
-        ])
-        data["DPDI"] = _pct(data["DPDI"], ["GP_Margin_Pct"])
+    # ── KPI_Summary ─────────────────────────────────────────────────────────
+    # Derived from the latest month of Financial_Monthly
+    if not fin.empty:
+        fl   = fin.iloc[-1]
+        _mon = fl["Month"]
 
-        if "PnL_Breakdown" in data:
-            pnl = data["PnL_Breakdown"][["Month", "DPDI_COS", "DPDI_COS_AOP"]].copy()
-            pnl["_pnl_dc"]     = pd.to_numeric(pnl["DPDI_COS"],     errors="coerce") / M
-            pnl["_pnl_dc_aop"] = pd.to_numeric(pnl["DPDI_COS_AOP"], errors="coerce") / M
-            pnl = pnl[["Month", "_pnl_dc", "_pnl_dc_aop"]]
-            dp = data["DPDI"].merge(pnl, on="Month", how="left")
-            prods_per_month = dp.groupby("Month")["Product"].transform("count")
-            for col, src in [("Direct_Costs", "_pnl_dc")]:
-                blank = dp[col].isna() | (dp[col] == 0)
-                dp.loc[blank, col] = dp.loc[blank, src] / prods_per_month[blank]
-            dp["Gross_Profit"] = dp["Revenue"] - dp["Direct_Costs"]
-            dp.drop(columns=["_pnl_dc", "_pnl_dc_aop"], inplace=True)
-            data["DPDI"] = dp
+        def _kpi(section, name, actual, aop, py, unit):
+            try:
+                if pd.notna(actual) and pd.notna(aop) and aop != 0:
+                    diff_pct = (float(actual) - float(aop)) / abs(float(aop))
+                    status = "A" if abs(diff_pct) < 0.02 else ("G" if float(actual) >= float(aop) else "R")
+                else:
+                    status = "A"
+            except Exception:
+                status = "A"
+            return {"Month": _mon, "Section": section, "KPI_Name": name,
+                    "Actual": actual, "AOP": aop, "PY": py, "Status": status, "Unit": unit}
 
-    if "AMPLIA_Financial" in data:
-        data["AMPLIA_Financial"] = _scale(data["AMPLIA_Financial"], [
-            "Revenue", "Revenue_AOP", "Gross_Profit",
-            "EBITDA", "EBITDA_AOP", "PAT", "OPEX", "Direct_Costs",
-        ])
-
-    # ── OPEX: strip DPDI Cost of Sales, scale, recalculate Variance ─────────
-    if "OPEX" in data:
-        df = data["OPEX"].copy()
-        # "DIG. PROD DEV & INNOV" is Cost of Sales for the DPDI LoB, not OPEX
-        dpdi_cos = df[df["Category"] == "DIG. PROD DEV & INNOV"].copy()
-        dpdi_cos = _scale(dpdi_cos, ["Actual", "Plan"])
-        data["DPDI_CoS"] = dpdi_cos
-        df = df[df["Category"] != "DIG. PROD DEV & INNOV"].copy()
-        df = _scale(df, ["Actual", "Plan"])
-        df["Variance"] = df["Actual"] - df["Plan"]
-        df["Variance_Pct"] = ((df["Actual"] - df["Plan"]) / df["Plan"].replace(0, pd.NA) * 100).round(1)
-        data["OPEX"] = df
-
-    # ── EBITDA Bridge: compute total row, then scale ──────────────────────────
-    if "EBITDA_Bridge" in data:
-        bridge = data["EBITDA_Bridge"].copy()
-        bridge["Value"] = pd.to_numeric(bridge["Value"], errors="coerce")
-        computed_total = bridge["Value"].iloc[:-1].sum()
-        bridge.loc[bridge.index[-1], "Value"] = computed_total
-        bridge.loc[bridge.index[-1], "Type"] = "Total"
-        bridge = bridge.sort_values("Sort_Order").reset_index(drop=True)
-        bridge["Value"] = bridge["Value"] / M
-        data["EBITDA_Bridge"] = bridge
-
-    if "PnL_Breakdown" in data:
-        mon_cols = [c for c in data["PnL_Breakdown"].columns if c != "Month"]
-        data["PnL_Breakdown"] = _scale(data["PnL_Breakdown"], mon_cols)
-
-    # ── KPI Summary: scale only  rows ────────────────────────────────────
-    if "KPI_Summary" in data:
-        kpi = data["KPI_Summary"].copy()
-        # Accept 7 columns (no PY) or 8 columns (with PY placeholder)
-        if kpi.shape[1] >= 8:
-            kpi = kpi.iloc[:, :8]
-            kpi.columns = ["Month", "Section", "KPI_Name", "Actual", "AOP", "PY", "Status", "Unit"]
-        else:
-            kpi = kpi.iloc[:, :7]
-            kpi.columns = ["Month", "Section", "KPI_Name", "Actual", "AOP", "Status", "Unit"]
-            kpi["PY"] = pd.NA
-        kpi = kpi.dropna(subset=["Section", "KPI_Name"])
-        ttm_mask = kpi["Unit"] == ""
-        pct_mask = kpi["Unit"] == "%"
-        for col in ["Actual", "AOP"]:
-            kpi.loc[ttm_mask, col] = pd.to_numeric(kpi.loc[ttm_mask, col], errors="coerce") / M
-            kpi.loc[pct_mask, col] = pd.to_numeric(kpi.loc[pct_mask, col], errors="coerce") * 100
-        # Derive PY from Actual 12 months prior for each KPI
-        kpi["_dt"] = pd.to_datetime(kpi["Month"], format="%b-%y", errors="coerce")
-        py_lk = kpi.dropna(subset=["_dt"]).set_index(["_dt", "KPI_Name"])["Actual"]
-        kpi["PY"] = kpi.apply(
-            lambda r: py_lk.get((r["_dt"] - pd.DateOffset(months=12), r["KPI_Name"]))
-            if pd.notna(r["_dt"]) else pd.NA,
-            axis=1,
+        _ebitda_m_aop = (
+            float(fl.get("EBITDA_AOP", 0)) / float(fl.get("Revenue_AOP", 1)) * 100
+            if fl.get("Revenue_AOP") else pd.NA
         )
-        kpi.drop(columns=["_dt"], inplace=True)
-        data["KPI_Summary"] = kpi
+        data["KPI_Summary"] = pd.DataFrame([
+            _kpi("Financial", "Revenue",      fl["Revenue"],        fl.get("Revenue_AOP"),  fl.get("Revenue_PY"), ""),
+            _kpi("Financial", "EBITDA",        fl["EBITDA"],          fl.get("EBITDA_AOP"),   fl.get("EBITDA_PY"),  ""),
+            _kpi("Financial", "PAT",           fl["PAT"],             fl.get("PAT_AOP"),      fl.get("PAT_PY"),     ""),
+            _kpi("Financial", "EBITDA Margin", fl.get("EBITDA_Margin"), _ebitda_m_aop,       pd.NA,                "%"),
+        ])
+    else:
+        data["KPI_Summary"] = pd.DataFrame(
+            columns=["Month", "Section", "KPI_Name", "Actual", "AOP", "PY", "Status", "Unit"]
+        )
 
-    # ── PP_Plans: raw export has header on row 2, count col = "Sub Count" ────
-    if "PP_Plans" in data:
-        try:
-            df = pd.read_excel(xls, sheet_name="PP_Plans", header=2)
-            df = df.rename(columns={"Sub Count": "Subscribers"})
-            df["Subscribers"] = pd.to_numeric(df["Subscribers"], errors="coerce").fillna(0)
-            df = df[["Legacy/Active", "Plan", "Subscribers"]].dropna(subset=["Plan"])
-            active = df[df["Legacy/Active"] == "Active"].sort_values("Subscribers", ascending=False)
-            legacy_total = int(df[df["Legacy/Active"] == "Legacy"]["Subscribers"].sum())
-            top5 = active.iloc[:5][["Plan", "Subscribers"]].copy()
-            other_active = int(active.iloc[5:]["Subscribers"].sum())
-            rows = top5.to_dict("records")
-            if other_active > 0:
-                rows.append({"Plan": "Other Active", "Subscribers": other_active})
-            if legacy_total > 0:
-                rows.append({"Plan": "Legacy Plans", "Subscribers": legacy_total})
-            data["PP_Plans"] = pd.DataFrame(rows)
-        except Exception:
-            data["PP_Plans"] = pd.DataFrame()
+    # ── EBITDA_Bridge ────────────────────────────────────────────────────────
+    # Derived from P&L_Segments latest month
+    if not fin.empty:
+        fl     = fin.iloc[-1]
+        latest_m = fl["Month"]
+        pm      = pnl_seg[pnl_seg["Month"] == latest_m]
+        rev_a  = fl["Revenue"]
+        rev_aop = fl.get("Revenue_AOP", rev_a) or rev_a
+        ebi_a   = fl["EBITDA"]
+        ebi_aop = fl.get("EBITDA_AOP", ebi_a) or ebi_a
+        cos_a   = pm["COS"].sum() / M if "COS" in pm.columns else 0.0
+        cos_aop = pm["COS_AOP"].sum() / M if "COS_AOP" in pm.columns else cos_a
+        opex_a  = pm["OPEX"].sum() / M if "OPEX" in pm.columns else 0.0
+        opex_aop = pm["OPEX_AOP"].sum() / M if "OPEX_AOP" in pm.columns else opex_a
+        data["EBITDA_Bridge"] = pd.DataFrame([
+            {"Category": "AOP EBITDA",       "Value": ebi_aop,                 "Type": "Absolute", "Sort_Order": 1},
+            {"Category": "Revenue Variance", "Value": rev_a - rev_aop,          "Type": "Positive" if rev_a >= rev_aop else "Negative", "Sort_Order": 2},
+            {"Category": "COS Variance",     "Value": cos_aop - cos_a,          "Type": "Positive" if cos_a <= cos_aop else "Negative", "Sort_Order": 3},
+            {"Category": "OPEX Variance",    "Value": opex_aop - opex_a,        "Type": "Positive" if opex_a <= opex_aop else "Negative", "Sort_Order": 4},
+            {"Category": "Actual EBITDA",    "Value": ebi_a,                   "Type": "Total",    "Sort_Order": 5},
+        ])
+    else:
+        data["EBITDA_Bridge"] = pd.DataFrame(
+            columns=["Category", "Value", "Type", "Sort_Order"]
+        )
 
-    # ── WTTx_Plans: header on row 1; group by Voice/Data/Bundle type ─────────
-    if "WTTx_Plans" in data:
-        try:
-            df = pd.read_excel(xls, sheet_name="WTTx_Plans", header=1)
-            type_col = "Voice/Data/Bundle"
-            count_col = df.columns[-1]  # date column holds the subscriber counts
-            df = df[[type_col, count_col]].copy()
-            df.columns = ["Plan", "Subscribers"]
-            df["Subscribers"] = pd.to_numeric(df["Subscribers"], errors="coerce").fillna(0)
-            df = df[df["Subscribers"] > 0].groupby("Plan")["Subscribers"].sum().reset_index()
-            df = df.sort_values("Subscribers", ascending=False).reset_index(drop=True)
-            data["WTTx_Plans"] = df
-        except Exception:
-            data["WTTx_Plans"] = pd.DataFrame()
+    # ── Consumer_Products → Consumer_Sales ───────────────────────────────────
+    cs = _read_sheet(xls, "Consumer_Products")
+    cs["Month"] = _norm_month(cs["Month"])
+    cs = cs.rename(columns={"Product": "Segment"})
+    cs = _scale(cs, ["Revenue", "Revenue_AOP", "Revenue_PY"])
+    for c in ["Subscribers", "Subscribers_AOP", "Gross_Adds", "Gross_Adds_AOP"]:
+        if c in cs.columns:
+            cs[c] = pd.to_numeric(cs[c], errors="coerce").fillna(0)
+    if "ARPU" not in cs.columns or cs["ARPU"].isna().all():
+        cs["ARPU"] = (cs["Revenue"] * M / cs["Subscribers"].replace(0, pd.NA)).fillna(0)
+    if "ARPU_AOP" not in cs.columns:
+        cs["ARPU_AOP"] = 0.0
+    cs["_dt"] = pd.to_datetime(cs["Month"], format="%b-%y", errors="coerce")
+    cs = cs.sort_values(["Segment", "_dt"]).reset_index(drop=True)
+    cs["_prev_subs"] = cs.groupby("Segment")["Subscribers"].shift(1)
+    cs["_derived_churn"] = (
+        (cs["_prev_subs"] - cs["Subscribers"]) / cs["_prev_subs"] * 100
+    ).where(cs["_prev_subs"] > 0)
+    if "Churn_Pct" in cs.columns:
+        _user = pd.to_numeric(cs["Churn_Pct"], errors="coerce")
+        cs["Churn_Pct"] = _user.where(_user.notna() & (_user != 0), cs["_derived_churn"])
+    else:
+        cs["Churn_Pct"] = cs["_derived_churn"]
+    cs.drop(columns=["_dt", "_prev_subs", "_derived_churn"], inplace=True)
+    if "YoY_Change_Pct" in cs.columns:
+        cs = _pct_col(cs, ["YoY_Change_Pct"])
+    data["Consumer_Sales"] = cs
+
+    # ── Business_Products → Business_Sales ───────────────────────────────────
+    bs = _read_sheet(xls, "Business_Products")
+    bs["Month"] = _norm_month(bs["Month"])
+    bs = bs.rename(columns={"Product": "Segment"})
+    bs = _scale(bs, ["Revenue", "Revenue_AOP", "Revenue_PY",
+                      "Direct_Costs", "Direct_Costs_AOP", "Gross_Profit",
+                      "MRR", "MRR_AOP", "Contribution"])
+    for c in ["GP_AOP", "Mobile", "Mobile_AOP", "USAGE", "USAGE_AOP", "OCC", "OCC_AOP"]:
+        if c not in bs.columns:
+            bs[c] = 0.0
+    # Fill missing Direct_Costs from P&L_Segments BUSINESS SALES COS
+    bs_pnl = (
+        pnl_seg[pnl_seg["Segment"].str.contains("BUSINESS", na=False)]
+        .groupby("Month")[["COS", "COS_AOP"]].sum().reset_index()
+    )
+    bs_pnl.columns = ["Month", "_pnl_dc_raw", "_pnl_dc_aop_raw"]
+    bs = bs.merge(bs_pnl, on="Month", how="left")
+    segs_per_month = bs.groupby("Month")["Segment"].transform("count")
+    for col, src in [("Direct_Costs", "_pnl_dc_raw"), ("Direct_Costs_AOP", "_pnl_dc_aop_raw")]:
+        if col not in bs.columns:
+            bs[col] = 0.0
+        if src in bs.columns:
+            blank = bs[col].isna() | (bs[col] == 0)
+            bs.loc[blank, col] = bs.loc[blank, src] / M / segs_per_month[blank]
+    bs.drop(columns=["_pnl_dc_raw", "_pnl_dc_aop_raw"], inplace=True, errors="ignore")
+    bs["Gross_Profit"] = bs["Revenue"] - bs["Direct_Costs"]
+    aop_ok = (bs["Revenue_AOP"].notna() & (bs["Revenue_AOP"] != 0) &
+              bs["Direct_Costs_AOP"].notna() & (bs["Direct_Costs_AOP"] != 0))
+    bs.loc[aop_ok, "GP_AOP"] = bs.loc[aop_ok, "Revenue_AOP"] - bs.loc[aop_ok, "Direct_Costs_AOP"]
+    if "GP_Margin_Pct" in bs.columns:
+        bs = _pct_col(bs, ["GP_Margin_Pct"])
+    data["Business_Sales"]     = bs
+    data["Business_Sales_MRR"] = pd.DataFrame()  # not in master template
+    data["PP_Plans"]           = pd.DataFrame()  # not in master template
+    data["WTTx_Plans"]         = pd.DataFrame()  # not in master template
+
+    # ── DPDI_Products → DPDI ─────────────────────────────────────────────────
+    dp = _read_sheet(xls, "DPDI_Products")
+    dp["Month"] = _norm_month(dp["Month"])
+    dp = _scale(dp, ["Revenue", "Revenue_AOP", "Revenue_PY", "Direct_Costs", "Gross_Profit"])
+    if "EBITDA" not in dp.columns:
+        dp["EBITDA"] = dp.get("Gross_Profit", pd.Series(0, index=dp.index))
+    if "Direct_Costs_AOP" not in dp.columns:
+        dp["Direct_Costs_AOP"] = 0.0
+    if "GP_Margin_Pct" not in dp.columns:
+        dp["GP_Margin_Pct"] = (
+            dp["Gross_Profit"] / dp["Revenue"].replace(0, pd.NA) * 100
+        ).fillna(0)
+    # Fill Direct_Costs from P&L_Segments DPDI COS
+    dp_pnl = (
+        pnl_seg[pnl_seg["Segment"].str.contains("DPDI", na=False)]
+        .groupby("Month")[["COS", "COS_AOP"]].sum().reset_index()
+    )
+    dp_pnl.columns = ["Month", "_pnl_dc_raw", "_pnl_dc_aop_raw"]
+    dp = dp.merge(dp_pnl, on="Month", how="left")
+    prods_per_month = dp.groupby("Month")["Product"].transform("count")
+    blank = dp["Direct_Costs"].isna() | (dp["Direct_Costs"] == 0)
+    if "_pnl_dc_raw" in dp.columns:
+        dp.loc[blank, "Direct_Costs"] = dp.loc[blank, "_pnl_dc_raw"] / M / prods_per_month[blank]
+    blank_aop = dp["Direct_Costs_AOP"].isna() | (dp["Direct_Costs_AOP"] == 0)
+    if "_pnl_dc_aop_raw" in dp.columns:
+        dp.loc[blank_aop, "Direct_Costs_AOP"] = dp.loc[blank_aop, "_pnl_dc_aop_raw"] / M / prods_per_month[blank_aop]
+    dp["Gross_Profit"] = dp["Revenue"] - dp["Direct_Costs"]
+    dp.drop(columns=["_pnl_dc_raw", "_pnl_dc_aop_raw"], inplace=True, errors="ignore")
+    data["DPDI"] = dp
+
+    # ── P&L_Segments AMPLIA row → AMPLIA_Financial ───────────────────────────
+    amplia_seg = pnl_seg[pnl_seg["Segment"].str.contains("AMPLIA", na=False)].copy()
+    amplia_fin = amplia_seg.rename(
+        columns={"COS": "Direct_Costs", "COS_AOP": "Direct_Costs_AOP"}
+    ).reset_index(drop=True)
+    amplia_fin = _scale(amplia_fin, [
+        "Revenue", "Revenue_AOP", "Gross_Profit",
+        "EBITDA", "EBITDA_AOP", "PAT", "OPEX", "Direct_Costs",
+    ])
+    data["AMPLIA_Financial"] = amplia_fin
+
+    # ── Amplia_Commercial ─────────────────────────────────────────────────────
+    amp_comm = _read_sheet(xls, "Amplia_Commercial")
+    amp_comm["Month"] = _norm_month(amp_comm["Month"])
+    amp_comm = amp_comm.rename(columns={
+        "Gross_Adds":        "Gross_Additions",
+        "Monthly_Churn_AOP": "Churn_AOP",
+    })
+    data["AMPLIA_Commercial"] = amp_comm
+
+    # ── Cash_CAPEX ────────────────────────────────────────────────────────────
+    cc = _read_sheet(xls, "Cash_CAPEX")
+    cc["Month"] = _norm_month(cc["Month"])
+    cc = _scale(cc, ["Cash_Balance", "Net_Debt", "FCF",
+                      "CAPEX_Actual", "CAPEX_Plan",
+                      "CAPEX_Monthly_Actual", "CAPEX_Monthly_Plan"])
+    # Merge Collections_Pct per group from Collections_Billing
+    try:
+        cb = _read_sheet(xls, "Collections_Billing")
+        cb["Month"] = _norm_month(cb["Month"])
+        cb["Group"] = cb["Group"].astype(str).str.strip()
+        cb["Collections_Pct"] = pd.to_numeric(cb["Collections_Pct"], errors="coerce")
+        cb_piv = cb.pivot_table(
+            index="Month", columns="Group", values="Collections_Pct", aggfunc="first"
+        ).reset_index()
+        ren = {}
+        for col in cb_piv.columns:
+            if col == "Month":
+                continue
+            cu = col.upper()
+            if "NON" in cu:
+                ren[col] = "Collections_Pct_NonGov"
+            elif "GOV" in cu:
+                ren[col] = "Collections_Pct_Gov"
+            elif "CONSUMER" in cu:
+                ren[col] = "Collections_Pct_Consumer"
+        cc = cc.merge(cb_piv.rename(columns=ren), on="Month", how="left")
+    except Exception:
+        pass
+    data["Cash_CAPEX"] = cc
+
+    # ── Pipeline ─────────────────────────────────────────────────────────────
+    pip = _read_sheet(xls, "Pipeline")
+    pip["Month"] = _norm_month(pip["Month"])
+    pip = _scale(pip, ["Value_TTD", "Avg_Deal_Size", "Weighted_Value"])
+    pip = pip.rename(columns={"Value_TTD": "Value_TTD_M"})
+    data["Pipeline"] = pip
+
+    # ── Renewals ─────────────────────────────────────────────────────────────
+    ren = _read_sheet(xls, "Renewals")
+    ren = _scale(ren, ["ACV_TTD"])
+    ren = ren.rename(columns={"ACV_TTD": "ACV_TTD_M"})
+    data["Renewals"] = ren
+
+    # ── OPEX_Detail → OPEX ───────────────────────────────────────────────────
+    opex = _read_sheet(xls, "OPEX_Detail")
+    opex["Month"] = _norm_month(opex["Month"])
+    opex = opex.rename(columns={"AOP": "Plan"})
+    opex_grp = opex.groupby(["Month", "Category"])[["Actual", "Plan", "PY"]].sum().reset_index()
+    opex_grp = _scale(opex_grp, ["Actual", "Plan", "PY"])
+    opex_grp["Variance"] = opex_grp["Actual"] - opex_grp["Plan"]
+    opex_grp["Variance_Pct"] = (
+        (opex_grp["Actual"] - opex_grp["Plan"]) / opex_grp["Plan"].replace(0, pd.NA) * 100
+    ).round(1)
+    data["OPEX"] = opex_grp
 
     return data
 
 
+# ── AR Aging loader ────────────────────────────────────────────────────────────
+@st.cache_data
+def load_ar():
+    """Load AR aging data from AR_Aging sheet.
+    Returns {"gov": {...}, "non_gov": {...}, "total": {...}} with values in millions.
+    """
+    try:
+        xls    = pd.ExcelFile(MASTER_PATH)
+        ar_raw = _read_sheet(xls, "AR_Aging")
+        ar_raw["Group"]  = ar_raw["Group"].astype(str).str.strip()
+        ar_raw["Bucket"] = ar_raw["Bucket"].astype(str).str.strip()
+        ar_raw["Amount"] = pd.to_numeric(ar_raw["Amount"], errors="coerce").fillna(0) / M
+        ar_raw["Month"]  = _norm_month(ar_raw["Month"])
+
+        BUCKET_MAP = {
+            "0-30": "0_30",  "0_30": "0_30",  "0–30": "0_30",
+            "31-60": "31_60", "31_60": "31_60", "31–60": "31_60",
+            "61-90": "61_90", "61_90": "61_90", "61–90": "61_90",
+            "90-360": "90_360", "90_360": "90_360", "90–360": "90_360",
+            "360+": "360p", "360p": "360p", ">360": "360p", "360 +": "360p",
+        }
+        ar_raw["Bucket_key"] = ar_raw["Bucket"].map(BUCKET_MAP).fillna(ar_raw["Bucket"])
+
+        months_avail = ar_raw["Month"].dropna().unique().tolist()
+        if not months_avail:
+            return None
+        latest_m = months_avail[-1]
+        ar_m     = ar_raw[ar_raw["Month"] == latest_m]
+
+        BUCKETS = ["0_30", "31_60", "61_90", "90_360", "360p"]
+
+        def _grp(pattern, exclude=None):
+            mask = ar_m["Group"].str.upper().str.contains(pattern, na=False)
+            if exclude:
+                mask &= ~ar_m["Group"].str.upper().str.contains(exclude, na=False)
+            rows = ar_m[mask]
+            d = {b: float(rows[rows["Bucket_key"] == b]["Amount"].sum()) for b in BUCKETS}
+            d["total"] = sum(d.values())
+            return d
+
+        gov     = _grp("GOV", exclude="NON")
+        non_gov = _grp("NON")
+        total   = {k: gov[k] + non_gov[k] for k in BUCKETS + ["total"]}
+        return {"gov": gov, "non_gov": non_gov, "total": total}
+    except Exception:
+        return None
+
+
+# ── Collections & Billing loader ──────────────────────────────────────────────
+@st.cache_data
+def load_collections_billing():
+    """Load Collections_Billing sheet.
+    Returns long-format DataFrame: Month, Group, Billings, Collections, Collections_Pct.
+    """
+    try:
+        xls = pd.ExcelFile(MASTER_PATH)
+        cb  = _read_sheet(xls, "Collections_Billing")
+        cb["Month"] = _norm_month(cb["Month"])
+        cb["Group"] = cb["Group"].astype(str).str.strip()
+        for c in ["Billings", "Collections", "Collections_Pct"]:
+            if c in cb.columns:
+                cb[c] = pd.to_numeric(cb[c], errors="coerce")
+        return cb
+    except Exception:
+        return pd.DataFrame()
+
+
+# ── Prepaid ARPU Buckets ───────────────────────────────────────────────────────
 @st.cache_data
 def load_prepaid_arpu():
-    """Load prepaid subscribers by ARPU bucket from the external Excel file.
-
-    Returns a long-format DataFrame with columns:
-        Month (str, e.g. 'Jan-25'), Category (str), Subscribers (float), Revenue (float, 0.0)
-    Skips Grand Total rows — caller filters as needed.
+    """Load Prepaid_ARPU_Buckets sheet.
+    Returns DataFrame: Month, Category, Subscribers, Revenue (millions).
     """
-    CAT_MAP = {
-        "a. VLV -  < $5":      "Very Low (0-5)",
-        "a. VLV - < $5":       "Very Low (0-5)",
-        "b. LV - $5 -$30":     "Low (5-30)",
-        "c. MV - $30 - $120":  "Medium (30-120)",
-        "d. HV - $120 - $300": "High (120-300)",
-        "e. VHV - >= $300":    "Very High (>300)",
-    }
     try:
-        # header=1: use the second Excel row (Row Labels + date cols) as column names
-        df = pd.read_excel(ARPU_BUCKET_PATH, sheet_name="Export", header=1)
+        xls = pd.ExcelFile(MASTER_PATH)
+        df  = _read_sheet(xls, "Prepaid_ARPU_Buckets")
+        df["Month"] = _norm_month(df["Month"])
+        df = df.rename(columns={"ARPU_Bucket": "Category"})
+        for c in ["Subscribers"]:
+            if c in df.columns:
+                df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0)
+        if "Revenue" in df.columns:
+            df["Revenue"] = pd.to_numeric(df["Revenue"], errors="coerce").fillna(0) / M
+        else:
+            df["Revenue"] = 0.0
+        return df[["Month", "Category", "Subscribers", "Revenue"]]
     except Exception:
         return pd.DataFrame()
 
-    cat_col = df.columns[0]  # "Row Labels"
-    records = []
-    for col in df.columns[1:]:
-        try:
-            month_fmt = pd.to_datetime(col).strftime("%b-%y")
-        except Exception:
-            continue
-        for _, row in df.iterrows():
-            raw_cat = str(row[cat_col]).strip()
-            cat = CAT_MAP.get(raw_cat)
-            if cat is None:
-                continue
-            val = pd.to_numeric(row[col], errors="coerce")
-            if pd.isna(val):
-                continue
-            records.append({
-                "Month":       month_fmt,
-                "Category":    cat,
-                "Subscribers": val,
-                "Revenue":     0.0,
-            })
 
-    return pd.DataFrame(records)
-
-
+# ── Prepaid Data Usage ─────────────────────────────────────────────────────────
 @st.cache_data
 def load_prepaid_data_usage():
-    """Load prepaid data usage from dd_prepaid_data_usage_mth.xlsx.
-
-    Returns a DataFrame sorted by month with derived columns:
-        Month (str, e.g. 'Sep-25'), unique_data_users, bundle_users, payg_users,
-        total_data_usage (MB), in_bundle_usage (MB), payg_data_usage (MB),
-        gb_per_user, bundle_pct,
-        data_bundle_rev, payg_data_charges, total_data_rev
+    """Load Prepaid_Data_Usage sheet.
+    Returns DataFrame with columns matching the old dd_prepaid_data_usage_mth.xlsx output.
     """
     try:
-        df = pd.read_excel(PREPAID_USAGE_PATH, sheet_name="Result 1")
+        xls = pd.ExcelFile(MASTER_PATH)
+        df  = _read_sheet(xls, "Prepaid_Data_Usage")
+        df["Month"] = _norm_month(df["Month"])
+        df["_dt"]   = pd.to_datetime(df["Month"], format="%b-%y", errors="coerce")
+        df = df.sort_values("_dt", na_position="last").reset_index(drop=True)
+        df.drop(columns=["_dt"], inplace=True)
+
+        # Map template column names → legacy names expected by the Consumer page
+        RENAMES = {
+            "Total_GB":           "total_data_usage",
+            "Data_Users":         "unique_data_users",
+            "Bundle_Subscribers": "bundle_users",
+            "Bundle_Revenue":     "data_bundle_rev",
+            "GB_Per_User":        "gb_per_user",
+            "Bundle_Pct":         "bundle_pct",
+        }
+        df = df.rename(columns={k: v for k, v in RENAMES.items() if k in df.columns})
+
+        for c in ["unique_data_users", "bundle_users", "total_data_usage", "gb_per_user"]:
+            if c in df.columns:
+                df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0)
+
+        if "data_bundle_rev" in df.columns:
+            df["data_bundle_rev"] = pd.to_numeric(df["data_bundle_rev"], errors="coerce").fillna(0) / M
+        if "payg_data_charges" not in df.columns:
+            df["payg_data_charges"] = 0.0
+        df["total_data_rev"] = df.get("data_bundle_rev", 0) + df.get("payg_data_charges", 0)
+
+        if "bundle_pct" in df.columns:
+            df["bundle_pct"] = pd.to_numeric(df["bundle_pct"], errors="coerce").fillna(0)
+            if df["bundle_pct"].max() <= 1.0:  # stored as decimal → convert
+                df["bundle_pct"] = df["bundle_pct"] * 100
+
+        return df
     except Exception:
         return pd.DataFrame()
 
-    df = df.sort_values("Month_Code").reset_index(drop=True)
-    df["Month"] = (
-        pd.to_datetime(df["Month_Code"].astype(str), format="%Y%m")
-        .dt.strftime("%b-%y")
-    )
-    df["gb_per_user"]       = df["total_data_usage"] / df["unique_data_users"] / 1024
-    df["bundle_pct"]        = df["bundle_users"]     / df["unique_data_users"] * 100
-    df["data_bundle_rev"]   = df["data_bundle_rev"]  / M
-    df["payg_data_charges"] = df["payg_data_charges"] / M
-    df["total_data_rev"]    = df["data_bundle_rev"]  + df["payg_data_charges"]
-    return df
 
-
+# ── Utilities ──────────────────────────────────────────────────────────────────
 def get_month_order(df, col="Month"):
     """Return unique months in their original DataFrame order."""
     return list(dict.fromkeys(df[col].dropna().tolist()))
@@ -335,5 +494,4 @@ def pivot_by_group(df, index_col, group_col, value_col):
     """Pivot df preserving original row order of index_col."""
     month_order = get_month_order(df, index_col)
     pivot = df.pivot_table(index=index_col, columns=group_col, values=value_col, aggfunc="sum")
-    pivot = pivot.reindex(month_order).reset_index()
-    return pivot
+    return pivot.reindex(month_order).reset_index()
