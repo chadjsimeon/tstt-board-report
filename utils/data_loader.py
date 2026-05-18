@@ -160,52 +160,47 @@ def load_all_data():
 
 @st.cache_data
 def load_prepaid_arpu():
-    """Load prepaid subs & revenue by ARPU bucket from the external Excel file.
+    """Load prepaid subscribers by ARPU bucket from the external Excel file.
 
     Returns a long-format DataFrame with columns:
-        Month (str, e.g. 'Jan-25'), Category (str), Subscribers (float), Revenue ( float)
-    Excludes 'No Revenue' and 'Total' rows — caller filters as needed.
+        Month (str, e.g. 'Jan-25'), Category (str), Subscribers (float), Revenue (float, 0.0)
+    Skips Grand Total rows — caller filters as needed.
     """
-    BUCKET_CATS = {
-        "Very Low (0-5)", "Low (5-30)", "Medium (30-120)",
-        "High (120-300)", "Very High (>300)",
+    CAT_MAP = {
+        "a. VLV -  < $5":      "Very Low (0-5)",
+        "a. VLV - < $5":       "Very Low (0-5)",
+        "b. LV - $5 -$30":     "Low (5-30)",
+        "c. MV - $30 - $120":  "Medium (30-120)",
+        "d. HV - $120 - $300": "High (120-300)",
+        "e. VHV - >= $300":    "Very High (>300)",
     }
     try:
-        df = pd.read_excel(ARPU_BUCKET_PATH, sheet_name="Export", header=0)
+        # header=1: use the second Excel row (Row Labels + date cols) as column names
+        df = pd.read_excel(ARPU_BUCKET_PATH, sheet_name="Export", header=1)
     except Exception:
         return pd.DataFrame()
 
-    # Row 0 is the sub-header (arpu_category / Subscribers / Revenue …)
-    # Rows 1-6 are data rows; row 7 is Total; rows 8+ are blanks/notes.
-    data_rows = df.iloc[1:8].copy()
-    cat_col   = df.columns[0]  # "MonthYear"
-    cols      = df.columns.tolist()
-
+    cat_col = df.columns[0]  # "Row Labels"
     records = []
-    i = 1
-    while i < len(cols) - 1:
-        subs_col  = cols[i]
-        rev_col   = cols[i + 1]
-        month_raw = str(subs_col)          # e.g. "Jan-2025"
+    for col in df.columns[1:]:
         try:
-            month_fmt = pd.to_datetime(month_raw, format="%b-%Y").strftime("%b-%y")
+            month_fmt = pd.to_datetime(col).strftime("%b-%y")
         except Exception:
-            month_fmt = month_raw
-
-        for _, row in data_rows.iterrows():
-            cat = row[cat_col]
-            if pd.isna(cat):
+            continue
+        for _, row in df.iterrows():
+            raw_cat = str(row[cat_col]).strip()
+            cat = CAT_MAP.get(raw_cat)
+            if cat is None:
                 continue
-            cat_str = str(cat).strip()
-            if cat_str not in BUCKET_CATS:
-                continue                   # skip No Revenue / Total
+            val = pd.to_numeric(row[col], errors="coerce")
+            if pd.isna(val):
+                continue
             records.append({
                 "Month":       month_fmt,
-                "Category":    cat_str,
-                "Subscribers": pd.to_numeric(row[subs_col], errors="coerce"),
-                "Revenue":     pd.to_numeric(row[rev_col],  errors="coerce") / M,
+                "Category":    cat,
+                "Subscribers": val,
+                "Revenue":     0.0,
             })
-        i += 2
 
     return pd.DataFrame(records)
 
