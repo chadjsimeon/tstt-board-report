@@ -277,6 +277,7 @@ with tab3:
 # ═════════════════════════════════════════════════════════════════════════════
 with tab_fp:
     biz_months_all = get_month_order(biz)
+    biz_fy_months  = biz_months_all[:-1] if len(biz_months_all) > 12 else biz_months_all
     biz_fp_dt   = pd.to_datetime(sel_month, format="%b-%y", errors="coerce")
     biz_py_mon  = ((biz_fp_dt - pd.DateOffset(months=12)).strftime("%b-%y")
                    if pd.notna(biz_fp_dt) else biz_months_all[0])

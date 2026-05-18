@@ -23,6 +23,10 @@ fin["EBITDA_Margin_AOP"] = (fin["EBITDA_AOP"] / fin["Revenue_AOP"] * 100)
 
 page_header("Financial Performance", "Revenue · EBITDA · PAT · Bridge")
 
+if fin.empty:
+    st.info("No P&L data available. Please populate the P&L_Segments sheet in TSTT_Master_Data_Template.xlsx.")
+    st.stop()
+
 # ── Latest-month metrics ──────────────────────────────────────────────────────
 latest = fin.iloc[-1]
 aop_margin = latest["EBITDA_Margin_AOP"]

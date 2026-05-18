@@ -7,20 +7,27 @@ M = 1_000_000  # raw TTD → millions
 
 # ── Sheet reader ───────────────────────────────────────────────────────────────
 def _read_sheet(xls, sheet_name):
-    """4-row header structure: title / subtitle / column headers / descriptions.
-    header=2 reads row 3 as column names; iloc[1:] drops the description row."""
-    df = pd.read_excel(xls, sheet_name=sheet_name, header=2)
-    return df.iloc[1:].reset_index(drop=True).dropna(how="all")
+    """4-row header structure: title / subtitle / column headers / descriptions / data.
+    header=2 uses row 3 as column names; skiprows=[3] drops the description row (row 4)."""
+    df = pd.read_excel(xls, sheet_name=sheet_name, header=2, skiprows=[3])
+    return df.reset_index(drop=True).dropna(how="all")
 
 
 def _norm_month(series):
-    """Normalise a Month column to 'Mon-YY' string (handles datetime or string inputs)."""
-    as_dt = pd.to_datetime(series, errors="coerce")
-    result = series.astype(str).str.strip()
-    valid = as_dt.notna()
-    if valid.any():
-        result = result.copy()
-        result[valid] = as_dt[valid].dt.strftime("%b-%y")
+    """Normalise a Month column to 'Mon-YY' string.
+
+    Tries strict '%b-%y' format first so 'Jan-25' → Jan 2025 (not Jan 25, 1900).
+    Falls back to generic parsing for actual datetime/Timestamp objects.
+    Rejects implausible years (< 2000 or > 2099) to eliminate Excel serial-0 artefacts.
+    """
+    strict = pd.to_datetime(series, format="%b-%y", errors="coerce")
+    loose  = pd.to_datetime(series, errors="coerce")
+    # Prefer the strict parse; use generic only where strict produced NaT
+    as_dt  = strict.where(strict.notna(), loose)
+    valid  = as_dt.notna() & (as_dt.dt.year >= 2000) & (as_dt.dt.year <= 2099)
+    result = series.astype(str).str.strip().copy()
+    result[valid]  = as_dt[valid].dt.strftime("%b-%y")
+    result[~valid] = pd.NA
     return result
 
 
@@ -109,12 +116,17 @@ def load_all_data():
     breakdown = pd.DataFrame(bd_rows) if bd_rows else pd.DataFrame(columns=["Month"])
     # Scale all non-Month columns (raw TTD → millions)
     breakdown = _scale(breakdown, [c for c in breakdown.columns if c != "Month"])
-    # Ensure segment columns expected by page 1 always exist
+    # Ensure all columns expected by dashboard pages always exist (default 0)
+    _required_cols = [
+        "Total_Rev", "Total_Rev_AOP", "Total_Rev_PY",
+        "Total_COS", "Total_COS_AOP", "Total_GP", "Total_OPEX", "EBITDA",
+    ]
     for seg in ["CONSUMER SALES", "BUSINESS SALES", "AMPLIA", "DPDI", "OTHER"]:
         for sfx in ["Rev", "COS", "GP", "Rev_AOP", "COS_AOP", "GP_AOP", "OPEX", "EBITDA"]:
-            col = f"{seg}_{sfx}"
-            if col not in breakdown.columns:
-                breakdown[col] = 0.0
+            _required_cols.append(f"{seg}_{sfx}")
+    for col in _required_cols:
+        if col not in breakdown.columns:
+            breakdown[col] = 0.0
     data["PnL_Breakdown"] = breakdown
 
     # ── KPI_Summary ─────────────────────────────────────────────────────────
@@ -179,14 +191,18 @@ def load_all_data():
     # ── Consumer_Products → Consumer_Sales ───────────────────────────────────
     cs = _read_sheet(xls, "Consumer_Products")
     cs["Month"] = _norm_month(cs["Month"])
+    cs = cs.dropna(subset=["Month"])
     cs = cs.rename(columns={"Product": "Segment"})
     cs = _scale(cs, ["Revenue", "Revenue_AOP", "Revenue_PY"])
     for c in ["Subscribers", "Subscribers_AOP", "Gross_Adds", "Gross_Adds_AOP"]:
         if c in cs.columns:
             cs[c] = pd.to_numeric(cs[c], errors="coerce").fillna(0)
+    for c in ["ARPU", "ARPU_AOP"]:
+        if c in cs.columns:
+            cs[c] = pd.to_numeric(cs[c], errors="coerce")
     if "ARPU" not in cs.columns or cs["ARPU"].isna().all():
         cs["ARPU"] = (cs["Revenue"] * M / cs["Subscribers"].replace(0, pd.NA)).fillna(0)
-    if "ARPU_AOP" not in cs.columns:
+    if "ARPU_AOP" not in cs.columns or cs["ARPU_AOP"].isna().all():
         cs["ARPU_AOP"] = 0.0
     cs["_dt"] = pd.to_datetime(cs["Month"], format="%b-%y", errors="coerce")
     cs = cs.sort_values(["Segment", "_dt"]).reset_index(drop=True)
@@ -326,6 +342,9 @@ def load_all_data():
     pip["Month"] = _norm_month(pip["Month"])
     pip = _scale(pip, ["Value_TTD", "Avg_Deal_Size", "Weighted_Value"])
     pip = pip.rename(columns={"Value_TTD": "Value_TTD_M"})
+    for c in ["Deal_Count", "Win_Rate_Pct"]:
+        if c in pip.columns:
+            pip[c] = pd.to_numeric(pip[c], errors="coerce").fillna(0)
     data["Pipeline"] = pip
 
     # ── Renewals ─────────────────────────────────────────────────────────────
@@ -341,8 +360,9 @@ def load_all_data():
     opex_grp = opex.groupby(["Month", "Category"])[["Actual", "Plan", "PY"]].sum().reset_index()
     opex_grp = _scale(opex_grp, ["Actual", "Plan", "PY"])
     opex_grp["Variance"] = opex_grp["Actual"] - opex_grp["Plan"]
-    opex_grp["Variance_Pct"] = (
-        (opex_grp["Actual"] - opex_grp["Plan"]) / opex_grp["Plan"].replace(0, pd.NA) * 100
+    opex_grp["Variance_Pct"] = pd.to_numeric(
+        (opex_grp["Actual"] - opex_grp["Plan"]) / opex_grp["Plan"].replace(0, float("nan")) * 100,
+        errors="coerce",
     ).round(1)
     data["OPEX"] = opex_grp
 
@@ -364,11 +384,11 @@ def load_ar():
         ar_raw["Month"]  = _norm_month(ar_raw["Month"])
 
         BUCKET_MAP = {
-            "0-30": "0_30",  "0_30": "0_30",  "0–30": "0_30",
-            "31-60": "31_60", "31_60": "31_60", "31–60": "31_60",
-            "61-90": "61_90", "61_90": "61_90", "61–90": "61_90",
-            "90-360": "90_360", "90_360": "90_360", "90–360": "90_360",
-            "360+": "360p", "360p": "360p", ">360": "360p", "360 +": "360p",
+            "0-30d": "0_30",   "0-30": "0_30",   "0_30": "0_30",   "0–30": "0_30",
+            "31-60d": "31_60", "31-60": "31_60", "31_60": "31_60", "31–60": "31_60",
+            "61-90d": "61_90", "61-90": "61_90", "61_90": "61_90", "61–90": "61_90",
+            "90-360d": "90_360", "90-360": "90_360", "90_360": "90_360", "90–360": "90_360",
+            "360+d": "360p",  "360+": "360p",  "360p": "360p",  ">360": "360p",  "360 +": "360p",
         }
         ar_raw["Bucket_key"] = ar_raw["Bucket"].map(BUCKET_MAP).fillna(ar_raw["Bucket"])
 

@@ -27,7 +27,7 @@ for col in ["Revenue", "Gross_Profit", "EBITDA", "PAT"]:
         )
 amp_raw.drop(columns=["_dt"], inplace=True)
 
-last13  = amp_raw.tail(13).reset_index(drop=True)
+last12  = amp_raw.tail(13).reset_index(drop=True)
 latest  = amp_raw.iloc[-1]
 
 # ── Colors ────────────────────────────────────────────────────────────────────
@@ -94,8 +94,8 @@ def kpi_card(label, col, aop_col, ly_col, color, is_margin=False):
             lbl = f"vs PY {'+' if d >= 0 else ''}{d:.1f}{unit}"
             badges.append(_badge(lbl, d, "#4a9eff", "#FFD700"))
 
-    spark_col = col if col in last13.columns else None
-    sparkline = make_svg_sparkline(last13[spark_col].fillna(0).tolist(), color) if spark_col else ""
+    spark_col = col if col in last12.columns else None
+    sparkline = make_svg_sparkline(last12[spark_col].fillna(0).tolist(), color) if spark_col else ""
     badges_html = "&nbsp;".join(badges) if badges else "&nbsp;"
 
     return f"""
@@ -179,20 +179,20 @@ with tab1:
     with chart_col:
         fig = go.Figure()
         fig.add_trace(go.Scatter(
-            x=last13["Month"], y=last13["Revenue"],
+            x=last12["Month"], y=last12["Revenue"],
             mode="lines", name="Revenue",
             line=dict(color=REV_COLOR, width=2.5),
             fill="tozeroy", fillcolor="rgba(0,212,160,0.07)",
         ))
-        if "Gross_Profit" in last13.columns:
+        if "Gross_Profit" in last12.columns:
             fig.add_trace(go.Scatter(
-                x=last13["Month"], y=last13["Gross_Profit"],
+                x=last12["Month"], y=last12["Gross_Profit"],
                 mode="lines", name="Gross Profit",
                 line=dict(color=GP_COLOR, width=2),
                 fill="tozeroy", fillcolor="rgba(255,136,68,0.07)",
             ))
         fig.add_trace(go.Scatter(
-            x=last13["Month"], y=last13["EBITDA"],
+            x=last12["Month"], y=last12["EBITDA"],
             mode="lines", name="EBITDA",
             line=dict(color=EBI_COLOR, width=2.5),
             fill="tozeroy", fillcolor="rgba(74,158,255,0.07)",

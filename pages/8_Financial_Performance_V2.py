@@ -27,6 +27,10 @@ pnl.drop(columns=["_dt"], inplace=True)
 fin = fin.merge(pnl[["Month", "Gross_Profit", "Gross_Profit_AOP", "Gross_Profit_PY"]],
                 on="Month", how="left")
 
+if fin.empty:
+    st.info("No P&L data available. Please populate the P&L_Segments sheet in TSTT_Master_Data_Template.xlsx.")
+    st.stop()
+
 last12  = fin.tail(13).reset_index(drop=True)
 latest  = fin.iloc[-1]
 

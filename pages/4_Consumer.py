@@ -183,7 +183,7 @@ with tab2:
     st.markdown(_tab_hdr("Prepaid Revenue"), unsafe_allow_html=True)
 
     # ── Data prep ────────────────────────────────────────────────────────────
-    pre_mons    = list(prepaid["Month"].unique())
+    pre_mons    = months[-13:]
     pre_latest  = prepaid[prepaid["Month"] == "Apr-26"]
     pre_apr25   = prepaid[prepaid["Month"] == "Apr-25"]
 
@@ -515,7 +515,7 @@ with tab3:
     st.markdown(_tab_hdr("Postpaid Revenue"), unsafe_allow_html=True)
 
     # ── Data prep ────────────────────────────────────────────────────────────
-    pp_mons   = list(postpaid["Month"].unique())
+    pp_mons   = months[-13:]
     pp_latest = postpaid[postpaid["Month"] == "Apr-26"]
     pp_apr25  = postpaid[postpaid["Month"] == "Apr-25"]
 
@@ -789,7 +789,7 @@ with tab4:
     st.markdown(_tab_hdr("WTTx Revenue"), unsafe_allow_html=True)
 
     # ── Data prep ────────────────────────────────────────────────────────────
-    wx_mons   = list(wttx["Month"].unique())
+    wx_mons   = months[-13:]
     wx_latest = wttx[wttx["Month"] == "Apr-26"]
     wx_apr25  = wttx[wttx["Month"] == "Apr-25"]
 
@@ -1119,15 +1119,13 @@ with tab_v2:
         ebi_m_py  = ebi_py_v / rev_py_v * 100 if (ebi_py_v and rev_py_v) else None
 
     # Monthly totals for sparkline + donut
-    v2_monthly = (consumer.groupby("Month", sort=False)
-                  .agg(Revenue=("Revenue","sum"), Revenue_AOP=("Revenue_AOP","sum"))
-                  .reset_index())
-    v2_all_months  = list(consumer["Month"].unique())
-    v2_total_trend = v2_monthly.set_index("Month")["Revenue"].reindex(v2_all_months).fillna(0).tolist()
-    v2_post_trend  = postpaid.set_index("Month")["Revenue"].reindex(v2_all_months).fillna(0).tolist()
-    v2_pre_trend   = prepaid.set_index("Month")["Revenue"].reindex(v2_all_months).fillna(0).tolist()
-    v2_wx_trend    = wttx.set_index("Month")["Revenue"].reindex(v2_all_months).fillna(0).tolist()
-    v2_other_trend = v2_other_by_mo.reindex(v2_all_months).fillna(0).tolist()
+    _spark_months  = months[-13:]
+    v2_all_months  = _spark_months
+    v2_total_trend = consumer.groupby("Month")["Revenue"].sum().reindex(_spark_months, fill_value=0).tolist()
+    v2_post_trend  = postpaid.groupby("Month")["Revenue"].sum().reindex(_spark_months, fill_value=0).tolist()
+    v2_pre_trend   = prepaid.groupby("Month")["Revenue"].sum().reindex(_spark_months, fill_value=0).tolist()
+    v2_wx_trend    = wttx.groupby("Month")["Revenue"].sum().reindex(_spark_months, fill_value=0).tolist()
+    v2_other_trend = v2_other_by_mo.reindex(_spark_months, fill_value=0).tolist()
 
     # Direct Costs and Gross Profit from PnL_Breakdown (real COS data)
     v2_pnl     = data["PnL_Breakdown"]
