@@ -565,7 +565,7 @@ with tab3:
     pp_subs_disc_c = pp_subs_open * _pp_chrt / 100
     pp_subs_gross_c = max(0.0, pp_subs_net_c + pp_subs_disc_c)
 
-    # ── Row 1 — 3 KPI cards ──────────────────────────────────────────────────
+    # ── 4 KPI boxes ──────────────────────────────────────────────────────────
     pp_r_aop_col = "#22c55e" if (pp_aop_pct or 0) >= 0 else "#ef4444"
     pp_r_l1 = (f"{pp_aop_m:+.1f} | {pp_aop_pct:+.1f}% vs AOP"
                if pp_aop_pct is not None else "— vs AOP")
@@ -580,10 +580,21 @@ with tab3:
     pp_a_l2 = (f"vs PY: {pp_arpu_py_pct:+.1f}%"
                if pp_arpu_py_pct is not None else "vs PY: —")
 
-    _pp_c1 = _pre_kpi("Postpaid Revenue", f"{pp26_rev:.1f}",
-                      pp_r_l1, pp_r_aop_col, pp_r_l2, "#f59e0b", "#4a9eff", pp_rev_spark)
-    _pp_c3 = _pre_kpi("ARPU", f"${pp_arpu_lat:.0f}",
-                      pp_a_l1, pp_a_l1_col, pp_a_l2, pp_a_l2_col, "#f59e0b", pp_arpu_spark)
+    _pp_s_l1_col = ("#22c55e" if (pp_subs_aop_pct or 0) >= 0
+                    else "#ef4444" if pp_subs_aop_pct is not None else "#7788aa")
+    _pp_s_l1 = (f"{(pp_subs_close - pp_subs_aop)/1000:+.1f}K | {pp_subs_aop_pct:+.1f}% vs AOP"
+                if pp_subs_aop_pct is not None else "— vs AOP")
+    _pp_s_l2_col = ("#22c55e" if (pp_subs_py_pct or 0) >= 0
+                    else "#ef4444" if pp_subs_py_pct is not None else "#7788aa")
+    _pp_s_l2 = (f"vs PY: {pp_subs_py_pct:+.1f}%"
+                if pp_subs_py_pct is not None else "vs PY: —")
+
+    _pp_c1     = _pre_kpi("Postpaid Revenue", f"{pp26_rev:.1f}",
+                           pp_r_l1, pp_r_aop_col, pp_r_l2, "#f59e0b", "#4a9eff", pp_rev_spark)
+    _pp_c3     = _pre_kpi("ARPU", f"${pp_arpu_lat:.0f}",
+                           pp_a_l1, pp_a_l1_col, pp_a_l2, pp_a_l2_col, "#f59e0b", pp_arpu_spark)
+    _pp_c_subs = _pre_kpi(f"Subscribers — {_pp_subs_mon}", _fmt_k(pp_subs_close),
+                           _pp_s_l1, _pp_s_l1_col, _pp_s_l2, _pp_s_l2_col, "#22c55e", pp_subs_spark)
 
     _pp_net_col    = "#22c55e" if pp_subs_net_c >= 0 else "#ef4444"
     _pp_churn_lbl  = f"Churn ({pp_churn:.1f}%)" if pp_churn is not None else "Churn"
@@ -606,11 +617,19 @@ with tab3:
         f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
         f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
         f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
-        f'letter-spacing:1px;margin-bottom:8px">Subscribers — {_pp_subs_mon}</div>'
-        f'<div style="font-size:26px;font-weight:800;color:white;line-height:1.1;margin-bottom:10px">'
-        f'{_fmt_k(pp_subs_close)}</div>'
+        f'letter-spacing:1px;margin-bottom:10px">Movements — {_pp_subs_mon}</div>'
         f'{_pp_mov_html}'
         f'</div>'
+    )
+
+    st.markdown(
+        f'<div style="display:flex;gap:12px;margin-bottom:16px">'
+        f'<div style="flex:1">{_pp_c1}</div>'
+        f'<div style="flex:1">{_pp_c3}</div>'
+        f'<div style="flex:1">{_pp_c_subs}</div>'
+        f'<div style="flex:1">{_pp_c2}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
     )
 
 
@@ -667,17 +686,10 @@ with tab3:
         pp_plan_vals  = [45_000, 38_000, 22_000, 15_000, 8_000]
     # ─────────────────────────────────────────────────────────────────────────
 
-    # ── Row 2 — Subscriber Net Movement + Active Plans ────────────────────────
+    # ── Charts: Active Plans  |  Revenue by Bundle Type ─────────────────────
     ml, mr = st.columns([55, 45])
 
     with ml:
-        st.markdown(
-            f'<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">'
-            f'<div style="flex:1">{_pp_c1}</div>'
-            f'<div style="flex:1">{_pp_c3}</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
         _pp_plan_colors = ["#f59e0b", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"]
         _pp_plan_total  = sum(pp_plan_vals)
         _pp_dw = 0.52
@@ -710,8 +722,6 @@ with tab3:
         st.plotly_chart(fig, use_container_width=True)
 
     with mr:
-        st.markdown(_pp_c2, unsafe_allow_html=True)
-        st.markdown("<div style='margin-top:12px'></div>", unsafe_allow_html=True)
         pp_products  = ["Voice + Data", "Data Only", "Enterprise"]
         pp_splits    = [0.52, 0.31, 0.17]
         pp_prod_vals = [pp26_rev * s for s in pp_splits]
@@ -828,7 +838,7 @@ with tab4:
     wx_subs_disc_c = wx_subs_open * _wx_chrt / 100
     wx_subs_gross_c = max(0.0, wx_subs_net_c + wx_subs_disc_c)
 
-    # ── Row 1 — 3 KPI cards ──────────────────────────────────────────────────
+    # ── 4 KPI boxes ──────────────────────────────────────────────────────────
     wx_r_aop_col = "#22c55e" if (wx_aop_pct or 0) >= 0 else "#ef4444"
     wx_r_l1 = (f"{wx_aop_m:+.1f} | {wx_aop_pct:+.1f}% vs AOP"
                if wx_aop_pct is not None else "— vs AOP")
@@ -843,10 +853,21 @@ with tab4:
     wx_a_l2 = (f"vs PY: {wx_arpu_py_pct:+.1f}%"
                if wx_arpu_py_pct is not None else "vs PY: —")
 
-    _wx_c1 = _pre_kpi("WTTx Revenue", f"{wx26_rev:.1f}",
-                      wx_r_l1, wx_r_aop_col, wx_r_l2, "#f59e0b", "#00d4a0", wx_rev_spark)
-    _wx_c3 = _pre_kpi("ARPU", f"${wx_arpu_lat:.0f}",
-                      wx_a_l1, wx_a_l1_col, wx_a_l2, wx_a_l2_col, "#f59e0b", wx_arpu_spark)
+    _wx_s_l1_col = ("#22c55e" if (wx_subs_aop_pct or 0) >= 0
+                    else "#ef4444" if wx_subs_aop_pct is not None else "#7788aa")
+    _wx_s_l1 = (f"{(wx_subs_close - wx_subs_aop)/1000:+.1f}K | {wx_subs_aop_pct:+.1f}% vs AOP"
+                if wx_subs_aop_pct is not None else "— vs AOP")
+    _wx_s_l2_col = ("#22c55e" if (wx_subs_py_pct or 0) >= 0
+                    else "#ef4444" if wx_subs_py_pct is not None else "#7788aa")
+    _wx_s_l2 = (f"vs PY: {wx_subs_py_pct:+.1f}%"
+                if wx_subs_py_pct is not None else "vs PY: —")
+
+    _wx_c1     = _pre_kpi("WTTx Revenue", f"{wx26_rev:.1f}",
+                           wx_r_l1, wx_r_aop_col, wx_r_l2, "#f59e0b", "#00d4a0", wx_rev_spark)
+    _wx_c3     = _pre_kpi("ARPU", f"${wx_arpu_lat:.0f}",
+                           wx_a_l1, wx_a_l1_col, wx_a_l2, wx_a_l2_col, "#f59e0b", wx_arpu_spark)
+    _wx_c_subs = _pre_kpi(f"Subscribers — {_wx_subs_mon}", _fmt_k(wx_subs_close),
+                           _wx_s_l1, _wx_s_l1_col, _wx_s_l2, _wx_s_l2_col, "#22c55e", wx_subs_spark)
 
     _wx_net_col    = "#22c55e" if wx_subs_net_c >= 0 else "#ef4444"
     _wx_churn_lbl  = f"Churn ({wx_churn:.1f}%)" if wx_churn is not None else "Churn"
@@ -869,11 +890,19 @@ with tab4:
         f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
         f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
         f'<div style="font-size:13px;color:#7788aa;font-weight:600;text-transform:uppercase;'
-        f'letter-spacing:1px;margin-bottom:8px">Subscribers — {_wx_subs_mon}</div>'
-        f'<div style="font-size:26px;font-weight:800;color:white;line-height:1.1;margin-bottom:10px">'
-        f'{_fmt_k(wx_subs_close)}</div>'
+        f'letter-spacing:1px;margin-bottom:10px">Movements — {_wx_subs_mon}</div>'
         f'{_wx_mov_html}'
         f'</div>'
+    )
+
+    st.markdown(
+        f'<div style="display:flex;gap:12px;margin-bottom:16px">'
+        f'<div style="flex:1">{_wx_c1}</div>'
+        f'<div style="flex:1">{_wx_c3}</div>'
+        f'<div style="flex:1">{_wx_c_subs}</div>'
+        f'<div style="flex:1">{_wx_c2}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
     )
 
 
@@ -929,17 +958,10 @@ with tab4:
         wx_plan_vals  = [8_000, 35_000, 62_000]
     # ─────────────────────────────────────────────────────────────────────────
 
-    # ── Row 2 — Subscriber Net Movement + Plan Type ───────────────────────────
+    # ── Charts: Plan Type | Revenue by Service Type ──────────────────────────
     ml, mr = st.columns([55, 45])
 
     with ml:
-        st.markdown(
-            f'<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">'
-            f'<div style="flex:1">{_wx_c1}</div>'
-            f'<div style="flex:1">{_wx_c3}</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
         _wx_plan_colors = ["#f59e0b", "#a78bfa", "#00d4a0"]
         _wx_plan_total  = sum(wx_plan_vals)
         _wx_dw = 0.52
@@ -972,8 +994,6 @@ with tab4:
         st.plotly_chart(fig, use_container_width=True)
 
     with mr:
-        st.markdown(_wx_c2, unsafe_allow_html=True)
-        st.markdown("<div style='margin-top:12px'></div>", unsafe_allow_html=True)
         wx_products  = ["Broadband", "Voice Bundle", "Equipment"]
         wx_splits    = [0.72, 0.20, 0.08]
         wx_prod_vals = [wx26_rev * s for s in wx_splits]
