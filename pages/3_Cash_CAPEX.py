@@ -77,8 +77,14 @@ debt_val   = _safe(latest["Net_Debt"])
 debt_delta = debt_val - _safe(first["Net_Debt"])
 fcf_month  = _safe(latest["FCF"])
 
-capex_act       = float(cc["CAPEX_Actual"].sum())
-capex_plan_raw  = cc["CAPEX_Plan"].sum()
+# Filter CAPEX to current financial year (Apr–Mar)
+_cc_dt    = pd.to_datetime(cc["Month"], format="%b-%y", errors="coerce")
+_lat_dt   = pd.to_datetime(latest["Month"], format="%b-%y")
+_fy_year  = _lat_dt.year if _lat_dt.month >= 4 else _lat_dt.year - 1
+_cc_fy    = cc[(_cc_dt >= pd.Timestamp(_fy_year, 4, 1)) & (_cc_dt <= pd.Timestamp(_fy_year + 1, 3, 31))]
+
+capex_act       = float(_cc_fy["CAPEX_Actual"].sum())
+capex_plan_raw  = _cc_fy["CAPEX_Plan"].sum()
 capex_plan      = float(capex_plan_raw) if pd.notna(capex_plan_raw) and capex_plan_raw > 0 else capex_act / 0.85
 capex_remaining = capex_plan - capex_act
 capex_progress  = min(capex_act / capex_plan * 100, 100) if capex_plan else 0
@@ -289,9 +295,9 @@ with c_chart:
 
     st.markdown(
         f'<div style="display:flex;gap:10px;margin-top:4px">'
-        f'{_kpi("Cash Balance",   f"{cash_val:,.0f}",  f"{cash_delta:+,.0f} vs PY",  cash_dc)}'
-        f'{_kpi("Net Debt",       f"{debt_val:,.0f}",  f"{debt_delta:+,.0f} vs LY",  debt_dc)}'
-        f'{_kpi("Free Cash Flow", f"{fcf_month:,.0f}", str(latest["Month"]),          fcf_color)}'
+        f'{_kpi("Cash Balance",   f"{cash_val:,.0f}",  "",  cash_dc)}'
+        f'{_kpi("Net Debt",       f"{debt_val:,.0f}",  "",  debt_dc)}'
+        f'{_kpi("Free Cash Flow", f"{fcf_month:,.0f}", "",  fcf_color)}'
         f'</div>',
         unsafe_allow_html=True,
     )

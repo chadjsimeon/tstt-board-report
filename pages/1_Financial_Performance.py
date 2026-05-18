@@ -84,30 +84,70 @@ with tab0:
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
+        _lat_dt  = pd.to_datetime(latest_pnl["Month"], format="%b-%y", errors="coerce")
+        _py_mon  = (_lat_dt - pd.DateOffset(months=12)).strftime("%b-%y") if pd.notna(_lat_dt) else None
+        _py_pnl  = pnl[pnl["Month"] == _py_mon].iloc[0] if _py_mon and (_py_mon in pnl["Month"].values) else None
+
+        act_vals = [float(latest_pnl[f"{g}_Rev"]) for g in GROUPS]
+        py_vals  = [float(_py_pnl[f"{g}_Rev"]) if _py_pnl is not None else 0.0 for g in GROUPS]
+
+        # Drop groups where both current and PY are zero
+        _mask     = [not (a == 0.0 and p == 0.0) for a, p in zip(act_vals, py_vals)]
+        _labels   = [l for l, m in zip(GRP_LABELS,  _mask) if m]
+        _colors   = [c for c, m in zip(GRP_COLORS,  _mask) if m]
+        act_vals  = [v for v, m in zip(act_vals, _mask) if m]
+        py_vals   = [v for v, m in zip(py_vals,  _mask) if m]
+        var_vals  = [a - p for a, p in zip(act_vals, py_vals)]
+
+        _var_colors = ["#22c55e" if v >= 0 else "#ef4444" for v in var_vals]
+
+        # For negative actual bars textposition="outside" goes below the axis —
+        # suppress those on the trace and handle them via annotations at y=0.
+        # Actual bar is the right bar of each pair; offset ≈ +0.18 from category centre.
+        _ACT_OFFSET = 0.18
+        _trace_text  = [f"{v:+.1f}" if act_vals[i] >= 0 else "" for i, v in enumerate(var_vals)]
+        _annotations = [
+            dict(
+                x=i + _ACT_OFFSET, y=0, xref="x", yref="y",
+                text=f"{var_vals[i]:+.1f}",
+                showarrow=False, yanchor="bottom", yshift=5,
+                font=dict(color=_var_colors[i], size=16),
+            )
+            for i in range(len(_labels)) if act_vals[i] < 0
+        ]
+
         fig = go.Figure()
-        for i, g in enumerate(GROUPS):
-            color = GRP_COLORS[i]
-            fig.add_trace(go.Bar(
-                x=[GRP_LABELS[i]], y=[latest_pnl[f"{g}_Rev"]],
-                name="Actual", marker_color=color,
-                legendgroup="act", showlegend=(i == 0),
-            ))
-            fig.add_trace(go.Bar(
-                x=[GRP_LABELS[i]], y=[latest_pnl[f"{g}_Rev_AOP"]],
-                name="AOP", marker_color="#334466",
-                marker_pattern_shape="/",
-                legendgroup="aop", showlegend=(i == 0),
-            ))
+        fig.add_trace(go.Bar(
+            x=_labels, y=py_vals,
+            name="Prior Year", marker_color="#2a3a5a",
+            hovertemplate="%{x}<br>PY: %{y:,.2f}<extra></extra>",
+        ))
+        fig.add_trace(go.Bar(
+            x=_labels, y=act_vals,
+            name="Actual", marker_color=_colors,
+            text=_trace_text,
+            textposition="outside",
+            textfont=dict(color=_var_colors, size=16),
+            cliponaxis=False,
+            hovertemplate="%{x}<br>Actual: %{y:,.2f}<extra></extra>",
+        ))
+
+        _y_min = min(0, min(act_vals), min(py_vals)) * 1.15
+        _y_max = max(max(act_vals), max(py_vals)) * 1.22
+        annotations = _annotations
+
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="white"), height=380, barmode="group",
-            title=dict(text=f"<b>{latest_pnl['Month']} Revenue vs AOP by Group</b>",
+            bargap=0.25, bargroupgap=0.08,
+            title=dict(text=f"<b>{latest_pnl['Month']} Revenue vs PY by Group</b>",
                        font=dict(size=13, color="white"), x=0),
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
+            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#aaaacc", size=12)),
+            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"), range=[_y_min, _y_max]),
             legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="white"),
                         orientation="h", y=1.02, x=1, xanchor="right"),
             margin=dict(l=10, r=10, t=44, b=10),
+            annotations=annotations,
         )
         st.plotly_chart(fig, use_container_width=True)
 

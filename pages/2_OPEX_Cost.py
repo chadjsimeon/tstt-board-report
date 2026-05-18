@@ -61,7 +61,7 @@ with col_left:
 
     cats       = latest.sort_values("Plan", ascending=True).copy()
     n          = len(cats)
-    fig_height = max(380, n * 52 + 40)
+    fig_height = max(520, n * 72 + 40)
     bar_colors = ["#22c55e" if v <= 0 else "#ef4444" for v in cats["Variance"]]
 
     fig = go.Figure()
@@ -100,19 +100,21 @@ with col_left:
         font=dict(color="white"),
         height=fig_height,
         legend=dict(
-            bgcolor="rgba(0,0,0,0)", orientation="h",
-            y=-0.04, x=1.0, xanchor="right", yanchor="top", font=dict(size=18),
+            bgcolor="rgba(10,10,30,0.75)",
+            bordercolor="#2a2a4a", borderwidth=1,
+            orientation="v",
+            x=0.99, y=0.01, xanchor="right", yanchor="bottom",
+            font=dict(size=18),
         ),
         xaxis=dict(
-            gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=20),
-            title=dict(text="", font=dict(color="#8888aa", size=16)),
+            visible=False,
             zeroline=True, zerolinecolor="#3a3a5a",
         ),
         yaxis=dict(
             gridcolor="#1e1e3a",
             tickfont=dict(color="white", size=20),
         ),
-        margin=dict(l=10, r=200, t=10, b=50),
+        margin=dict(l=10, r=200, t=10, b=10),
     )
 
     st.plotly_chart(fig, use_container_width=True)

@@ -69,9 +69,9 @@ def _variance_row(label, pct_delta, dollar_delta, unit, is_margin=False):
         content = f"{label}&nbsp;&nbsp;<b>{pct_str}</b>"
     else:
         dollar_str = f"{'+' if dollar_delta >= 0 else ''}{dollar_delta:,.0f}"
-        content = f"{label}&nbsp;&nbsp;<b>{dollar_str}</b>&nbsp;&nbsp;{pct_str}"
+        content = f"{label}&nbsp;&nbsp;<b>{dollar_str}</b>&nbsp;({pct_str})"
     return (
-        f'<div style="color:{color};font-size:20px;font-weight:600;'
+        f'<div style="color:{color};font-size:26px;font-weight:600;'
         f'padding:3px 0;white-space:nowrap;">{content}</div>'
     )
 
