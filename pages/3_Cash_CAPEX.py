@@ -260,17 +260,8 @@ def _kpi(label, value, sub, color):
         f'</div>'
     )
 
-st.markdown(
-    f'<div style="display:flex;gap:10px;margin-bottom:10px">'
-    f'{_kpi("Cash Balance",   f"{cash_val:,.0f}",  f"{cash_delta:+,.0f} vs PY",  cash_dc)}'
-    f'{_kpi("Net Debt",       f"{debt_val:,.0f}",  f"{debt_delta:+,.0f} vs LY",  debt_dc)}'
-    f'{_kpi("Free Cash Flow", f"{fcf_month:,.0f}", str(latest["Month"]),          fcf_color)}'
-    f'</div>',
-    unsafe_allow_html=True,
-)
-
-# ── Row 2: Cash chart  |  Collections 2×2 ────────────────────────────────────
-c_chart, c_coll = st.columns([55, 45])
+# ── Row 1: Cash chart + KPI cards  |  AR Aging ───────────────────────────────
+c_chart, c_ar = st.columns([55, 45])
 
 with c_chart:
     y = cc["Cash_Balance"].ffill().fillna(0)
@@ -295,6 +286,34 @@ with c_chart:
                    range=[y_min - pad, y_max + pad], zeroline=False),
     )
     st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown(
+        f'<div style="display:flex;gap:10px;margin-top:4px">'
+        f'{_kpi("Cash Balance",   f"{cash_val:,.0f}",  f"{cash_delta:+,.0f} vs PY",  cash_dc)}'
+        f'{_kpi("Net Debt",       f"{debt_val:,.0f}",  f"{debt_delta:+,.0f} vs LY",  debt_dc)}'
+        f'{_kpi("Free Cash Flow", f"{fcf_month:,.0f}", str(latest["Month"]),          fcf_color)}'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+with c_ar:
+    st.markdown(f"""
+<div style="background:#161B22;border-radius:8px;padding:12px 18px;
+            border:1px solid #21262d;margin-top:8px">
+  <div style="font-size:0.85rem;font-weight:700;color:#00e676;text-transform:uppercase;
+              letter-spacing:2px;margin-bottom:8px">AR Aging</div>
+  <div style="font-size:0.95rem;color:#556677;margin-bottom:12px">
+    Total <strong style="color:#aaaacc">{AR_TOTAL:,.1f}</strong>
+    &nbsp;·&nbsp; Gov <strong style="color:#aaaacc">{gov['total']:,.1f}</strong>
+    &nbsp;·&nbsp; Non-Gov <strong style="color:#aaaacc">{non_gov['total']:,.1f}</strong>
+  </div>
+  {_pill_row("Government", gov)}
+  {_pill_row("Non-Government", non_gov)}
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px">{ar_legend}</div>
+</div>""", unsafe_allow_html=True)
+
+# ── Row 2: Collections  |  CAPEX ─────────────────────────────────────────────
+c_coll, c_capex = st.columns([55, 45])
 
 with c_coll:
     prior_lbl = f" | prior month: {prior_month}" if prior_month else ""
@@ -328,28 +347,6 @@ with c_coll:
         f'</div>',
         unsafe_allow_html=True,
     )
-
-# ── Row 3: AR Aging  |  CAPEX ─────────────────────────────────────────────────
-c_ar, c_capex = st.columns([55, 45])
-
-with c_ar:
-    st.markdown(f"""
-<div style="background:#161B22;border-radius:8px;padding:12px 18px;
-            border:1px solid #21262d;margin-top:8px">
-  <div style="font-size:0.85rem;font-weight:700;color:#00e676;text-transform:uppercase;
-              letter-spacing:2px;margin-bottom:8px">AR Aging</div>
-  <div style="font-size:0.95rem;color:#556677;margin-bottom:12px">
-    Total <strong style="color:#aaaacc">{AR_TOTAL:,.1f}</strong>
-    &nbsp;·&nbsp; Gov <strong style="color:#aaaacc">{gov['total']:,.1f}</strong>
-    &nbsp;·&nbsp; Non-Gov <strong style="color:#aaaacc">{non_gov['total']:,.1f}</strong>
-  </div>
-  {_pill_row("Government", gov)}
-  {_pill_row("Non-Government", non_gov)}
-  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px">{ar_legend}</div>
-  <div style="font-size:0.7rem;color:#445566;margin-top:6px;font-style:italic">
-    // 360+d bar width capped for readability &mdash; actual % shown inside bar
-  </div>
-</div>""", unsafe_allow_html=True)
 
 with c_capex:
     st.markdown(f"""
