@@ -240,11 +240,11 @@ with c_chart:
     ))
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"), height=220, showlegend=False,
-        margin=dict(l=8, r=8, t=28, b=8),
-        title=dict(text="<b>Cash Balance Trend</b>", font=dict(size=16, color="white"), x=0),
-        xaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=14), showline=False),
-        yaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=14),
+        font=dict(color="white"), height=310, showlegend=False,
+        margin=dict(l=8, r=8, t=32, b=8),
+        title=dict(text="<b>Cash Balance Trend</b>", font=dict(size=20, color="white"), x=0),
+        xaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=17), showline=False),
+        yaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=17),
                    range=[y_min - pad, y_max + pad], zeroline=False),
     )
     st.plotly_chart(fig, use_container_width=True)
