@@ -151,25 +151,72 @@ else:
 AR_TOTAL = total["total"]
 _ar_max  = max(gov["total"], non_gov["total"])
 
+_CAP_360 = 38  # max visual % allocated to 360+d bar
+
 def _pill_row(label, d):
     pct_w = d["total"] / _ar_max * 100 if _ar_max else 0
+    total  = d["total"] or 1
+
+    # Actual percentages used for labels — never distorted
+    actuals = {key: d[key] / total * 100 for _, key, _ in AR_BUCKETS}
+
+    # Visual percentages: cap 360+d and proportionally expand the rest
+    capped = actuals.get("360p", 0) > _CAP_360
+    if capped:
+        non360_sum = sum(d[key] for _, key, _ in AR_BUCKETS if key != "360p" and d[key] > 0) or 1
+        visual = {
+            key: (_CAP_360 if key == "360p" else d[key] / non360_sum * (100 - _CAP_360))
+            for _, key, _ in AR_BUCKETS
+        }
+    else:
+        visual = dict(actuals)
+
     parts = []
     for bl, key, color in AR_BUCKETS:
-        if d[key] <= 0: continue
-        p = d[key] / d["total"] * 100 if d["total"] else 0
-        lbl = (f'<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);'
-               f'font-size:0.72rem;font-weight:700;color:rgba(0,0,0,0.75);white-space:nowrap">{p:.0f}%</span>'
-               if p > 8 else "")
-        parts.append(f'<div title="{bl}: {d[key]:,.1f}" style="flex:{max(d[key],0.001):.3f};'
-                     f'min-width:14px;background:{color};border-radius:4px;height:100%;'
-                     f'position:relative;overflow:hidden">{lbl}</div>')
-    return (f'<div style="margin-bottom:8px">'
-            f'<div style="display:flex;justify-content:space-between;margin-bottom:4px">'
-            f'<span style="font-size:1.1rem;color:white;font-weight:600">{label}</span>'
-            f'<span style="font-size:1.1rem;color:#aaaacc;font-weight:700">{d["total"]:,.1f}</span>'
-            f'</div>'
-            f'<div style="display:flex;gap:0;height:38px;width:{pct_w:.1f}%">{"".join(parts)}</div>'
-            f'</div>')
+        if d[key] <= 0:
+            continue
+        pa = actuals[key]   # actual % — goes in label
+        pv = visual[key]    # visual flex width
+
+        # Label always shows actual %, revealed if bar is wide enough
+        show_lbl = pv > 7 or (key == "360p" and capped)
+        lbl = (
+            f'<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);'
+            f'font-size:0.72rem;font-weight:700;color:rgba(0,0,0,0.85);white-space:nowrap">'
+            f'{pa:.0f}%</span>'
+        ) if show_lbl else ""
+
+        # Axis-break indicator: diagonal hatching + "//" on left edge of capped 360+d bar
+        bmark = ""
+        if key == "360p" and capped:
+            bmark = (
+                f'<div style="position:absolute;left:0;top:0;bottom:0;width:22px;'
+                f'background:repeating-linear-gradient(-55deg,'
+                f'rgba(0,0,0,0) 0px,rgba(0,0,0,0) 3px,'
+                f'rgba(22,27,34,0.82) 3px,rgba(22,27,34,0.82) 5px);'
+                f'z-index:1;pointer-events:none"></div>'
+                f'<span style="position:absolute;left:3px;top:50%;transform:translateY(-50%);'
+                f'font-size:0.65rem;font-weight:900;color:rgba(255,255,255,0.78);'
+                f'letter-spacing:-2px;z-index:2">//</span>'
+            )
+
+        min_w = "46" if (key == "360p" and capped) else "14"
+        parts.append(
+            f'<div title="{bl}: {d[key]:,.1f}  ({pa:.1f}% of total)" '
+            f'style="flex:{max(pv, 0.001):.3f};min-width:{min_w}px;'
+            f'background:{color};border-radius:4px;height:100%;position:relative;overflow:hidden">'
+            f'{bmark}{lbl}</div>'
+        )
+
+    return (
+        f'<div style="margin-bottom:8px">'
+        f'<div style="display:flex;justify-content:space-between;margin-bottom:4px">'
+        f'<span style="font-size:1.1rem;color:white;font-weight:600">{label}</span>'
+        f'<span style="font-size:1.1rem;color:#aaaacc;font-weight:700">{d["total"]:,.1f}</span>'
+        f'</div>'
+        f'<div style="display:flex;gap:2px;height:38px;width:{pct_w:.1f}%">{"".join(parts)}</div>'
+        f'</div>'
+    )
 
 ar_legend = "".join(
     f'<div style="display:flex;align-items:center;gap:5px">'
@@ -299,6 +346,9 @@ with c_ar:
   {_pill_row("Government", gov)}
   {_pill_row("Non-Government", non_gov)}
   <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px">{ar_legend}</div>
+  <div style="font-size:0.7rem;color:#445566;margin-top:6px;font-style:italic">
+    // 360+d bar width capped for readability &mdash; actual % shown inside bar
+  </div>
 </div>""", unsafe_allow_html=True)
 
 with c_capex:
