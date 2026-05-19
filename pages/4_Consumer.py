@@ -4,7 +4,9 @@ st.set_page_config(page_title="TSTT | Consumer", page_icon="📱", layout="wide"
 
 import pandas as pd
 import plotly.graph_objects as go
-from utils.data_loader import load_all_data, load_prepaid_arpu, load_prepaid_data_usage, pivot_by_group, get_month_order
+from utils.data_loader import (load_all_data, load_prepaid_arpu, load_prepaid_data_usage,
+                               load_postpaid_plans, load_wttx_categories,
+                               pivot_by_group, get_month_order)
 from utils.charts import (
     inject_css, page_header,
     line_chart, stacked_bar, grouped_bar, donut_chart, dim,
@@ -245,9 +247,14 @@ with tab2:
     arpu_py_pct  = (arpu_lat - arpu_25) / arpu_25 * 100 if arpu_25 else None
 
     # Sparklines
-    rev_spark  = prepaid.set_index("Month")["Revenue"].reindex(pre_mons).fillna(0).tolist()
-    subs_spark = _arpu_totals.reindex(pre_mons).fillna(0).tolist()
-    arpu_spark = prepaid.set_index("Month")["ARPU"].reindex(pre_mons).fillna(0).tolist()
+    _pre_rev_s = prepaid.groupby("Month")["Revenue"].sum()
+    rev_spark  = _pre_rev_s.reindex(pre_mons, fill_value=0).tolist()
+    subs_spark = _arpu_totals.reindex(pre_mons, fill_value=0).tolist()
+    arpu_spark = [
+        float(_pre_rev_s.get(m, 0) * 1_000_000 / _arpu_totals[m])
+        if m in _arpu_totals.index and _arpu_totals[m] > 0 else 0.0
+        for m in pre_mons
+    ]
 
     # TTM for product chart
     ttm_pre = _ttm(prepaid)
@@ -284,16 +291,16 @@ with tab2:
     pre_subs_open  = float(_arpu_totals.get(_prev_subs_month, 0.0))
     pre_subs_close = subs_lat
     pre_subs_net   = pre_subs_close - pre_subs_open
-    _pre_ga        = _get_gross_adds(pre_latest.iloc[0]) if not pre_latest.empty else None
-    pre_subs_gross = _pre_ga if _pre_ga is not None else 0.0
-    pre_subs_disc  = max(0.0, pre_subs_open + pre_subs_gross - pre_subs_close)
-    churn_derived  = pre_subs_disc / pre_subs_open * 100 if pre_subs_open > 0 else 0.0
+    pre_subs_disc  = pre_subs_open * churn_pre / 100 if (churn_pre and pre_subs_open > 0) else 0.0
+    pre_subs_gross = max(0.0, pre_subs_close - pre_subs_open + pre_subs_disc)
+    churn_derived  = churn_pre if churn_pre else 0.0
 
     # ── 4 KPI boxes ──────────────────────────────────────────────────────────
     r_aop_col = "#22c55e" if (rev_aop_pct or 0) >= 0 else "#ef4444"
     r_l1 = (f"{rev_aop_m:+.1f} | {rev_aop_pct:+.1f}% vs AOP"
             if rev_aop_pct is not None else "— vs AOP")
-    r_l2 = f"{rev_py_m:+.1f} vs PY" if rev_py_m is not None else "— vs PY"
+    r_l2    = f"{rev_py_m:+.1f} vs PY" if rev_py_m is not None else "— vs PY"
+    r_py_col = ("#22c55e" if (rev_py_m or 0) >= 0 else "#ef4444") if rev_py_m is not None else "#7788aa"
 
     a_l1_col = ("#22c55e" if (arpu_aop_pct or 0) >= 0
                 else "#ef4444" if arpu_aop_pct is not None else "#7788aa")
@@ -314,7 +321,7 @@ with tab2:
             if subs_py_pct is not None else "vs PY: —")
 
     _c1     = _pre_kpi("Prepaid Revenue", f"{apr26_rev:.1f}",
-                       r_l1, r_aop_col, r_l2, "#f59e0b", "#a78bfa", rev_spark)
+                       r_l1, r_aop_col, r_l2, r_py_col, "#a78bfa", rev_spark)
     _c3     = _pre_kpi("ARPU", f"${arpu_lat:.0f}",
                        a_l1, a_l1_col, a_l2, a_l2_col, "#f59e0b", arpu_spark)
     _c_subs = _pre_kpi(f"Subscribers — {_arpu_latest_month}", _fmt_k(subs_lat),
@@ -364,29 +371,21 @@ with tab2:
                  "Jul":7,"Aug":8,"Sep":9,"Oct":10,"Nov":11,"Dec":12}[abbr]
         return _cal.monthrange(2000 + int(yr2), m_num)[1]
 
-    pre_daily = prepaid[["Month", "Revenue", "Revenue_AOP"]].copy()
+    pre_daily = prepaid[prepaid["Month"].isin(set(pre_mons))][["Month", "Revenue", "Revenue_AOP"]].copy()
     pre_daily["Days"]      = pre_daily["Month"].apply(_month_days)
     pre_daily["Daily_Rev"] = pre_daily["Revenue"]     / pre_daily["Days"]
     pre_daily["Daily_AOP"] = pre_daily["Revenue_AOP"] / pre_daily["Days"]
 
     # ── ARPU Category ─────────────────────────────────────────────────────────
-    _BUCKET_ORDER = [
-        "Very Low (0-5)", "Low (5-30)", "Medium (30-120)",
-        "High (120-300)", "Very High (>300)",
-    ]
     if not _arpu_df.empty:
         _snap = (
             _arpu_df[_arpu_df["Month"] == _arpu_latest_month]
-            .set_index("Category")["Subscribers"]
-            .reindex(_BUCKET_ORDER)
-            .fillna(0)
+            .groupby("Category")["Subscribers"].sum()
         )
-        pre_arpu_cats    = _snap.to_dict()
+        pre_arpu_cats    = _snap.to_dict() if not _snap.empty else {}
         _arpu_data_label = _arpu_latest_month
     else:
-        pre_arpu_cats    = {"Very Low (0-5)": 220_000, "Low (5-30)": 185_000,
-                            "Medium (30-120)": 130_000, "High (120-300)": 60_000,
-                            "Very High (>300)": 25_000}
+        pre_arpu_cats    = {}
         _arpu_data_label = None
 
     # ── Charts: Avg Daily Revenue  |  Subscribers by ARPU Category ───────────
@@ -407,40 +406,44 @@ with tab2:
             line=dict(color="#555577", width=1.8, dash="dash"),
             hovertemplate="%{x}<br>AOP %{y:.3f} / day<extra></extra>",
         ))
-        _base_layout(fig, "Avg Daily Prepaid Revenue ( / day)", 380,
+        _base_layout(fig, "Avg Daily Prepaid Revenue", 380,
                      y_range=([0.6, dvr.max() + dvr_pad]
                                if len(dvr) > 0 else None))
         fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
 
     with mr:
-        _cat_names  = list(pre_arpu_cats.keys())
-        _cat_vals   = list(pre_arpu_cats.values())
-        _cat_colors = ["#6b7280", "#6366f1", "#a78bfa", "#f59e0b", "#22c55e"]
-        _cat_total  = sum(_cat_vals)
-        _cat_pcts   = [v / _cat_total * 100 if _cat_total else 0 for v in _cat_vals]
-        fig = go.Figure(go.Bar(
-            y=_cat_names, x=_cat_vals, orientation="h",
-            marker_color=_cat_colors,
-            text=[f"{v/1_000:.1f}K  ({p:.0f}%)"
-                  for v, p in zip(_cat_vals, _cat_pcts)],
-            textposition="outside", textfont=dict(color="white", size=14),
-            hovertemplate="<b>%{y}</b><br>%{x:,.0f} subs<extra></extra>",
-        ))
-        _base_layout(
-            fig,
-            f"<b>Subscribers by ARPU Category</b>"
-            + (f" — {_arpu_data_label}" if _arpu_data_label else ""),
-            290,
-        )
-        fig.update_layout(
-            showlegend=False,
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=14),
-                       range=[0, max(_cat_vals) * 1.45]),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=15),
-                       categoryorder="array", categoryarray=_cat_names),
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        if pre_arpu_cats:
+            _cat_names  = list(pre_arpu_cats.keys())
+            _cat_vals   = list(pre_arpu_cats.values())
+            _palette    = ["#6b7280", "#6366f1", "#a78bfa", "#f59e0b", "#22c55e"]
+            _cat_colors = (_palette * ((len(_cat_names) // len(_palette)) + 1))[:len(_cat_names)]
+            _cat_total  = sum(_cat_vals)
+            _cat_pcts   = [v / _cat_total * 100 if _cat_total else 0 for v in _cat_vals]
+            fig = go.Figure(go.Bar(
+                y=_cat_names, x=_cat_vals, orientation="h",
+                marker_color=_cat_colors,
+                text=[f"{v/1_000:.1f}K  ({p:.0f}%)"
+                      for v, p in zip(_cat_vals, _cat_pcts)],
+                textposition="outside", textfont=dict(color="white", size=14),
+                hovertemplate="<b>%{y}</b><br>%{x:,.0f} subs<extra></extra>",
+            ))
+            _base_layout(
+                fig,
+                f"<b>Subscribers by ARPU Category</b>"
+                + (f" — {_arpu_data_label}" if _arpu_data_label else ""),
+                290,
+            )
+            fig.update_layout(
+                showlegend=False,
+                xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=14),
+                           range=[0, max(_cat_vals) * 1.45] if _cat_vals else None),
+                yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=15),
+                           categoryorder="array", categoryarray=_cat_names),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No ARPU bucket data available for the selected month.")
 
     # ── Row 3 — Revenue by Product + Commentary ───────────────────────────────
     bl, br = st.columns([55, 45])
@@ -570,16 +573,16 @@ with tab3:
     _pp_subs_mon   = _pp_sub_sorted.iloc[-1]["Month"] if not _pp_sub_sorted.empty else "Apr-26"
     pp_subs_close  = float(_pp_sub_sorted.iloc[-1]["Subscribers"]) if not _pp_sub_sorted.empty else pp_subs_lat
     pp_subs_open   = float(_pp_sub_sorted.iloc[-2]["Subscribers"]) if len(_pp_sub_sorted) >= 2 else pp_subs_close
-    _pp_ga          = _get_gross_adds(_pp_sub_sorted.iloc[-1]) if not _pp_sub_sorted.empty else None
-    pp_subs_gross_c = _pp_ga if _pp_ga is not None else 0.0
-    pp_subs_disc_c  = max(0.0, pp_subs_open + pp_subs_gross_c - pp_subs_close)
-    pp_churn_derived = pp_subs_disc_c / pp_subs_open * 100 if pp_subs_open > 0 else 0.0
+    pp_subs_disc_c   = pp_subs_open * pp_churn / 100 if (pp_churn and pp_subs_open > 0) else 0.0
+    pp_subs_gross_c  = max(0.0, pp_subs_close - pp_subs_open + pp_subs_disc_c)
+    pp_churn_derived = pp_churn if pp_churn else 0.0
 
     # ── 4 KPI boxes ──────────────────────────────────────────────────────────
     pp_r_aop_col = "#22c55e" if (pp_aop_pct or 0) >= 0 else "#ef4444"
     pp_r_l1 = (f"{pp_aop_m:+.1f} | {pp_aop_pct:+.1f}% vs AOP"
                if pp_aop_pct is not None else "— vs AOP")
-    pp_r_l2 = f"{pp_py_m:+.1f} vs PY" if pp_py_m is not None else "— vs PY"
+    pp_r_l2    = f"{pp_py_m:+.1f} vs PY" if pp_py_m is not None else "— vs PY"
+    pp_r_py_col = ("#22c55e" if (pp_py_m or 0) >= 0 else "#ef4444") if pp_py_m is not None else "#7788aa"
 
     pp_a_l1_col = ("#22c55e" if (pp_arpu_aop_pct or 0) >= 0
                    else "#ef4444" if pp_arpu_aop_pct is not None else "#7788aa")
@@ -600,7 +603,7 @@ with tab3:
                 if pp_subs_py_pct is not None else "vs PY: —")
 
     _pp_c1     = _pre_kpi("Postpaid Revenue", f"{pp26_rev:.1f}",
-                           pp_r_l1, pp_r_aop_col, pp_r_l2, "#f59e0b", "#4a9eff", pp_rev_spark)
+                           pp_r_l1, pp_r_aop_col, pp_r_l2, pp_r_py_col, "#4a9eff", pp_rev_spark)
     _pp_c3     = _pre_kpi("ARPU", f"${pp_arpu_lat:.0f}",
                            pp_a_l1, pp_a_l1_col, pp_a_l2, pp_a_l2_col, "#f59e0b", pp_arpu_spark)
     _pp_c_subs = _pre_kpi(f"Subscribers — {_pp_subs_mon}", _fmt_k(pp_subs_close),
@@ -656,8 +659,7 @@ with tab3:
         _chv  = _curr["Churn_Pct"]
         _chrt = (float(_chv) if pd.notna(_chv) and float(_chv) > 0 else 1.5)
         _disc = _open * _chrt / 100
-        _ga   = _get_gross_adds(_curr)
-        _gros = _ga if _ga is not None else max(0.0, (_clos - _open) + _disc)
+        _gros = max(0.0, (_clos - _open) + _disc)
         _mov_rows.append({
             "Month":   _curr["Month"],
             "Opening": _open,
@@ -684,37 +686,49 @@ with tab3:
     _mov_ymin = min(_all_y) * 0.996
     _mov_ymax = max(_all_y) * 1.014
 
-    # ── Active Plans — PP_Plans sheet in TSTT_Board_Data.xlsx ────────────────
-    # Edit the Subscribers column in that sheet to replace dummy values.
-    _pp_plans_raw = data.get("PP_Plans", pd.DataFrame())
-    if not _pp_plans_raw.empty and "Plan" in _pp_plans_raw.columns:
-        pp_plan_names = _pp_plans_raw["Plan"].tolist()
-        pp_plan_vals  = _pp_plans_raw["Subscribers"].tolist()
+    # ── Active Plans — Postpaid by active Plan sheet ──────────────────────────
+    def _shorten_plan(name):
+        n = str(name)
+        for pfx in ("My Postpaid ", "b-"):
+            n = n.replace(pfx, "")
+        n = n.replace(" plan", "").replace(" Plan", "")
+        return n[:28] + "…" if len(n) > 28 else n
+
+    _pp_plans_df = load_postpaid_plans()
+    if not _pp_plans_df.empty:
+        _active = _pp_plans_df[_pp_plans_df["Type"] == "Active"].sort_values("Sub_Count", ascending=False)
+        _legacy = _pp_plans_df[_pp_plans_df["Type"] == "Legacy"]
+        _top5   = _active.head(5)
+        _other  = _active.iloc[5:]
+        pp_plan_names = [_shorten_plan(n) for n in _top5["Plan"]] + ["Other Active", "Legacy"]
+        pp_plan_vals  = _top5["Sub_Count"].tolist() + [
+            _other["Sub_Count"].sum(), _legacy["Sub_Count"].sum()
+        ]
         _pp_dummy = False
     else:
-        pp_plan_names = ["Basic Voice", "Basic Data", "Standard Bundle", "Premium Bundle", "Enterprise"]
-        pp_plan_vals  = [45_000, 38_000, 22_000, 15_000, 8_000]
+        pp_plan_names = ["$295 Plan", "$450 Plan", "Shared Member", "Shared Owner", "$625 Plan", "Other Active", "Legacy"]
+        pp_plan_vals  = [0] * 7
         _pp_dummy = True
-    # ─────────────────────────────────────────────────────────────────────────
 
     # ── Charts: Active Plans  |  Revenue by Bundle Type ─────────────────────
     ml, mr = st.columns([55, 45])
 
     with ml:
-        _pp_plan_colors = ["#f59e0b", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8", "#6b7280"]
-        _pp_plan_total  = sum(pp_plan_vals)
-        _pp_dw = 0.52
+        _pp_total = sum(pp_plan_vals)
+        _pp_pcts  = [v / _pp_total * 100 if _pp_total else 0 for v in pp_plan_vals]
+        _pp_lbls  = [f"{n}  {p:.1f}%" for n, p in zip(pp_plan_names, _pp_pcts)]
+        _pp_clrs  = ["#0101D3", "#1e40af", "#3b82f6", "#60a5fa", "#93c5fd", "#94a3b8", "#4b5563"]
+        _pp_dw    = 0.48
         fig = go.Figure(go.Pie(
-            labels=pp_plan_names, values=pp_plan_vals, hole=0.48, sort=False,
+            labels=_pp_lbls, values=pp_plan_vals, hole=0.48, sort=False,
             domain=dict(x=[0, _pp_dw]),
-            marker=dict(colors=_pp_plan_colors,
-                        line=dict(color="rgba(255,255,255,0.3)", width=2)),
-            textinfo="percent", textfont=dict(color="white", size=14),
-            textposition="inside",
-            hovertemplate="<b>%{label}</b><br>%{value:,.0f} subs (%{percent})<extra></extra>",
+            marker=dict(colors=_pp_clrs, line=dict(color="rgba(255,255,255,0.3)", width=2)),
+            textinfo="none",
+            customdata=pp_plan_names,
+            hovertemplate="<b>%{customdata}</b><br>%{value:,.0f} subs (%{percent})<extra></extra>",
             title=dict(
-                text=f"<b>{_pp_plan_total/1_000:.0f}K</b>",
-                font=dict(size=16, color="white"),
+                text=f"<b>{_pp_total/1_000:.1f}K</b>",
+                font=dict(size=28, color="white"),
                 position="middle center",
             ),
         ))
@@ -723,10 +737,10 @@ with tab3:
             font=dict(color="white"), height=500,
             title=dict(
                 text="<b>Subscribers by Active Plan</b>"
-                     + (" <span style='color:#f87171;font-size:11px'>⚠ dummy data</span>" if _pp_dummy else ""),
-                font=dict(size=16, color="white"), x=0,
+                     + (" <span style='color:#f87171'> ⚠ no data</span>" if _pp_dummy else ""),
+                font=dict(size=22, color="white"), x=0,
             ),
-            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=14, color="#aabbcc"),
+            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=20, color="white"),
                         x=_pp_dw + 0.04, y=0.5, xanchor="left", yanchor="middle"),
             margin=dict(l=10, r=10, t=44, b=6),
         )
@@ -844,16 +858,16 @@ with tab4:
     _wx_subs_mon   = _wx_sub_sorted.iloc[-1]["Month"] if not _wx_sub_sorted.empty else "Apr-26"
     wx_subs_close  = float(_wx_sub_sorted.iloc[-1]["Subscribers"]) if not _wx_sub_sorted.empty else wx_subs_lat
     wx_subs_open   = float(_wx_sub_sorted.iloc[-2]["Subscribers"]) if len(_wx_sub_sorted) >= 2 else wx_subs_close
-    _wx_ga          = _get_gross_adds(_wx_sub_sorted.iloc[-1]) if not _wx_sub_sorted.empty else None
-    wx_subs_gross_c = _wx_ga if _wx_ga is not None else 0.0
-    wx_subs_disc_c  = max(0.0, wx_subs_open + wx_subs_gross_c - wx_subs_close)
-    wx_churn_derived = wx_subs_disc_c / wx_subs_open * 100 if wx_subs_open > 0 else 0.0
+    wx_subs_disc_c   = wx_subs_open * wx_churn / 100 if (wx_churn and wx_subs_open > 0) else 0.0
+    wx_subs_gross_c  = max(0.0, wx_subs_close - wx_subs_open + wx_subs_disc_c)
+    wx_churn_derived = wx_churn if wx_churn else 0.0
 
     # ── 4 KPI boxes ──────────────────────────────────────────────────────────
     wx_r_aop_col = "#22c55e" if (wx_aop_pct or 0) >= 0 else "#ef4444"
     wx_r_l1 = (f"{wx_aop_m:+.1f} | {wx_aop_pct:+.1f}% vs AOP"
                if wx_aop_pct is not None else "— vs AOP")
-    wx_r_l2 = f"{wx_py_m:+.1f} vs PY" if wx_py_m is not None else "— vs PY"
+    wx_r_l2    = f"{wx_py_m:+.1f} vs PY" if wx_py_m is not None else "— vs PY"
+    wx_r_py_col = ("#22c55e" if (wx_py_m or 0) >= 0 else "#ef4444") if wx_py_m is not None else "#7788aa"
 
     wx_a_l1_col = ("#22c55e" if (wx_arpu_aop_pct or 0) >= 0
                    else "#ef4444" if wx_arpu_aop_pct is not None else "#7788aa")
@@ -874,7 +888,7 @@ with tab4:
                 if wx_subs_py_pct is not None else "vs PY: —")
 
     _wx_c1     = _pre_kpi("WTTx Revenue", f"{wx26_rev:.1f}",
-                           wx_r_l1, wx_r_aop_col, wx_r_l2, "#f59e0b", "#00d4a0", wx_rev_spark)
+                           wx_r_l1, wx_r_aop_col, wx_r_l2, wx_r_py_col, "#00d4a0", wx_rev_spark)
     _wx_c3     = _pre_kpi("ARPU", f"${wx_arpu_lat:.0f}",
                            wx_a_l1, wx_a_l1_col, wx_a_l2, wx_a_l2_col, "#f59e0b", wx_arpu_spark)
     _wx_c_subs = _pre_kpi(f"Subscribers — {_wx_subs_mon}", _fmt_k(wx_subs_close),
@@ -929,8 +943,7 @@ with tab4:
         _chv  = _curr["Churn_Pct"]
         _chrt = (float(_chv) if pd.notna(_chv) and float(_chv) > 0 else 1.5)
         _disc = _open * _chrt / 100
-        _ga   = _get_gross_adds(_curr)
-        _gros = _ga if _ga is not None else max(0.0, (_clos - _open) + _disc)
+        _gros = max(0.0, (_clos - _open) + _disc)
         _wx_mov_rows.append({
             "Month":   _curr["Month"],
             "Opening": _open,
@@ -957,37 +970,39 @@ with tab4:
     _wx_mov_ymin = min(_wx_all_y) * 0.996
     _wx_mov_ymax = max(_wx_all_y) * 1.014
 
-    # ── Plan type — WTTx_Plans sheet in TSTT_Board_Data.xlsx ────────────────
-    # Edit the Subscribers column in that sheet to replace dummy values.
-    _wx_plans_raw = data.get("WTTx_Plans", pd.DataFrame())
-    if not _wx_plans_raw.empty and "Plan" in _wx_plans_raw.columns:
-        wx_plan_names = _wx_plans_raw["Plan"].tolist()
-        wx_plan_vals  = _wx_plans_raw["Subscribers"].tolist()
+    # ── Plan type — WTTX by Category sheet ───────────────────────────────────
+    _wx_cats_df = load_wttx_categories()
+    if not _wx_cats_df.empty:
+        _wx_summary  = (_wx_cats_df.groupby("Category")["Subscribers"]
+                        .sum().sort_values(ascending=False))
+        wx_plan_names = _wx_summary.index.tolist()
+        wx_plan_vals  = _wx_summary.values.tolist()
         _wx_dummy = False
     else:
-        wx_plan_names = ["Voice Only", "Bundles", "Data Only"]
+        wx_plan_names = ["Voice Only", "Bundle", "Data"]
         wx_plan_vals  = [8_000, 35_000, 62_000]
         _wx_dummy = True
-    # ─────────────────────────────────────────────────────────────────────────
 
     # ── Charts: Plan Type | Revenue by Service Type ──────────────────────────
     ml, mr = st.columns([55, 45])
 
     with ml:
-        _wx_plan_colors = ["#f59e0b", "#a78bfa", "#00d4a0"]
-        _wx_plan_total  = sum(wx_plan_vals)
-        _wx_dw = 0.52
+        _CAT_COLORS = {"Data": "#00d4a0", "Bundle": "#4a9eff", "Voice Only": "#a78bfa"}
+        _wx_clrs    = [_CAT_COLORS.get(n, "#6b7280") for n in wx_plan_names]
+        _wx_total   = sum(wx_plan_vals)
+        _wx_pcts    = [v / _wx_total * 100 if _wx_total else 0 for v in wx_plan_vals]
+        _wx_lbls    = [f"{n}  {p:.1f}%" for n, p in zip(wx_plan_names, _wx_pcts)]
+        _wx_dw      = 0.48
         fig = go.Figure(go.Pie(
-            labels=wx_plan_names, values=wx_plan_vals, hole=0.48, sort=False,
+            labels=_wx_lbls, values=wx_plan_vals, hole=0.48, sort=False,
             domain=dict(x=[0, _wx_dw]),
-            marker=dict(colors=_wx_plan_colors,
-                        line=dict(color="rgba(255,255,255,0.3)", width=2)),
-            textinfo="percent", textfont=dict(color="white", size=14),
-            textposition="inside",
-            hovertemplate="<b>%{label}</b><br>%{value:,.0f} subs (%{percent})<extra></extra>",
+            marker=dict(colors=_wx_clrs, line=dict(color="rgba(255,255,255,0.3)", width=2)),
+            textinfo="none",
+            customdata=wx_plan_names,
+            hovertemplate="<b>%{customdata}</b><br>%{value:,.0f} subs (%{percent})<extra></extra>",
             title=dict(
-                text=f"<b>{_wx_plan_total/1_000:.0f}K</b>",
-                font=dict(size=16, color="white"),
+                text=f"<b>{_wx_total/1_000:.1f}K</b>",
+                font=dict(size=28, color="white"),
                 position="middle center",
             ),
         ))
@@ -996,10 +1011,10 @@ with tab4:
             font=dict(color="white"), height=500,
             title=dict(
                 text="<b>Subscribers by Plan Type</b>"
-                     + (" <span style='color:#f87171;font-size:11px'>⚠ dummy data</span>" if _wx_dummy else ""),
-                font=dict(size=16, color="white"), x=0,
+                     + (" <span style='color:#f87171'> ⚠ no data</span>" if _wx_dummy else ""),
+                font=dict(size=22, color="white"), x=0,
             ),
-            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=14, color="#aabbcc"),
+            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=22, color="white"),
                         x=_wx_dw + 0.04, y=0.5, xanchor="left", yanchor="middle"),
             margin=dict(l=10, r=10, t=44, b=6),
         )
@@ -1154,29 +1169,29 @@ with tab_v2:
     gp_trend = f"{gp_act - gp_py:+.1f} vs PY" if gp_py is not None else "—"
     gp_col   = "#22c55e" if (gp_py is not None and gp_act >= gp_py) else "#8899bb"
 
-    # Usage metrics (MoU / GB per sub) from Consumer_Usage sheet
-    v2_usage     = data.get("Consumer_Usage", pd.DataFrame())
-    v2_usage_sel = v2_usage[v2_usage["Month"] == sel_month] if not v2_usage.empty else pd.DataFrame()
+    # Usage metrics — MoU from no available source yet; GB/Sub from Prepaid_Data_Usage
+    _du = load_prepaid_data_usage()
+    _du_sel = _du[_du["Month"] == sel_month] if not _du.empty else pd.DataFrame()
 
-    def _usage_val(col):
-        if v2_usage_sel.empty or col not in v2_usage_sel.columns:
+    def _du_val(col):
+        if _du_sel.empty or col not in _du_sel.columns:
             return None, True
-        v = v2_usage_sel[col].values[0]
+        v = _du_sel[col].values[0]
         if pd.isna(v) or v == 0:
             return None, True
         return float(v), False
 
-    pp_mou, pp_mou_ph   = _usage_val("Postpaid_MoU_Per_Sub")
-    pre_mou, pre_mou_ph = _usage_val("Prepaid_MoU_Per_Sub")
-    pp_gb, pp_gb_ph     = _usage_val("Postpaid_GB_Per_Sub")
+    pp_mou, pp_mou_ph   = None, True
+    pre_mou, pre_mou_ph = _du_val("mou_per_user")
+    pre_gb, pre_gb_ph   = _du_val("gb_per_user")
 
     pp_mou_trend, pp_mou_col   = "—", "#8899bb"
     pre_mou_trend, pre_mou_col = "—", "#8899bb"
-    pp_gb_trend,  pp_gb_col    = "", "#8899bb"
+    pre_gb_trend,  pre_gb_col  = "", "#8899bb"
 
     pp_mou_str  = f"{pp_mou:.0f} mins" if pp_mou else "Data Pending"
     pre_mou_str = f"{pre_mou:.0f} mins" if pre_mou else "Data Pending"
-    pp_gb_str   = f"{pp_gb:.1f} GB"     if pp_gb  else "Data Pending"
+    pre_gb_str  = f"{pre_gb:.2f} GB"    if pre_gb else "Data Pending"
 
     seg_vars_cmt = {
         "Postpaid": _v2vp(pp_rev, pp_aop),
@@ -1254,19 +1269,19 @@ with tab_v2:
     ), unsafe_allow_html=True)
 
     c2.markdown(r1_card(
-        "Postpaid", f"{pp_rev:.1f}",
-        _v2vp(pp_rev, pp_aop),
-        f"{_v2vm(pp_rev, pp_aop):+.1f}" if _v2vm(pp_rev, pp_aop) is not None else "—",
-        f"{pp_rev - pp_py_v:+.1f} vs PY" if pp_py_v is not None else None,
-        "#4a9eff", spark_series=v2_post_trend,
-    ), unsafe_allow_html=True)
-
-    c3.markdown(r1_card(
         "Prepaid", f"{pr_rev:.1f}",
         _v2vp(pr_rev, pr_aop),
         f"{_v2vm(pr_rev, pr_aop):+.1f}" if _v2vm(pr_rev, pr_aop) is not None else "—",
         f"{pr_rev - pr_py_v:+.1f} vs PY" if pr_py_v is not None else None,
         "#a78bfa", spark_series=v2_pre_trend,
+    ), unsafe_allow_html=True)
+
+    c3.markdown(r1_card(
+        "Postpaid", f"{pp_rev:.1f}",
+        _v2vp(pp_rev, pp_aop),
+        f"{_v2vm(pp_rev, pp_aop):+.1f}" if _v2vm(pp_rev, pp_aop) is not None else "—",
+        f"{pp_rev - pp_py_v:+.1f} vs PY" if pp_py_v is not None else None,
+        "#4a9eff", spark_series=v2_post_trend,
     ), unsafe_allow_html=True)
 
     c4.markdown(r1_card(
@@ -1286,110 +1301,83 @@ with tab_v2:
     ), unsafe_allow_html=True)
 
     # ════════════════════════════════════════════════════════════════════
-    # ROW 2 — Left metric grid (60%) + Right donut + sparkline (40%)
+    # ROW 2 — [1,1,3] columns: costs|prepaid metrics|revenue mix donut
     # ════════════════════════════════════════════════════════════════════
     st.markdown("<div style='margin:14px 0 8px'></div>", unsafe_allow_html=True)
-    col_L, col_R = st.columns([60, 40])
+    col_A, col_B, col_C = st.columns([1, 1, 3])
 
-    with col_L:
-        # Row 2a
-        ra1, ra2, ra3 = st.columns(3)
-        ra1.markdown(r2_card(
+    with col_A:
+        st.markdown(r2_card(
             "Direct Costs", f"{dc_act:.1f}",
             dc_trend, dc_col,
             is_ph=dc_is_ph, accent="#ef4444",
             note="est. (58% proxy)" if dc_is_ph else "",
         ), unsafe_allow_html=True)
-        ra2.markdown(r2_card(
-            "Postpaid MoU / Sub", pp_mou_str,
-            pp_mou_trend, pp_mou_col,
-            is_ph=pp_mou_ph, accent="#4a9eff",
-            note="",
-        ), unsafe_allow_html=True)
-        ra3.markdown(r2_card(
-            "Prepaid MoU / Sub", pre_mou_str,
-            pre_mou_trend, pre_mou_col,
-            is_ph=pre_mou_ph, accent="#a78bfa",
-            note="",
-        ), unsafe_allow_html=True)
-
         st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
-
-        # Row 2b
-        pre_gb, pre_gb_ph        = _usage_val("Prepaid_GB_Sub")
-        pre_gb_trend, pre_gb_col = "", "#8899bb"
-        pre_gb_str = f"{pre_gb:.1f} GB" if pre_gb else "Data Pending"
-
-        rb1, rb2, rb3 = st.columns(3)
-        rb1.markdown(r2_card(
+        st.markdown(r2_card(
             "Gross Profit", f"{gp_act:.1f}",
             gp_trend, gp_col,
             is_ph=gp_is_ph, accent="#22c55e",
             note="est. (42% proxy)" if gp_is_ph else "",
         ), unsafe_allow_html=True)
-        rb2.markdown(r2_card(
-            "Postpaid GB / Sub", pp_gb_str,
-            pp_gb_trend, pp_gb_col,
-            is_ph=pp_gb_ph, accent="#4a9eff",
+
+    with col_B:
+        st.markdown(r2_card(
+            "Prepaid MoU / Sub", pre_mou_str,
+            pre_mou_trend, pre_mou_col,
+            is_ph=pre_mou_ph, accent="#a78bfa",
             note="",
         ), unsafe_allow_html=True)
-        rb3.markdown(r2_card(
+        st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
+        st.markdown(r2_card(
             "Prepaid GB / Sub", pre_gb_str,
             pre_gb_trend, pre_gb_col,
             is_ph=pre_gb_ph, accent="#a78bfa",
             note="",
         ), unsafe_allow_html=True)
 
-    with col_R:
+    with col_C:
         # Revenue Mix donut — 4 consolidated segments
         d_segs  = ["Prepaid", "Postpaid", "WTTx", "Other"]
         d_clrs  = ["#a78bfa", "#4a9eff", "#f59e0b", "#6b7280"]
         d_vals  = [max(pr_rev, 0), max(pp_rev, 0), max(wx_rev, 0), max(v2_other_rev, 0)]
         d_total = sum(d_vals)
         d_pcts  = [v / d_total * 100 if d_total else 0 for v in d_vals]
-        d_texts = [f"{p:.1f}%" if p >= 15 else "" for p in d_pcts]
         d_legend_labels = [f"{s}  {p:.1f}%" for s, p in zip(d_segs, d_pcts)]
-
-        _fig_h = 290
-        _t, _b = 44, 6
-        _dom_x = 0.55
 
         fig_d = go.Figure(go.Pie(
             labels=d_legend_labels,
             values=d_vals,
-            text=d_texts,
             hole=0.45,
             sort=False,
             marker=dict(
                 colors=d_clrs,
                 line=dict(color="rgba(255,255,255,0.35)", width=2),
             ),
-            textinfo="text",
-            textfont=dict(color="white", size=15),
-            textposition="inside",
-            domain=dict(x=[0, _dom_x]),
+            textinfo="none",
+            domain=dict(x=[0, 0.45]),
             customdata=d_segs,
             hovertemplate="<b>%{customdata}</b><br>%{value:.1f} (%{percent})<extra></extra>",
             title=dict(
                 text=f"<b>{d_total:.1f}</b>",
-                font=dict(size=16, color="white"),
+                font=dict(size=26, color="white"),
                 position="middle center",
             ),
         ))
         fig_d.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=_fig_h,
+            font=dict(color="white"), height=320,
             title=dict(text=f"<b>{sel_month} Revenue Mix</b>",
-                       font=dict(size=17, color="white"), x=0),
+                       font=dict(size=22, color="white"), x=0),
             legend=dict(
                 bgcolor="rgba(0,0,0,0)",
-                font=dict(size=15, color="white"),
+                font=dict(size=22, color="white"),
                 orientation="v",
-                x=_dom_x + 0.04, y=0.5,
+                x=0.49, y=0.5,
                 xanchor="left",
                 yanchor="middle",
             ),
-            margin=dict(l=10, r=10, t=_t, b=_b),
+            margin=dict(l=10, r=10, t=44, b=6),
         )
         st.plotly_chart(fig_d, use_container_width=True)
 

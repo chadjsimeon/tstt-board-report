@@ -477,6 +477,7 @@ def load_prepaid_data_usage():
         RENAMES = {
             "Total_GB":           "total_data_usage",
             "Data_Users":         "unique_data_users",
+            "MoU_Per_User":       "mou_per_user",
             "Bundle_Subscribers": "bundle_users",
             "Bundle_Revenue":     "data_bundle_rev",
             "GB_Per_User":        "gb_per_user",
@@ -487,6 +488,17 @@ def load_prepaid_data_usage():
         for c in ["unique_data_users", "bundle_users", "total_data_usage", "gb_per_user"]:
             if c in df.columns:
                 df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0)
+
+        # Derive GB_Per_User from Total_GB / Data_Users when template cell is blank
+        if ("total_data_usage" in df.columns and "unique_data_users" in df.columns):
+            mask = df["unique_data_users"] > 0
+            df["gb_per_user"] = 0.0
+            df.loc[mask, "gb_per_user"] = (
+                df.loc[mask, "total_data_usage"] / df.loc[mask, "unique_data_users"]
+            )
+
+        if "mou_per_user" in df.columns:
+            df["mou_per_user"] = pd.to_numeric(df["mou_per_user"], errors="coerce").fillna(0)
 
         if "data_bundle_rev" in df.columns:
             df["data_bundle_rev"] = pd.to_numeric(df["data_bundle_rev"], errors="coerce").fillna(0) / M
@@ -500,6 +512,41 @@ def load_prepaid_data_usage():
                 df["bundle_pct"] = df["bundle_pct"] * 100
 
         return df
+    except Exception:
+        return pd.DataFrame()
+
+
+# ── Postpaid by Active Plan ────────────────────────────────────────────────────
+@st.cache_data
+def load_postpaid_plans():
+    """Load 'Postpaid by active Plan' sheet.
+    Returns DataFrame with columns: Rank, Type, Plan, Sub_Count.
+    """
+    try:
+        xls = pd.ExcelFile(MASTER_PATH)
+        df  = pd.read_excel(xls, "Postpaid by active Plan", header=1)
+        df.columns = ["Rank", "Type", "Plan", "Sub_Count", "Pct_Base"]
+        df = df.dropna(subset=["Rank"])
+        df["Sub_Count"] = pd.to_numeric(df["Sub_Count"], errors="coerce").fillna(0)
+        df["Rank"]      = pd.to_numeric(df["Rank"],      errors="coerce")
+        return df[df["Sub_Count"] > 0].reset_index(drop=True)
+    except Exception:
+        return pd.DataFrame()
+
+
+# ── WTTx by Category ───────────────────────────────────────────────────────────
+@st.cache_data
+def load_wttx_categories():
+    """Load 'WTTX by Category' sheet.
+    Returns DataFrame with columns: Category, Subscribers (summed by category).
+    """
+    try:
+        xls = pd.ExcelFile(MASTER_PATH)
+        df  = pd.read_excel(xls, "WTTX by Category", header=0)
+        df.columns = ["_skip", "Bill_System", "Category", "Package", "Subscribers"]
+        df = df.dropna(subset=["Category"])
+        df["Subscribers"] = pd.to_numeric(df["Subscribers"], errors="coerce").fillna(0)
+        return df[df["Subscribers"] > 0].reset_index(drop=True)
     except Exception:
         return pd.DataFrame()
 

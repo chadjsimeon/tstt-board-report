@@ -357,8 +357,9 @@ with tab_fp:
                 f'<span style="color:{col}">{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP&nbsp;|&nbsp;{aop_m_str}</span>'
                 if aop_pct is not None else '<span style="color:#445566">— vs AOP</span>'
             )
+        _yoy_col = "#22c55e" if (yoy_str and yoy_str.startswith('+')) else "#ef4444"
         yoy_html = (
-            f'<span style="color:#f59e0b;font-weight:700">{yoy_str}</span>'
+            f'<span style="color:{_yoy_col};font-weight:700">{yoy_str}</span>'
             if yoy_str else '<span style="color:#445566">— vs PY</span>'
         )
         spark_html = (
@@ -377,7 +378,10 @@ with tab_fp:
             f'{spark_html}</div>'
         )
 
-    def fp_r2_card(label, val_str, aop_str, aop_col, py_str, accent="#4a9eff"):
+    def fp_r2_card(label, val_str, aop_str, aop_col, py_str, accent="#4a9eff", py_col=None):
+        _py_col = py_col if py_col else (
+            "#22c55e" if (py_str and py_str.startswith('+')) else "#ef4444"
+        )
         return (
             f'<div style="background:#161B22;border-radius:10px;padding:14px 16px;'
             f'border:1px solid #252545;border-top:2px solid {accent};height:100%">'
@@ -385,7 +389,7 @@ with tab_fp:
             f'letter-spacing:1.2px;margin-bottom:5px">{label}</div>'
             f'<div style="font-size:38px;font-weight:800;color:white;margin-bottom:6px">{val_str}</div>'
             f'<div style="font-size:19px;color:{aop_col};font-weight:600;margin-bottom:3px">{aop_str}</div>'
-            f'<div style="font-size:19px;color:#f59e0b;font-weight:600">{py_str}</div>'
+            f'<div style="font-size:19px;color:{_py_col};font-weight:600">{py_str}</div>'
             f'</div>'
         )
 
@@ -395,6 +399,7 @@ with tab_fp:
     dc_aop_color = "#ef4444" if (dc_vp or 0) > 0 else "#22c55e"
     dc_aop_str   = f"{dc_vp:+.1f}% vs AOP | {dc_vm:+.1f}" if dc_vp is not None else "— vs AOP"
     dc_py_str    = f"{dc_rev - dc_py:+.1f} vs PY" if dc_py is not None else "— vs PY"
+    dc_py_col    = ("#ef4444" if (dc_py is not None and dc_rev >= dc_py) else "#22c55e") if dc_py is not None else "#7788aa"
 
     gp_vp = _vp(gp_rev, gp_aop_v)
     gp_vm = _vm(gp_rev, gp_aop_v)
@@ -451,7 +456,7 @@ with tab_fp:
             ), unsafe_allow_html=True)
             st.markdown(_sp, unsafe_allow_html=True)
             st.markdown(fp_r2_card("Direct Costs", f"{dc_rev:.1f}",
-                                   dc_aop_str, dc_aop_color, dc_py_str, accent="#ff6b6b"),
+                                   dc_aop_str, dc_aop_color, dc_py_str, accent="#ff6b6b", py_col=dc_py_col),
                         unsafe_allow_html=True)
             st.markdown(_sp, unsafe_allow_html=True)
             st.markdown(fp_r2_card("Gross Profit", f"{gp_rev:.1f}",
