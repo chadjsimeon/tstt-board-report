@@ -5,6 +5,7 @@ st.set_page_config(page_title="TSTT | DPDI", page_icon="💻", layout="wide")
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data, get_month_order
 from utils.charts import inject_css
+from utils.rag import rev_var_rag, gp_margin_rag
 
 inject_css()
 data = load_all_data()
@@ -77,10 +78,13 @@ def _dpdi_card(label, value_str, sub_str, sub_color, accent, note=""):
 
 K = 1000
 c1, c2, c3, c4, c5 = st.columns(5)
-c1.markdown(_dpdi_card("Total Revenue",    f"{total_rev*K:,.0f}",       f"{rev_var_pct:+.1f}% vs AOP",    "#ef4444", "#ef4444"), unsafe_allow_html=True)
-c2.markdown(_dpdi_card("Excl. e-GOVTT",   f"{excl_rev*K:,.0f}",        f"{excl_var_pct:+.1f}% vs AOP",   "#ef4444", "#ef4444"), unsafe_allow_html=True)
+_rev_rag  = rev_var_rag(rev_var_pct)
+_excl_rag = rev_var_rag(excl_var_pct)
+_gp_rag   = gp_margin_rag(gp_margin)
+c1.markdown(_dpdi_card("Total Revenue",    f"{total_rev*K:,.0f}",       f"{rev_var_pct:+.1f}% vs AOP",    _rev_rag,  _rev_rag),  unsafe_allow_html=True)
+c2.markdown(_dpdi_card("Excl. e-GOVTT",   f"{excl_rev*K:,.0f}",        f"{excl_var_pct:+.1f}% vs AOP",   _excl_rag, _excl_rag), unsafe_allow_html=True)
 c3.markdown(_dpdi_card("Direct Costs",     f"{total_dc*K:,.0f}",        dc_sub_text,                       dc_sub_color, "#ff6b6b"), unsafe_allow_html=True)
-c4.markdown(_dpdi_card("Gross Profit",     f"{total_gp*K:,.0f}",        f"GP Margin: {gp_margin:.1f}%",   "#8899bb", "#22c55e"), unsafe_allow_html=True)
+c4.markdown(_dpdi_card("Gross Profit",     f"{total_gp*K:,.0f}",        f"GP Margin: {gp_margin:.1f}%",   _gp_rag,   _gp_rag),   unsafe_allow_html=True)
 c5.markdown(_dpdi_card("e-GOVTT Pipeline", f"{egovtt_pipeline*K:,.0f}", "Key opportunity →",              "#00ff88", "#00aa55"), unsafe_allow_html=True)
 st.markdown("<div style='margin-bottom:1.5rem'></div>", unsafe_allow_html=True)
 

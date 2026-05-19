@@ -12,6 +12,7 @@ from utils.charts import (
     line_chart, stacked_bar, grouped_bar, donut_chart, dim,
     GREEN, RED, BLUE, YELLOW, PURPLE, ORANGE, CYAN, ACCENT,
 )
+from utils.rag import rev_var_rag, churn_prepaid_rag, churn_postpaid_rag, churn_wttx_rag
 
 inject_css()
 data     = load_all_data()
@@ -296,14 +297,13 @@ with tab2:
     churn_derived  = churn_pre if churn_pre else 0.0
 
     # ── 4 KPI boxes ──────────────────────────────────────────────────────────
-    r_aop_col = "#22c55e" if (rev_aop_pct or 0) >= 0 else "#ef4444"
+    r_aop_col = rev_var_rag(rev_aop_pct)
     r_l1 = (f"{rev_aop_m:+.1f} | {rev_aop_pct:+.1f}% vs AOP"
             if rev_aop_pct is not None else "— vs AOP")
     r_l2    = f"{rev_py_m:+.1f} vs PY" if rev_py_m is not None else "— vs PY"
     r_py_col = ("#22c55e" if (rev_py_m or 0) >= 0 else "#ef4444") if rev_py_m is not None else "#7788aa"
 
-    a_l1_col = ("#22c55e" if (arpu_aop_pct or 0) >= 0
-                else "#ef4444" if arpu_aop_pct is not None else "#7788aa")
+    a_l1_col = rev_var_rag(arpu_aop_pct)
     a_l1 = (f"${arpu_aop_m:+.0f} | {arpu_aop_pct:+.1f}% vs AOP"
             if arpu_aop_pct is not None else "— vs AOP")
     a_l2_col = ("#22c55e" if (arpu_py_pct or 0) >= 0
@@ -311,8 +311,7 @@ with tab2:
     a_l2 = (f"vs PY: {arpu_py_pct:+.1f}%"
             if arpu_py_pct is not None else "vs PY: —")
 
-    s_l1_col = ("#22c55e" if (subs_aop_pct or 0) >= 0
-                else "#ef4444" if subs_aop_pct is not None else "#7788aa")
+    s_l1_col = rev_var_rag(subs_aop_pct)
     s_l1 = (f"{subs_aop_m/1000:+.1f}K | {subs_aop_pct:+.1f}% vs AOP"
             if subs_aop_pct is not None else "— vs AOP")
     s_l2_col = ("#22c55e" if (subs_py_pct or 0) >= 0
@@ -484,7 +483,7 @@ with tab2:
 
     with br:
         _rev_dir  = "above" if (rev_aop_pct or 0) >= 0 else "below"
-        _aop_col  = "#22c55e" if (rev_aop_pct or 0) >= 0 else "#ef4444"
+        _aop_col  = rev_var_rag(rev_aop_pct)
         _py_cl    = (f", {abs(rev_py_m):.1f} "
                      f"{'above' if (rev_py_m or 0) >= 0 else 'below'} prior year"
                      if rev_py_m is not None else "")
@@ -578,14 +577,13 @@ with tab3:
     pp_churn_derived = pp_churn if pp_churn else 0.0
 
     # ── 4 KPI boxes ──────────────────────────────────────────────────────────
-    pp_r_aop_col = "#22c55e" if (pp_aop_pct or 0) >= 0 else "#ef4444"
+    pp_r_aop_col = rev_var_rag(pp_aop_pct)
     pp_r_l1 = (f"{pp_aop_m:+.1f} | {pp_aop_pct:+.1f}% vs AOP"
                if pp_aop_pct is not None else "— vs AOP")
     pp_r_l2    = f"{pp_py_m:+.1f} vs PY" if pp_py_m is not None else "— vs PY"
     pp_r_py_col = ("#22c55e" if (pp_py_m or 0) >= 0 else "#ef4444") if pp_py_m is not None else "#7788aa"
 
-    pp_a_l1_col = ("#22c55e" if (pp_arpu_aop_pct or 0) >= 0
-                   else "#ef4444" if pp_arpu_aop_pct is not None else "#7788aa")
+    pp_a_l1_col = rev_var_rag(pp_arpu_aop_pct)
     pp_a_l1 = (f"vs AOP: {pp_arpu_aop_pct:+.1f}%"
                if pp_arpu_aop_pct is not None else "vs AOP: —")
     pp_a_l2_col = ("#22c55e" if (pp_arpu_py_pct or 0) >= 0
@@ -593,8 +591,7 @@ with tab3:
     pp_a_l2 = (f"vs PY: {pp_arpu_py_pct:+.1f}%"
                if pp_arpu_py_pct is not None else "vs PY: —")
 
-    _pp_s_l1_col = ("#22c55e" if (pp_subs_aop_pct or 0) >= 0
-                    else "#ef4444" if pp_subs_aop_pct is not None else "#7788aa")
+    _pp_s_l1_col = rev_var_rag(pp_subs_aop_pct)
     _pp_s_l1 = (f"{(pp_subs_close - pp_subs_aop)/1000:+.1f}K | {pp_subs_aop_pct:+.1f}% vs AOP"
                 if pp_subs_aop_pct is not None else "— vs AOP")
     _pp_s_l2_col = ("#22c55e" if (pp_subs_py_pct or 0) >= 0
@@ -768,7 +765,7 @@ with tab3:
 
     # ── Commentary ────────────────────────────────────────────────────────────
     _pp_rev_dir = "above" if (pp_aop_pct or 0) >= 0 else "below"
-    _pp_aop_col = "#22c55e" if (pp_aop_pct or 0) >= 0 else "#ef4444"
+    _pp_aop_col = rev_var_rag(pp_aop_pct)
     _pp_py_cl   = (f", {abs(pp_py_m):.1f} "
                    f"{'above' if (pp_py_m or 0) >= 0 else 'below'} prior year"
                    if pp_py_m is not None else "")
@@ -863,14 +860,13 @@ with tab4:
     wx_churn_derived = wx_churn if wx_churn else 0.0
 
     # ── 4 KPI boxes ──────────────────────────────────────────────────────────
-    wx_r_aop_col = "#22c55e" if (wx_aop_pct or 0) >= 0 else "#ef4444"
+    wx_r_aop_col = rev_var_rag(wx_aop_pct)
     wx_r_l1 = (f"{wx_aop_m:+.1f} | {wx_aop_pct:+.1f}% vs AOP"
                if wx_aop_pct is not None else "— vs AOP")
     wx_r_l2    = f"{wx_py_m:+.1f} vs PY" if wx_py_m is not None else "— vs PY"
     wx_r_py_col = ("#22c55e" if (wx_py_m or 0) >= 0 else "#ef4444") if wx_py_m is not None else "#7788aa"
 
-    wx_a_l1_col = ("#22c55e" if (wx_arpu_aop_pct or 0) >= 0
-                   else "#ef4444" if wx_arpu_aop_pct is not None else "#7788aa")
+    wx_a_l1_col = rev_var_rag(wx_arpu_aop_pct)
     wx_a_l1 = (f"vs AOP: {wx_arpu_aop_pct:+.1f}%"
                if wx_arpu_aop_pct is not None else "vs AOP: —")
     wx_a_l2_col = ("#22c55e" if (wx_arpu_py_pct or 0) >= 0
@@ -878,8 +874,7 @@ with tab4:
     wx_a_l2 = (f"vs PY: {wx_arpu_py_pct:+.1f}%"
                if wx_arpu_py_pct is not None else "vs PY: —")
 
-    _wx_s_l1_col = ("#22c55e" if (wx_subs_aop_pct or 0) >= 0
-                    else "#ef4444" if wx_subs_aop_pct is not None else "#7788aa")
+    _wx_s_l1_col = rev_var_rag(wx_subs_aop_pct)
     _wx_s_l1 = (f"{(wx_subs_close - wx_subs_aop)/1000:+.1f}K | {wx_subs_aop_pct:+.1f}% vs AOP"
                 if wx_subs_aop_pct is not None else "— vs AOP")
     _wx_s_l2_col = ("#22c55e" if (wx_subs_py_pct or 0) >= 0
@@ -1042,7 +1037,7 @@ with tab4:
 
     # ── Commentary ────────────────────────────────────────────────────────────
     _wx_rev_dir = "above" if (wx_aop_pct or 0) >= 0 else "below"
-    _wx_aop_col = "#22c55e" if (wx_aop_pct or 0) >= 0 else "#ef4444"
+    _wx_aop_col = rev_var_rag(wx_aop_pct)
     _wx_py_cl   = (f", {abs(wx_py_m):.1f} "
                    f"{'above' if (wx_py_m or 0) >= 0 else 'below'} prior year"
                    if wx_py_m is not None else "")
@@ -1167,7 +1162,7 @@ with tab_v2:
     dc_trend = f"{dc_act - dc_py:+.1f} vs PY" if dc_py is not None else "—"
     dc_col   = "#22c55e" if (dc_py is not None and dc_act <= dc_py) else "#ef4444"
     gp_trend = f"{gp_act - gp_py:+.1f} vs PY" if gp_py is not None else "—"
-    gp_col   = "#22c55e" if (gp_py is not None and gp_act >= gp_py) else "#8899bb"
+    gp_col   = ("#22c55e" if gp_act >= gp_py else "#ef4444") if gp_py is not None else "#8899bb"
 
     # Usage metrics — MoU from no available source yet; GB/Sub from Prepaid_Data_Usage
     _du = load_prepaid_data_usage()
@@ -1208,7 +1203,7 @@ with tab_v2:
 
     # ── Card builders ─────────────────────────────────────────────────────
     def r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None):
-        col = "#22c55e" if (aop_pct is not None and aop_pct >= 0) else "#ef4444"
+        col = rev_var_rag(aop_pct)
         aop_html = (
             f'<span style="color:{col}">{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP&nbsp;|&nbsp;{aop_m_str}</span>'
             if aop_pct is not None
@@ -1397,7 +1392,7 @@ with tab_v2:
                  if v2_best == "Postpaid" else "strong network adoption and customer additions")
     worst_why = ("voice substitution and SIM consolidation"
                  if v2_worst == "Prepaid" else "market saturation and competitive pressure")
-    aop_col_cmt = "#22c55e" if (v2_tv_pct or 0) >= 0 else "#ef4444"
+    aop_col_cmt = rev_var_rag(v2_tv_pct)
 
     cmt_text = (
         f"Consumer revenue of <strong style='color:white'>{v2_t_rev:.1f}</strong> in {sel_month} "

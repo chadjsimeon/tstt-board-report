@@ -10,6 +10,7 @@ from utils.charts import (
     line_chart, stacked_bar, grouped_bar, funnel_chart, donut_chart,
     GREEN, RED, BLUE, YELLOW, PURPLE, ORANGE, CYAN,
 )
+from utils.rag import rev_var_rag
 
 TICK  = dict(size=17)
 MTICK = dict(color="#8888aa", size=17)
@@ -336,7 +337,8 @@ with tab_fp:
     def _trend(col, df=None):
         src = df if df is not None else biz
         if col not in src.columns: return None
-        months_ref = src["Month"].unique().tolist() if df is not None else biz_months_all
+        all_months = get_month_order(src) if df is not None else biz_months_all
+        months_ref = all_months[-13:]
         return src.groupby("Month", sort=False)[col].sum().reindex(months_ref).fillna(0).tolist()
 
     fp_total_trend = _trend("Revenue")
@@ -349,7 +351,7 @@ with tab_fp:
 
     # ── Card builders ─────────────────────────────────────────────────────
     def fp_r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None, hide_aop=False):
-        col = "#22c55e" if (aop_pct is not None and aop_pct >= 0) else "#ef4444"
+        col = rev_var_rag(aop_pct)
         if hide_aop:
             aop_html = '<span style="color:transparent">&nbsp;</span>'
         else:
@@ -403,7 +405,7 @@ with tab_fp:
 
     gp_vp = _vp(gp_rev, gp_aop_v)
     gp_vm = _vm(gp_rev, gp_aop_v)
-    gp_aop_color = "#22c55e" if (gp_vp or 0) >= 0 else "#ef4444"
+    gp_aop_color = rev_var_rag(gp_vp)
     gp_aop_str   = f"{gp_vp:+.1f}% vs AOP | {gp_vm:+.1f}" if gp_vp is not None else f"{gp_margin_pct:.1f}% margin"
     gp_py_str    = f"{gp_rev - gp_py:+.1f} vs PY" if gp_py is not None else f"{gp_margin_pct:.1f}% margin"
 
@@ -496,7 +498,7 @@ with tab_fp:
             st.markdown(_mrr_card("OCC", occ_rev, occ_py, FP_ACCENTS[4], occ_trend), unsafe_allow_html=True)
 
         st.markdown(_sp, unsafe_allow_html=True)
-        _trend_months = biz_mrr["Month"].tolist() if not biz_mrr.empty else biz_months_all
+        _trend_months = (get_month_order(biz_mrr)[-13:] if not biz_mrr.empty else biz_months_all[-13:])
         fig_lines = go.Figure()
         for _name, _vals, _color in [
             ("MRR",   mrr_trend  or [0] * len(_trend_months), FP_ACCENTS[2]),
@@ -529,7 +531,7 @@ with tab_fp:
     rev_dir     = "above" if (fp_tv_pct or 0) >= 0 else "below"
     yoy_abs     = abs(fp_t_rev - fp_t_py) if fp_t_py is not None else 0
     yoy_sign    = "increase" if (fp_t_py is not None and fp_t_rev >= fp_t_py) else "decline"
-    aop_col_cmt = "#22c55e" if (fp_tv_pct or 0) >= 0 else "#ef4444"
+    aop_col_cmt = rev_var_rag(fp_tv_pct)
 
     cmt_parts = [
         f"Business Sales revenue of <strong style='color:white'>{fp_t_rev:.1f}</strong> "

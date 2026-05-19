@@ -152,27 +152,58 @@ def load_all_data():
             fl   = fin.iloc[-1]
             _mon = fl["Month"]
 
-            def _kpi(section, name, actual, aop, py, unit):
+            def _rag(val, green, amber, higher=True, aop=None):
+                """Return G/A/R using document-defined thresholds.
+                If aop is provided, val is expressed as % of aop before comparison."""
                 try:
-                    if pd.notna(actual) and pd.notna(aop) and aop != 0:
-                        diff_pct = (float(actual) - float(aop)) / abs(float(aop))
-                        status = "A" if abs(diff_pct) < 0.02 else ("G" if float(actual) >= float(aop) else "R")
+                    if pd.isna(val):
+                        return "A"
+                    v = float(val)
+                    if aop is not None:
+                        if pd.isna(aop) or float(aop) == 0:
+                            return "A"
+                        v = v / abs(float(aop)) * 100
+                    if higher:
+                        if v >= green: return "G"
+                        if v >= amber: return "A"
+                        return "R"
                     else:
-                        status = "A"
+                        if v <= green: return "G"
+                        if v <= amber: return "A"
+                        return "R"
                 except Exception:
-                    status = "A"
+                    return "A"
+
+            def _kpi(section, name, actual, aop, py, unit, status):
                 return {"Month": _mon, "Section": section, "KPI_Name": name,
                         "Actual": actual, "AOP": aop, "PY": py, "Status": status, "Unit": unit}
 
+            # Revenue vs Budget: Target >=100%, Limit >=90%, Tolerance <90%
+            rev_status = _rag(fl["Revenue"], 100, 90, aop=fl.get("Revenue_AOP"))
+
+            # EBITDA $: Target >=TT$55m/mo, Limit >=TT$45m/mo, Tolerance <TT$45m
+            ebi_status = _rag(fl["EBITDA"], 55, 45)
+
+            # Operating margin (EBITDA/Revenue): Target >=35%, Limit >=30%, Tolerance <30%
             _ebitda_m_aop = (
                 float(fl.get("EBITDA_AOP", 0)) / float(fl.get("Revenue_AOP", 1)) * 100
                 if fl.get("Revenue_AOP") else pd.NA
             )
+            ebim_status = _rag(fl.get("EBITDA_Margin"), 35, 30)
+
+            # Profit margin (PAT/Revenue): Target >=7.4%, Limit >=0%, Tolerance <0%
+            _pat_margin = (
+                float(fl["PAT"]) / float(fl["Revenue"]) * 100
+                if pd.notna(fl.get("PAT")) and pd.notna(fl.get("Revenue")) and float(fl.get("Revenue", 0)) != 0
+                else None
+            )
+            pat_status = _rag(_pat_margin, 7.4, 0.0)
+
             data["KPI_Summary"] = pd.DataFrame([
-                _kpi("Financial", "Revenue",      fl["Revenue"],        fl.get("Revenue_AOP"),  fl.get("Revenue_PY"), ""),
-                _kpi("Financial", "EBITDA",        fl["EBITDA"],          fl.get("EBITDA_AOP"),   fl.get("EBITDA_PY"),  ""),
-                _kpi("Financial", "PAT",           fl["PAT"],             fl.get("PAT_AOP"),      fl.get("PAT_PY"),     ""),
-                _kpi("Financial", "EBITDA Margin", fl.get("EBITDA_Margin"), _ebitda_m_aop,       pd.NA,                "%"),
+                _kpi("Financial", "Revenue",      fl["Revenue"],           fl.get("Revenue_AOP"),  fl.get("Revenue_PY"), "",  rev_status),
+                _kpi("Financial", "EBITDA",        fl["EBITDA"],            fl.get("EBITDA_AOP"),   fl.get("EBITDA_PY"),  "",  ebi_status),
+                _kpi("Financial", "PAT",           fl["PAT"],               fl.get("PAT_AOP"),      fl.get("PAT_PY"),     "",  pat_status),
+                _kpi("Financial", "EBITDA Margin", fl.get("EBITDA_Margin"), _ebitda_m_aop,          pd.NA,                "%", ebim_status),
             ])
         else:
             data["KPI_Summary"] = pd.DataFrame(

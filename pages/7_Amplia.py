@@ -10,6 +10,7 @@ from utils.charts import (
     grouped_bar, line_chart,
     GREEN, RED, BLUE, YELLOW, PURPLE, ORANGE,
 )
+from utils.rag import rev_var_rag
 
 inject_css()
 
@@ -70,6 +71,15 @@ def _badge(label, delta, pos_color, neg_color):
         f'background:rgba({r},{g},{b},0.15);color:{color};">{label}</span>'
     )
 
+def _aop_badge(label, delta):
+    """3-band badge for vs-AOP: Green >=0%, Amber >=-10%, Red <-10%."""
+    color = rev_var_rag(delta)
+    r, g, b = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
+    return (
+        f'<span style="font-size:14px;font-weight:600;padding:2px 8px;border-radius:3px;'
+        f'background:rgba({r},{g},{b},0.15);color:{color};">{label}</span>'
+    )
+
 
 def kpi_card(label, col, aop_col, ly_col, color, is_margin=False):
     actual = latest[col] if col in latest.index else None
@@ -85,7 +95,7 @@ def kpi_card(label, col, aop_col, ly_col, color, is_margin=False):
         if pd.notna(aop) and aop != 0:
             d = (actual - aop) if is_margin else (actual - aop) / abs(aop) * 100
             lbl = f"vs AOP {'+' if d >= 0 else ''}{d:.1f}{unit}"
-            badges.append(_badge(lbl, d, "#00d4a0", "#FF4444"))
+            badges.append(_aop_badge(lbl, d))
 
     if ly_col and ly_col in latest.index:
         ly = latest[ly_col]

@@ -81,11 +81,20 @@ nongov_pct   = _cb_val("NON", "Collections_Pct")
 consumer_pct = _cb_val("CONSUMER", "Collections_Pct")
 amplia_pct   = _cb_val("AMPLIA", "Collections_Pct")
 
-def _pct_color(pct):
-    if pct is None: return "#4488ff"
-    if pct >= 85:   return "#00e676"
-    if pct >= 70:   return "#FFD700"
-    return "#ef4444"
+def _pct_color(pct, group="gov"):
+    """RAG color for collections % using document thresholds.
+    gov/nongov: Green >=95%, Amber >=90%, Red <90%.
+    consumer/amplia: Green >=80%, Amber >=75%, Red <75%."""
+    if pct is None:
+        return "#4488ff"
+    if group in ("consumer", "amplia"):
+        if pct >= 80: return "#00e676"
+        if pct >= 75: return "#f59e0b"
+        return "#ef4444"
+    else:
+        if pct >= 95: return "#00e676"
+        if pct >= 90: return "#f59e0b"
+        return "#ef4444"
 
 # ── AR aging ──────────────────────────────────────────────────────────────────
 AR_BUCKETS = [
@@ -267,8 +276,8 @@ with c_ar:
 </div>""", unsafe_allow_html=True)
 
     # Collections
-    def _coll_box(label, coll_val, pct_val, accent):
-        color = _pct_color(pct_val)
+    def _coll_box(label, coll_val, pct_val, accent, group="gov"):
+        color = _pct_color(pct_val, group)
         if pct_val is not None:
             main = f'<div style="font-size:2.9rem;font-weight:800;color:{color};line-height:1">{pct_val:.1f}%</div>'
         elif coll_val is not None:
@@ -288,12 +297,12 @@ with c_ar:
         f'letter-spacing:1.5px;margin-top:10px;margin-bottom:8px">'
         f'Collections — {latest_month}</div>'
         f'<div style="display:flex;gap:8px;margin-bottom:8px">'
-        f'{_coll_box("Government",     govt_coll,     govt_pct,     "#4488ff")}'
-        f'{_coll_box("Non-Government", nongov_coll,   nongov_pct,   "#a78bfa")}'
+        f'{_coll_box("Government",     govt_coll,     govt_pct,     "#4488ff", "gov")}'
+        f'{_coll_box("Non-Government", nongov_coll,   nongov_pct,   "#a78bfa", "nongov")}'
         f'</div>'
         f'<div style="display:flex;gap:8px">'
-        f'{_coll_box("Consumer Sales", consumer_coll, consumer_pct, "#00e676")}'
-        f'{_coll_box("Amplia",         amplia_coll,   amplia_pct,   "#FF8844")}'
+        f'{_coll_box("Consumer Sales", consumer_coll, consumer_pct, "#00e676", "consumer")}'
+        f'{_coll_box("Amplia",         amplia_coll,   amplia_pct,   "#FF8844", "amplia")}'
         f'</div>',
         unsafe_allow_html=True,
     )
