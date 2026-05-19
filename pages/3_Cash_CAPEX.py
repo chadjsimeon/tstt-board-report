@@ -74,11 +74,12 @@ def _cb_val(group_filter, col, exclude=None):
 govt_coll     = _cb_val("GOV", "Collections", exclude="NON")
 nongov_coll   = _cb_val("NON", "Collections")
 consumer_coll = _cb_val("CONSUMER", "Collections")
-amplia_coll   = None  # not in master template
+amplia_coll   = _cb_val("AMPLIA", "Collections")
 
 govt_pct     = _cb_val("GOV", "Collections_Pct", exclude="NON")
 nongov_pct   = _cb_val("NON", "Collections_Pct")
 consumer_pct = _cb_val("CONSUMER", "Collections_Pct")
+amplia_pct   = _cb_val("AMPLIA", "Collections_Pct")
 
 def _pct_color(pct):
     if pct is None: return "#4488ff"
@@ -292,7 +293,7 @@ with c_ar:
         f'</div>'
         f'<div style="display:flex;gap:8px">'
         f'{_coll_box("Consumer Sales", consumer_coll, consumer_pct, "#00e676")}'
-        f'{_coll_box("Amplia",         amplia_coll,   None,         "#FF8844")}'
+        f'{_coll_box("Amplia",         amplia_coll,   amplia_pct,   "#FF8844")}'
         f'</div>',
         unsafe_allow_html=True,
     )
