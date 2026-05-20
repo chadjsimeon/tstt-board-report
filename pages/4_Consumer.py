@@ -197,7 +197,14 @@ with tab2:
 
     # Revenue
     apr26_rev   = float(pre_latest["Revenue"].sum())  if not pre_latest.empty else 0.0
-    apr25_rev   = float(pre_apr25["Revenue"].sum())   if not pre_apr25.empty else 0.0
+    # Prefer Revenue_PY column; fall back to Apr-25 row lookup
+    _pre_py_col = None
+    if not pre_latest.empty and "Revenue_PY" in pre_latest.columns:
+        _v = pre_latest["Revenue_PY"].values[0]
+        if pd.notna(_v) and float(_v) != 0:
+            _pre_py_col = float(_v)
+    apr25_rev = _pre_py_col if _pre_py_col is not None else (
+        float(pre_apr25["Revenue"].sum()) if not pre_apr25.empty else 0.0)
     _r_aop_raw  = pre_latest["Revenue_AOP"].values[0] if not pre_latest.empty else None
     apr26_aop_v = (float(_r_aop_raw)
                    if _r_aop_raw is not None and pd.notna(_r_aop_raw) else None)
@@ -262,9 +269,10 @@ with tab2:
             f'<div style="font-size:62px;font-weight:800;color:white;line-height:1.05;'
             f'margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
             f'{value}</div>'
-            f'<div style="font-size:29px;color:{l1_col};font-weight:600;margin-bottom:0px">'
-            f'{line1}</div>'
-            f'<div style="font-size:29px;color:{l2_col};font-weight:600">{line2}</div>'
+            f'<div style="font-size:29px;color:{l1_col};font-weight:600;margin-bottom:0px;'
+            f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{line1}</div>'
+            f'<div style="font-size:29px;color:{l2_col};font-weight:600;'
+            f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{line2}</div>'
             f'{b_html}{sp_html}'
             f'</div>'
         )
@@ -275,8 +283,15 @@ with tab2:
     pre_subs_open  = float(_arpu_totals.get(_prev_subs_month, 0.0))
     pre_subs_close = subs_lat
     pre_subs_net   = pre_subs_close - pre_subs_open
-    pre_subs_disc  = pre_subs_open * churn_pre / 100 if (churn_pre and pre_subs_open > 0) else 0.0
-    pre_subs_gross = max(0.0, pre_subs_close - pre_subs_open + pre_subs_disc)
+    # Use Gross_Adds / Churn_Count directly when available (new whole-number format)
+    _pre_gross_adds_raw = pre_latest["Gross_Adds"].values[0] if not pre_latest.empty else 0.0
+    _pre_churn_count_raw = pre_latest["Churn_Count"].values[0] if (not pre_latest.empty and "Churn_Count" in pre_latest.columns) else None
+    if _pre_gross_adds_raw and float(_pre_gross_adds_raw) > 0:
+        pre_subs_gross = float(_pre_gross_adds_raw)
+        pre_subs_disc  = float(_pre_churn_count_raw) if (_pre_churn_count_raw is not None and pd.notna(_pre_churn_count_raw)) else 0.0
+    else:
+        pre_subs_disc  = pre_subs_open * churn_pre / 100 if (churn_pre and pre_subs_open > 0) else 0.0
+        pre_subs_gross = max(0.0, pre_subs_close - pre_subs_open + pre_subs_disc)
     churn_derived  = churn_pre if churn_pre else 0.0
 
     # ── 4 KPI boxes ──────────────────────────────────────────────────────────
@@ -442,7 +457,14 @@ with tab3:
 
     # Revenue
     pp26_rev  = float(pp_latest["Revenue"].sum())  if not pp_latest.empty else 0.0
-    pp25_rev  = float(pp_apr25["Revenue"].sum())   if not pp_apr25.empty else 0.0
+    # Prefer Revenue_PY column; fall back to Apr-25 row lookup
+    _pp_py_col = None
+    if not pp_latest.empty and "Revenue_PY" in pp_latest.columns:
+        _v = pp_latest["Revenue_PY"].values[0]
+        if pd.notna(_v) and float(_v) != 0:
+            _pp_py_col = float(_v)
+    pp25_rev = _pp_py_col if _pp_py_col is not None else (
+        float(pp_apr25["Revenue"].sum()) if not pp_apr25.empty else 0.0)
     _pp_aop_r = pp_latest["Revenue_AOP"].values[0] if not pp_latest.empty else None
     pp_aop_v  = (float(_pp_aop_r)
                  if _pp_aop_r is not None and pd.notna(_pp_aop_r) else None)
@@ -491,31 +513,42 @@ with tab3:
     _pp_subs_mon   = _pp_sub_sorted.iloc[-1]["Month"] if not _pp_sub_sorted.empty else "Apr-26"
     pp_subs_close  = float(_pp_sub_sorted.iloc[-1]["Subscribers"]) if not _pp_sub_sorted.empty else pp_subs_lat
     pp_subs_open   = float(_pp_sub_sorted.iloc[-2]["Subscribers"]) if len(_pp_sub_sorted) >= 2 else pp_subs_close
-    pp_subs_disc_c   = pp_subs_open * pp_churn / 100 if (pp_churn and pp_subs_open > 0) else 0.0
-    pp_subs_gross_c  = max(0.0, pp_subs_close - pp_subs_open + pp_subs_disc_c)
+    _pp_latest_row   = _pp_sub_sorted.iloc[-1] if not _pp_sub_sorted.empty else None
+    _pp_gross_raw    = float(_pp_latest_row["Gross_Adds"]) if (_pp_latest_row is not None and "Gross_Adds" in _pp_latest_row and pd.notna(_pp_latest_row["Gross_Adds"])) else 0.0
+    _pp_churn_cnt    = float(_pp_latest_row["Churn_Count"]) if (_pp_latest_row is not None and "Churn_Count" in _pp_latest_row and pd.notna(_pp_latest_row["Churn_Count"])) else None
+    if _pp_gross_raw > 0:
+        pp_subs_gross_c = _pp_gross_raw
+        pp_subs_disc_c  = _pp_churn_cnt if _pp_churn_cnt is not None else 0.0
+    else:
+        pp_subs_disc_c  = pp_subs_open * pp_churn / 100 if (pp_churn and pp_subs_open > 0) else 0.0
+        pp_subs_gross_c = max(0.0, pp_subs_close - pp_subs_open + pp_subs_disc_c)
     pp_churn_derived = pp_churn if pp_churn else 0.0
 
     # ── 4 KPI boxes ──────────────────────────────────────────────────────────
     pp_r_aop_col = rev_var_rag(pp_aop_pct)
     pp_r_l1 = (f"{pp_aop_m:+.1f} | {pp_aop_pct:+.1f}% vs AOP"
                if pp_aop_pct is not None else "— vs AOP")
-    pp_r_l2    = f"{pp_py_m:+.1f} vs PY" if pp_py_m is not None else "— vs PY"
+    pp_py_pct   = pp_py_m / pp25_rev * 100 if (pp_py_m is not None and pp25_rev) else None
+    pp_r_l2    = (f"{pp_py_m:+.1f} | {pp_py_pct:+.1f}% vs PY"
+                  if pp_py_pct is not None else "— vs PY")
     pp_r_py_col = ("#22c55e" if (pp_py_m or 0) >= 0 else "#ef4444") if pp_py_m is not None else "#7788aa"
 
     pp_a_l1_col = rev_var_rag(pp_arpu_aop_pct)
     pp_a_l1 = (f"${pp_arpu_lat - pp_arpu_aop:+.0f} | {pp_arpu_aop_pct:+.1f}% vs AOP"
                if pp_arpu_aop_pct is not None else "— vs AOP")
+    pp_arpu_py_delta = pp_arpu_lat - pp_arpu_25 if pp_arpu_25 else None
     pp_a_l2_col = "#f59e0b" if pp_arpu_py_pct is not None else "#7788aa"
-    pp_a_l2 = (f"vs PY: {pp_arpu_py_pct:+.1f}%"
-               if pp_arpu_py_pct is not None else "vs PY: —")
+    pp_a_l2 = (f"${pp_arpu_py_delta:+.0f} | {pp_arpu_py_pct:+.1f}% vs PY"
+               if pp_arpu_py_pct is not None else "— vs PY")
 
     _pp_s_l1_col = rev_var_rag(pp_subs_aop_pct)
     _pp_s_l1 = (f"{(pp_subs_close - pp_subs_aop)/1000:+.1f}K | {pp_subs_aop_pct:+.1f}% vs AOP"
                 if pp_subs_aop_pct is not None else "— vs AOP")
+    pp_subs_py_delta = (pp_subs_close - pp_subs_25) / 1000 if pp_subs_25 else None
     _pp_s_l2_col = ("#22c55e" if (pp_subs_py_pct or 0) >= 0
                     else "#ef4444" if pp_subs_py_pct is not None else "#7788aa")
-    _pp_s_l2 = (f"vs PY: {pp_subs_py_pct:+.1f}%"
-                if pp_subs_py_pct is not None else "vs PY: —")
+    _pp_s_l2 = (f"{pp_subs_py_delta:+.1f}K | {pp_subs_py_pct:+.1f}% vs PY"
+                if pp_subs_py_pct is not None else "— vs PY")
 
     _pp_c1     = _pre_kpi("Postpaid Revenue", f"{pp26_rev:.1f}",
                            pp_r_l1, pp_r_aop_col, pp_r_l2, pp_r_py_col, "#4a9eff", pp_rev_spark)
@@ -670,7 +703,14 @@ with tab4:
 
     # Revenue
     wx26_rev  = float(wx_latest["Revenue"].sum())  if not wx_latest.empty else 0.0
-    wx25_rev  = float(wx_apr25["Revenue"].sum())   if not wx_apr25.empty else 0.0
+    # Prefer Revenue_PY column; fall back to Apr-25 row lookup
+    _wx_py_col = None
+    if not wx_latest.empty and "Revenue_PY" in wx_latest.columns:
+        _v = wx_latest["Revenue_PY"].values[0]
+        if pd.notna(_v) and float(_v) != 0:
+            _wx_py_col = float(_v)
+    wx25_rev = _wx_py_col if _wx_py_col is not None else (
+        float(wx_apr25["Revenue"].sum()) if not wx_apr25.empty else 0.0)
     _wx_aop_r = wx_latest["Revenue_AOP"].values[0] if not wx_latest.empty else None
     wx_aop_v  = (float(_wx_aop_r)
                  if _wx_aop_r is not None and pd.notna(_wx_aop_r) else None)
@@ -719,31 +759,42 @@ with tab4:
     _wx_subs_mon   = _wx_sub_sorted.iloc[-1]["Month"] if not _wx_sub_sorted.empty else "Apr-26"
     wx_subs_close  = float(_wx_sub_sorted.iloc[-1]["Subscribers"]) if not _wx_sub_sorted.empty else wx_subs_lat
     wx_subs_open   = float(_wx_sub_sorted.iloc[-2]["Subscribers"]) if len(_wx_sub_sorted) >= 2 else wx_subs_close
-    wx_subs_disc_c   = wx_subs_open * wx_churn / 100 if (wx_churn and wx_subs_open > 0) else 0.0
-    wx_subs_gross_c  = max(0.0, wx_subs_close - wx_subs_open + wx_subs_disc_c)
+    _wx_latest_row  = _wx_sub_sorted.iloc[-1] if not _wx_sub_sorted.empty else None
+    _wx_gross_raw   = float(_wx_latest_row["Gross_Adds"]) if (_wx_latest_row is not None and "Gross_Adds" in _wx_latest_row and pd.notna(_wx_latest_row["Gross_Adds"])) else 0.0
+    _wx_churn_cnt   = float(_wx_latest_row["Churn_Count"]) if (_wx_latest_row is not None and "Churn_Count" in _wx_latest_row and pd.notna(_wx_latest_row["Churn_Count"])) else None
+    if _wx_gross_raw > 0:
+        wx_subs_gross_c = _wx_gross_raw
+        wx_subs_disc_c  = _wx_churn_cnt if _wx_churn_cnt is not None else 0.0
+    else:
+        wx_subs_disc_c  = wx_subs_open * wx_churn / 100 if (wx_churn and wx_subs_open > 0) else 0.0
+        wx_subs_gross_c = max(0.0, wx_subs_close - wx_subs_open + wx_subs_disc_c)
     wx_churn_derived = wx_churn if wx_churn else 0.0
 
     # ── 4 KPI boxes ──────────────────────────────────────────────────────────
     wx_r_aop_col = rev_var_rag(wx_aop_pct)
     wx_r_l1 = (f"{wx_aop_m:+.1f} | {wx_aop_pct:+.1f}% vs AOP"
                if wx_aop_pct is not None else "— vs AOP")
-    wx_r_l2    = f"{wx_py_m:+.1f} vs PY" if wx_py_m is not None else "— vs PY"
+    wx_py_pct   = wx_py_m / wx25_rev * 100 if (wx_py_m is not None and wx25_rev) else None
+    wx_r_l2    = (f"{wx_py_m:+.1f} | {wx_py_pct:+.1f}% vs PY"
+                  if wx_py_pct is not None else "— vs PY")
     wx_r_py_col = ("#22c55e" if (wx_py_m or 0) >= 0 else "#ef4444") if wx_py_m is not None else "#7788aa"
 
     wx_a_l1_col = rev_var_rag(wx_arpu_aop_pct)
     wx_a_l1 = (f"${wx_arpu_lat - wx_arpu_aop:+.0f} | {wx_arpu_aop_pct:+.1f}% vs AOP"
                if wx_arpu_aop_pct is not None else "— vs AOP")
+    wx_arpu_py_delta = wx_arpu_lat - wx_arpu_25 if wx_arpu_25 else None
     wx_a_l2_col = ("#22c55e" if (wx_arpu_py_pct or 0) >= 0
                    else "#ef4444" if wx_arpu_py_pct is not None else "#7788aa")
-    wx_a_l2 = (f"vs PY: {wx_arpu_py_pct:+.1f}%"
-               if wx_arpu_py_pct is not None else "vs PY: —")
+    wx_a_l2 = (f"${wx_arpu_py_delta:+.0f} | {wx_arpu_py_pct:+.1f}% vs PY"
+               if wx_arpu_py_pct is not None else "— vs PY")
 
     _wx_s_l1_col = rev_var_rag(wx_subs_aop_pct)
     _wx_s_l1 = (f"{(wx_subs_close - wx_subs_aop)/1000:+.1f}K | {wx_subs_aop_pct:+.1f}% vs AOP"
                 if wx_subs_aop_pct is not None else "— vs AOP")
+    wx_subs_py_delta = (wx_subs_close - wx_subs_25) / 1000 if wx_subs_25 else None
     _wx_s_l2_col = "#f59e0b" if wx_subs_py_pct is not None else "#7788aa"
-    _wx_s_l2 = (f"vs PY: {wx_subs_py_pct:+.1f}%"
-                if wx_subs_py_pct is not None else "vs PY: —")
+    _wx_s_l2 = (f"{wx_subs_py_delta:+.1f}K | {wx_subs_py_pct:+.1f}% vs PY"
+                if wx_subs_py_pct is not None else "— vs PY")
 
     _wx_c1     = _pre_kpi("WTTx Revenue", f"{wx26_rev:.1f}",
                            wx_r_l1, wx_r_aop_col, wx_r_l2, wx_r_py_col, "#00d4a0", wx_rev_spark)
@@ -903,6 +954,13 @@ with tab_v2:
         return float(v) if pd.notna(v) and v != 0 else None
 
     def _v2rpy(seg):
+        # Prefer Revenue_PY column on the current month's row
+        cur = v2_latest[v2_latest["Segment"] == seg]
+        if not cur.empty and "Revenue_PY" in cur.columns:
+            _v = cur["Revenue_PY"].values[0]
+            if pd.notna(_v) and float(_v) != 0:
+                return float(_v)
+        # Fall back to actual prior-year row
         r = v2_py_snap[v2_py_snap["Segment"] == seg]["Revenue"]
         return float(r.values[0]) if not r.empty else None
 
@@ -911,7 +969,17 @@ with tab_v2:
 
     v2_t_rev = float(v2_latest["Revenue"].sum())
     v2_t_aop = float(v2_latest["Revenue_AOP"].sum())
-    v2_t_py  = float(v2_py_snap["Revenue"].sum()) if not v2_py_snap.empty else None
+    # Total Consumer PY: use P&L_Segments Consumer Sales figure (authoritative)
+    # Consumer_Products Apr-25 misses Residential Security → gives 80.3M vs 91.1M
+    _v2_pnlbd   = data["PnL_Breakdown"]
+    _v2_pnl_py  = _v2_pnlbd[_v2_pnlbd["Month"] == v2_py_mon]
+    _cs_rev_col = "CONSUMER SALES_Rev"
+    v2_t_py = (
+        float(_v2_pnl_py[_cs_rev_col].values[0])
+        if not _v2_pnl_py.empty and _cs_rev_col in _v2_pnl_py.columns
+        and pd.notna(_v2_pnl_py[_cs_rev_col].values[0])
+        else (float(v2_py_snap["Revenue"].sum()) if not v2_py_snap.empty else None)
+    )
     v2_tv_pct = _v2vp(v2_t_rev, v2_t_aop)
     v2_tv_m   = v2_t_rev - v2_t_aop
 
@@ -987,9 +1055,16 @@ with tab_v2:
     dc_aop_col  = rag(dc_aop_pct, 0, 10, higher=False) if dc_aop_pct is not None else "#7788aa"
     gp_aop_col  = rev_var_rag(gp_aop_pct)
 
-    dc_trend = f"{dc_act - dc_py:+.1f} vs PY" if dc_py is not None else "—"
+    dc_delta = dc_act - dc_py if dc_py is not None else None
+    dc_pct   = dc_delta / abs(dc_py) * 100 if (dc_delta is not None and dc_py) else None
+    dc_trend = (f"{dc_delta:+.1f} | {dc_pct:+.1f}% vs PY"
+                if dc_pct is not None else "—")
     dc_col   = "#f59e0b" if dc_py is not None else "#7788aa"
-    gp_trend = f"{gp_act - gp_py:+.1f} vs PY" if gp_py is not None else "—"
+
+    gp_delta = gp_act - gp_py if gp_py is not None else None
+    gp_pct   = gp_delta / abs(gp_py) * 100 if (gp_delta is not None and gp_py) else None
+    gp_trend = (f"{gp_delta:+.1f} | {gp_pct:+.1f}% vs PY"
+                if gp_pct is not None else "—")
     gp_col   = "#f59e0b" if gp_py is not None else "#8899bb"
 
     # Usage metrics — MoU from no available source yet; GB/Sub from Prepaid_Data_Usage
@@ -1030,14 +1105,16 @@ with tab_v2:
     wx_mom       = wx_rev - wx_prev_rev
 
     # ── Card builders ─────────────────────────────────────────────────────
-    def r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None, yoy_val=None, yoy_neg_col="#f59e0b"):
+    def r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None, yoy_val=None, yoy_neg_col="#f59e0b", yoy_force_col=None):
         col = rev_var_rag(aop_pct)
         aop_html = (
             f'<span style="color:{col}">{aop_m_str}&nbsp;|&nbsp;{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP</span>'
             if aop_pct is not None
             else '<span style="color:#445566">— vs AOP</span>'
         )
-        yoy_col = ("#22c55e" if (yoy_val or 0) >= 0 else yoy_neg_col) if yoy_val is not None else "#f59e0b"
+        yoy_col = yoy_force_col if yoy_force_col else (
+            ("#22c55e" if (yoy_val or 0) >= 0 else yoy_neg_col) if yoy_val is not None else "#f59e0b"
+        )
         yoy_html = (
             f'<span style="color:{yoy_col};font-weight:700">{yoy_str}</span>'
             if yoy_str else '<span style="color:#445566">— vs PY</span>'
@@ -1053,8 +1130,8 @@ with tab_v2:
             f'letter-spacing:1.5px;margin-bottom:2px">{label}</div>'
             f'<div style="font-size:62px;font-weight:800;color:white;margin-bottom:2px;'
             f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
-            f'<div style="font-size:29px;font-weight:600;margin-bottom:0px">{aop_html}</div>'
-            f'<div style="font-size:29px;font-weight:600">{yoy_html}</div>'
+            f'<div style="font-size:29px;font-weight:600;margin-bottom:0px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{aop_html}</div>'
+            f'<div style="font-size:29px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{yoy_html}</div>'
             f'{spark_html}'
             f'</div>'
         )
@@ -1070,10 +1147,10 @@ with tab_v2:
         dot = _AMBER_DOT if is_ph else ""
         note_h = (f'<div style="font-size:13px;color:#f59e0b;margin-top:4px;font-style:italic">'
                   f'{note}</div>') if note else ""
-        l2_h = (f'<div style="font-size:27px;color:{line2_col};font-weight:600;margin-top:1px">'
-                f'{line2}</div>') if line2 else ""
-        l1_h = (f'<div style="font-size:27px;color:{line1_col};font-weight:600">{line1}</div>'
-                ) if line1 else ""
+        l2_h = (f'<div style="font-size:27px;color:{line2_col};font-weight:600;margin-top:1px;'
+                f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{line2}</div>') if line2 else ""
+        l1_h = (f'<div style="font-size:27px;color:{line1_col};font-weight:600;'
+                f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{line1}</div>') if line1 else ""
         mh = f"min-height:{min_height};" if min_height else ""
         return (
             f'<div style="background:#161B22;border-radius:10px;padding:7px 14px;'
@@ -1093,7 +1170,8 @@ with tab_v2:
     c1.markdown(r1_card(
         "Total Revenue", f"{v2_t_rev:.1f}",
         v2_tv_pct, f"{v2_tv_m:+.1f}",
-        f"{v2_t_rev - v2_t_py:+.1f} vs PY" if v2_t_py is not None else None,
+        (f"{v2_t_rev - v2_t_py:+.1f} | {(v2_t_rev - v2_t_py) / v2_t_py * 100:+.1f}% vs PY"
+         if v2_t_py else None),
         "#00d4a0", spark_series=v2_total_trend,
         yoy_val=v2_t_rev - v2_t_py if v2_t_py is not None else None,
     ), unsafe_allow_html=True)
@@ -1102,17 +1180,17 @@ with tab_v2:
         "Prepaid", f"{pr_rev:.1f}",
         _v2vp(pr_rev, pr_aop),
         f"{_v2vm(pr_rev, pr_aop):+.1f}" if _v2vm(pr_rev, pr_aop) is not None else "—",
-        f"{pr_rev - pr_py_v:+.1f} vs PY" if pr_py_v is not None else None,
+        (f"{pr_rev - pr_py_v:+.1f} | {(pr_rev - pr_py_v) / pr_py_v * 100:+.1f}% vs PY"
+         if pr_py_v else None),
         "#a78bfa", spark_series=v2_pre_trend,
-        yoy_val=pr_rev - pr_py_v if pr_py_v is not None else None,
-        yoy_neg_col="#ef4444",
     ), unsafe_allow_html=True)
 
     c3.markdown(r1_card(
         "Postpaid", f"{pp_rev:.1f}",
         _v2vp(pp_rev, pp_aop),
         f"{_v2vm(pp_rev, pp_aop):+.1f}" if _v2vm(pp_rev, pp_aop) is not None else "—",
-        f"{pp_rev - pp_py_v:+.1f} vs PY" if pp_py_v is not None else None,
+        (f"{pp_rev - pp_py_v:+.1f} | {(pp_rev - pp_py_v) / pp_py_v * 100:+.1f}% vs PY"
+         if pp_py_v else None),
         "#4a9eff", spark_series=v2_post_trend,
         yoy_val=pp_rev - pp_py_v if pp_py_v is not None else None,
     ), unsafe_allow_html=True)
@@ -1121,15 +1199,18 @@ with tab_v2:
         "WTTx", f"{wx_rev:.1f}",
         _v2vp(wx_rev, wx_aop),
         f"{_v2vm(wx_rev, wx_aop):+.1f}" if _v2vm(wx_rev, wx_aop) is not None else "—",
-        f"{wx_rev - wx_py_v:+.1f} vs PY" if wx_py_v is not None else None,
+        (f"{wx_rev - wx_py_v:+.1f} | {(wx_rev - wx_py_v) / wx_py_v * 100:+.1f}% vs PY"
+         if wx_py_v else None),
         "#f59e0b", spark_series=v2_wx_trend,
+        yoy_force_col="#ef4444",
     ), unsafe_allow_html=True)
 
     c5.markdown(r1_card(
         "Other Revenue", f"{v2_other_rev:.1f}",
         v2_other_var,
         f"{v2_other_rev - v2_other_aop:+.1f}" if v2_other_aop else "—",
-        f"{v2_other_rev - v2_other_py:+.1f} vs PY" if v2_other_py is not None else None,
+        (f"{v2_other_rev - v2_other_py:+.1f} | {(v2_other_rev - v2_other_py) / v2_other_py * 100:+.1f}% vs PY"
+         if v2_other_py else None),
         "#ff6b6b", spark_series=v2_other_trend,
         yoy_val=v2_other_rev - v2_other_py if v2_other_py is not None else None,
     ), unsafe_allow_html=True)

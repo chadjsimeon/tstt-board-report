@@ -245,6 +245,9 @@ def load_all_data():
         for c in ["Subscribers", "Subscribers_AOP", "Gross_Adds", "Gross_Adds_AOP"]:
             if c in cs.columns:
                 cs[c] = pd.to_numeric(cs[c], errors="coerce").fillna(0)
+        # Churn column: whole-number count in new months, percentage in old months
+        if "Churn" in cs.columns:
+            cs["Churn"] = pd.to_numeric(cs["Churn"], errors="coerce")
         for c in ["ARPU", "ARPU_AOP"]:
             if c in cs.columns:
                 cs[c] = pd.to_numeric(cs[c], errors="coerce")
@@ -258,11 +261,28 @@ def load_all_data():
         cs["_derived_churn"] = (
             (cs["_prev_subs"] - cs["Subscribers"]) / cs["_prev_subs"] * 100
         ).where(cs["_prev_subs"] > 0)
-        if "Churn_Pct" in cs.columns:
-            _user = pd.to_numeric(cs["Churn_Pct"], errors="coerce")
-            cs["Churn_Pct"] = _user.where(_user.notna() & (_user != 0), cs["_derived_churn"])
+        # Detect new format: Gross_Adds populated → Churn column is a count not a %
+        _new_fmt = cs["Gross_Adds"].notna() & (cs["Gross_Adds"] > 0)
+        if "Churn" in cs.columns:
+            _churn_raw = cs["Churn"]
+            # New format: convert count → percentage for Churn_Pct
+            _churn_pct_from_count = (
+                _churn_raw.abs() / cs["_prev_subs"] * 100
+            ).where(cs["_prev_subs"] > 0)
+            # Old format: Churn column already holds percentage
+            cs["Churn_Pct"] = _churn_pct_from_count.where(_new_fmt, _churn_raw)
+            cs["Churn_Pct"] = cs["Churn_Pct"].where(
+                cs["Churn_Pct"].notna() & (cs["Churn_Pct"] != 0), cs["_derived_churn"]
+            )
+            # Churn_Count: actual subscriber losses (positive integer)
+            # New format → abs(Churn); old format → derive from Churn_Pct * prev_subs
+            cs["Churn_Count"] = (
+                _churn_raw.abs().where(_new_fmt,
+                    (cs["Churn_Pct"] / 100 * cs["_prev_subs"]).where(cs["_prev_subs"] > 0))
+            )
         else:
             cs["Churn_Pct"] = cs["_derived_churn"]
+            cs["Churn_Count"] = (cs["Churn_Pct"] / 100 * cs["_prev_subs"]).where(cs["_prev_subs"] > 0)
         cs.drop(columns=["_dt", "_prev_subs", "_derived_churn"], inplace=True)
         if "YoY_Change_Pct" in cs.columns:
             cs = _pct_col(cs, ["YoY_Change_Pct"])
