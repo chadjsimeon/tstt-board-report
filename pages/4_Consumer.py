@@ -18,7 +18,6 @@ inject_css()
 data     = load_all_data()
 consumer = data["Consumer_Sales"]
 
-page_header("Consumer", "Prepaid · Postpaid · WTTx — Revenue, Subscribers, Churn, ARPU")
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 months    = get_month_order(consumer)
