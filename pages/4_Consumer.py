@@ -337,8 +337,8 @@ with tab2:
     _mov_html = "".join(
         f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
         f'border-bottom:1px solid #1e2a4a;">'
-        f'<span style="font-size:19px;color:#7788aa">{lbl}</span>'
-        f'<span style="font-size:22px;font-weight:700;color:{col}">{val}</span>'
+        f'<span style="font-size:29px;color:#7788aa">{lbl}</span>'
+        f'<span style="font-size:29px;font-weight:700;color:{col}">{val}</span>'
         f'</div>'
         for lbl, val, col in _mov_rows
     )
@@ -422,9 +422,9 @@ with tab2:
             fig = go.Figure(go.Bar(
                 y=_cat_names, x=_cat_vals, orientation="h",
                 marker_color=_cat_colors,
-                text=[f"{v/1_000:.1f}K  ({p:.0f}%)"
-                      for v, p in zip(_cat_vals, _cat_pcts)],
-                textposition="outside", textfont=dict(color="white", size=14),
+                text=[f"{p:.0f}%"
+                      for p in _cat_pcts],
+                textposition="outside", textfont=dict(color="white", size=25),
                 hovertemplate="<b>%{y}</b><br>%{x:,.0f} subs<extra></extra>",
             ))
             _base_layout(
@@ -435,9 +435,9 @@ with tab2:
             )
             fig.update_layout(
                 showlegend=False,
-                xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=14),
+                xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=25),
                            range=[0, max(_cat_vals) * 1.45] if _cat_vals else None),
-                yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=15),
+                yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=25),
                            categoryorder="array", categoryarray=_cat_names),
             )
             st.plotly_chart(fig, use_container_width=True)
@@ -567,8 +567,8 @@ with tab3:
     _pp_mov_html = "".join(
         f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
         f'border-bottom:1px solid #1e2a4a;">'
-        f'<span style="font-size:19px;color:#7788aa">{lbl}</span>'
-        f'<span style="font-size:22px;font-weight:700;color:{col}">{val}</span>'
+        f'<span style="font-size:29px;color:#7788aa">{lbl}</span>'
+        f'<span style="font-size:29px;font-weight:700;color:{col}">{val}</span>'
         f'</div>'
         for lbl, val, col in _pp_mov_rows
     )
@@ -813,8 +813,8 @@ with tab4:
     _wx_mov_html = "".join(
         f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
         f'border-bottom:1px solid #1e2a4a;">'
-        f'<span style="font-size:19px;color:#7788aa">{lbl}</span>'
-        f'<span style="font-size:22px;font-weight:700;color:{col}">{val}</span>'
+        f'<span style="font-size:29px;color:#7788aa">{lbl}</span>'
+        f'<span style="font-size:29px;font-weight:700;color:{col}">{val}</span>'
         f'</div>'
         for lbl, val, col in _wx_mov_rows
     )
@@ -1216,10 +1216,10 @@ with tab_v2:
     ), unsafe_allow_html=True)
 
     # ════════════════════════════════════════════════════════════════════
-    # ROW 2 — [1,1,3] columns: costs|prepaid metrics|revenue mix donut
+    # ROW 2 — [1,2,2]: DC+GP (1/5 = Total Rev width) | rev mix | empty
     # ════════════════════════════════════════════════════════════════════
     st.markdown("<div style='margin:14px 0 8px'></div>", unsafe_allow_html=True)
-    col_AB, col_C, _ = st.columns([2, 1.5, 1.5])
+    col_AB, col_C, _ = st.columns([1, 2, 2])
 
     with col_AB:
         _dc_html  = r2_card(
@@ -1236,22 +1236,10 @@ with tab_v2:
             is_ph=gp_is_ph, accent="#22c55e",
             note="est. (42% proxy)" if gp_is_ph else "",
         )
-        _mou_html = r2_card(
-            "Prepaid MoU / Sub", pre_mou_str,
-            pre_mou_trend, pre_mou_col,
-            is_ph=pre_mou_ph, accent="#a78bfa",
-        )
-        _gb_html  = r2_card(
-            "Prepaid GB / Sub", pre_gb_str,
-            pre_gb_trend, pre_gb_col,
-            is_ph=pre_gb_ph, accent="#a78bfa",
-        )
         st.markdown(
-            f'<div style="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;">'
-            f'<div style="display:flex;flex-direction:column">{_dc_html}</div>'
-            f'<div style="display:flex;flex-direction:column">{_mou_html}</div>'
-            f'<div style="display:flex;flex-direction:column">{_gp_html}</div>'
-            f'<div style="display:flex;flex-direction:column">{_gb_html}</div>'
+            f'<div style="display:flex;flex-direction:column;gap:8px;">'
+            f'{_dc_html}'
+            f'{_gp_html}'
             f'</div>',
             unsafe_allow_html=True,
         )
