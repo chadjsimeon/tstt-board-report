@@ -1192,8 +1192,8 @@ with tab_v2:
     pre_mou, pre_mou_ph = _du_val("mou_per_user")
     pre_gb, pre_gb_ph   = _du_val("gb_per_user")
 
-    pp_mou_trend, pp_mou_col   = "—", "#8899bb"
-    pre_mou_trend, pre_mou_col = "—", "#8899bb"
+    pp_mou_trend, pp_mou_col   = "", "#8899bb"
+    pre_mou_trend, pre_mou_col = "", "#8899bb"
     pre_gb_trend,  pre_gb_col  = "", "#8899bb"
 
     pp_mou_str  = f"{pp_mou:.0f} mins" if pp_mou else "Data Pending"
@@ -1249,21 +1249,23 @@ with tab_v2:
     )
 
     def r2_card(label, val_str, line1, line1_col, line2="", line2_col="#7788aa",
-               is_ph=False, accent="#4a9eff", note=""):
+               is_ph=False, accent="#4a9eff", note="", val_size="52px", min_height=""):
         dot = _AMBER_DOT if is_ph else ""
         note_h = (f'<div style="font-size:13px;color:#f59e0b;margin-top:4px;font-style:italic">'
                   f'{note}</div>') if note else ""
         l2_h = (f'<div style="font-size:23px;color:{line2_col};font-weight:600;margin-top:2px">'
                 f'{line2}</div>') if line2 else ""
+        l1_h = (f'<div style="font-size:23px;color:{line1_col};font-weight:600">{line1}</div>'
+                ) if line1 else ""
+        mh = f"min-height:{min_height};" if min_height else ""
         return (
             f'<div style="background:#161B22;border-radius:10px;padding:12px 14px;'
-            f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
+            f'border:1px solid #252545;border-top:3px solid {accent};height:100%;{mh}">'
             f'<div style="font-size:22px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.5px;margin-bottom:8px;display:flex;align-items:center">{label}{dot}</div>'
-            f'<div style="font-size:52px;font-weight:800;color:white;margin-bottom:8px;'
+            f'<div style="font-size:{val_size};font-weight:800;color:white;margin-bottom:8px;'
             f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
-            f'<div style="font-size:23px;color:{line1_col};font-weight:600">{line1 or "&nbsp;"}</div>'
-            f'{l2_h}{note_h}</div>'
+            f'{l1_h}{l2_h}{note_h}</div>'
         )
 
     # ════════════════════════════════════════════════════════════════════
@@ -1339,14 +1341,14 @@ with tab_v2:
             "Prepaid MoU / Sub", pre_mou_str,
             pre_mou_trend, pre_mou_col,
             is_ph=pre_mou_ph, accent="#a78bfa",
-            note="",
+            note="", val_size="72px", min_height="185px",
         ), unsafe_allow_html=True)
         st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
         st.markdown(r2_card(
             "Prepaid GB / Sub", pre_gb_str,
             pre_gb_trend, pre_gb_col,
             is_ph=pre_gb_ph, accent="#a78bfa",
-            note="",
+            note="", val_size="72px", min_height="185px",
         ), unsafe_allow_html=True)
 
     with col_C:
