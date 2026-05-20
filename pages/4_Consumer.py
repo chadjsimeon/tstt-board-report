@@ -1200,7 +1200,7 @@ with tab_v2:
         ))
         fig_d.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=440,
+            font=dict(color="white"), height=430,
             title=dict(text=f"<b>{sel_month} Revenue Mix</b>",
                        font=dict(size=22, color="white"), x=0),
             legend=dict(
