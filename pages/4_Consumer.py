@@ -1317,7 +1317,7 @@ with tab_v2:
     # ROW 2 — [1,1,3] columns: costs|prepaid metrics|revenue mix donut
     # ════════════════════════════════════════════════════════════════════
     st.markdown("<div style='margin:14px 0 8px'></div>", unsafe_allow_html=True)
-    col_A, col_B, col_C = st.columns([1, 1, 3])
+    col_A, col_B, col_C, _ = st.columns([1, 1, 2, 1])
 
     with col_A:
         st.markdown(r2_card(
@@ -1341,14 +1341,14 @@ with tab_v2:
             "Prepaid MoU / Sub", pre_mou_str,
             pre_mou_trend, pre_mou_col,
             is_ph=pre_mou_ph, accent="#a78bfa",
-            note="", val_size="72px", min_height="185px",
+            note="", min_height="185px",
         ), unsafe_allow_html=True)
         st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
         st.markdown(r2_card(
             "Prepaid GB / Sub", pre_gb_str,
             pre_gb_trend, pre_gb_col,
             is_ph=pre_gb_ph, accent="#a78bfa",
-            note="", val_size="72px", min_height="185px",
+            note="", min_height="185px",
         ), unsafe_allow_html=True)
 
     with col_C:
@@ -1358,10 +1358,8 @@ with tab_v2:
         d_vals  = [max(pr_rev, 0), max(pp_rev, 0), max(wx_rev, 0), max(v2_other_rev, 0)]
         d_total = sum(d_vals)
         d_pcts  = [v / d_total * 100 if d_total else 0 for v in d_vals]
-        d_legend_labels = [f"{s}  {p:.1f}%" for s, p in zip(d_segs, d_pcts)]
-
         fig_d = go.Figure(go.Pie(
-            labels=d_legend_labels,
+            labels=d_segs,
             values=d_vals,
             hole=0.45,
             sort=False,
@@ -1369,8 +1367,9 @@ with tab_v2:
                 colors=d_clrs,
                 line=dict(color="rgba(255,255,255,0.35)", width=2),
             ),
-            textinfo="none",
-            domain=dict(x=[0, 0.45]),
+            textinfo="percent",
+            textfont=dict(size=14, color="white"),
+            insidetextorientation="radial",
             customdata=d_segs,
             hovertemplate="<b>%{customdata}</b><br>%{value:.1f} (%{percent})<extra></extra>",
             title=dict(
@@ -1381,18 +1380,18 @@ with tab_v2:
         ))
         fig_d.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=320,
+            font=dict(color="white"), height=360,
             title=dict(text=f"<b>{sel_month} Revenue Mix</b>",
                        font=dict(size=22, color="white"), x=0),
             legend=dict(
                 bgcolor="rgba(0,0,0,0)",
-                font=dict(size=22, color="white"),
-                orientation="v",
-                x=0.49, y=0.5,
-                xanchor="left",
-                yanchor="middle",
+                font=dict(size=16, color="white"),
+                orientation="h",
+                x=0.5, y=-0.12,
+                xanchor="center",
+                yanchor="top",
             ),
-            margin=dict(l=10, r=10, t=44, b=6),
+            margin=dict(l=10, r=10, t=44, b=60),
         )
         st.plotly_chart(fig_d, use_container_width=True)
 
