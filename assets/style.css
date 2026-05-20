@@ -10,8 +10,15 @@
     background-color: #0D1117 !important;
 }
 
+/* Hide Streamlit chrome to maximise content area */
+header[data-testid="stHeader"]  { display: none !important; }
+#MainMenu                        { display: none !important; }
+footer                           { display: none !important; }
+[data-testid="stToolbar"]        { display: none !important; }
+[data-testid="stDecoration"]     { display: none !important; }
+
 .main .block-container {
-    padding: 0.5rem 1.2rem 0.5rem !important;
+    padding: 0.3rem 1.2rem 0.2rem !important;
     max-width: 1280px !important;
     min-width: 1280px !important;
     margin-left: auto !important;
@@ -35,7 +42,7 @@ section[data-testid="stSidebar"] [data-testid="stSidebarNav"] a[aria-selected="t
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.1rem 1.6rem;
+    padding: 0.6rem 1.4rem;
     background: linear-gradient(135deg, #161B22 0%, #0f1e3c 60%, #0d2040 100%);
     border-radius: 12px;
     border: 1px solid #2a3a5a;

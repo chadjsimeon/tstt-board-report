@@ -404,7 +404,7 @@ with tab2:
             line=dict(color="#555577", width=1.8, dash="dash"),
             hovertemplate="%{x}<br>AOP %{y:.3f} / day<extra></extra>",
         ))
-        _base_layout(fig, "Avg Daily Prepaid Revenue", 480,
+        _base_layout(fig, "Avg Daily Prepaid Revenue", 380,
                      y_range=([0.6, dvr.max() + dvr_pad]
                                if len(dvr) > 0 else None))
         fig.update_layout(showlegend=False)
@@ -430,7 +430,7 @@ with tab2:
                 fig,
                 f"<b>Subscribers by ARPU Category</b>"
                 + (f" — {_arpu_data_label}" if _arpu_data_label else ""),
-                290,
+                380,
             )
             fig.update_layout(
                 showlegend=False,
@@ -656,7 +656,7 @@ with tab3:
         ))
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=500,
+            font=dict(color="white"), height=380,
             title=dict(
                 text="<b>Subscribers by Active Plan</b>"
                      + (" <span style='color:#f87171'> ⚠ no data</span>" if _pp_dummy else ""),
@@ -880,7 +880,7 @@ with tab4:
         ))
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=500,
+            font=dict(color="white"), height=380,
             title=dict(
                 text="<b>Subscribers by Plan Type</b>"
                      + (" <span style='color:#f87171'> ⚠ no data</span>" if _wx_dummy else ""),
@@ -1213,7 +1213,7 @@ with tab_v2:
         ))
         fig_d.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=420,
+            font=dict(color="white"), height=360,
             title=dict(text=f"<b>{sel_month} Revenue Mix</b>",
                        font=dict(size=22, color="white"), x=0),
             legend=dict(
