@@ -414,7 +414,7 @@ with tab2:
                 fig,
                 f"<b>Subscribers by ARPU Category</b>"
                 + (f" — {_arpu_data_label}" if _arpu_data_label else ""),
-                210,
+                242,
             )
             fig.update_layout(
                 showlegend=False,
