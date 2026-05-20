@@ -357,7 +357,7 @@ with tab_fp:
             aop_html = '<span style="color:transparent">&nbsp;</span>'
         else:
             aop_html = (
-                f'<span style="color:{col}">{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP&nbsp;|&nbsp;{aop_m_str}</span>'
+                f'<span style="color:{col}">{aop_m_str}&nbsp;|&nbsp;{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP</span>'
                 if aop_pct is not None else '<span style="color:#445566">— vs AOP</span>'
             )
         _yoy_col = "#22c55e" if (yoy_str and yoy_str.startswith('+')) else "#ef4444"
@@ -370,14 +370,14 @@ with tab_fp:
             if spark_series else '<div style="margin-top:8px;height:44px"></div>'
         )
         return (
-            f'<div style="background:#161B22;border-radius:10px;padding:16px 14px;'
+            f'<div style="background:#161B22;border-radius:12px;padding:20px 14px;'
             f'border:1px solid #252545;border-top:3px solid {accent}">'
-            f'<div style="font-size:22px;color:#6677aa;font-weight:700;text-transform:uppercase;'
-            f'letter-spacing:1.5px;margin-bottom:8px">{label}</div>'
-            f'<div style="font-size:52px;font-weight:800;color:white;margin-bottom:8px;'
-            f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
-            f'<div style="font-size:23px;font-weight:600;margin-bottom:4px">{aop_html}</div>'
-            f'<div style="font-size:23px;font-weight:600">{yoy_html}</div>'
+            f'<div style="font-size:20px;color:#6677aa;font-weight:500;text-transform:uppercase;'
+            f'letter-spacing:1.5px;margin-bottom:4px">{label}</div>'
+            f'<div style="font-size:64px;font-weight:800;color:white;margin:4px 0 12px 0;'
+            f'line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
+            f'<div style="font-size:26px;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{aop_html}</div>'
+            f'<div style="font-size:26px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{yoy_html}</div>'
             f'{spark_html}</div>'
         )
 
@@ -386,14 +386,14 @@ with tab_fp:
             "#22c55e" if (py_str and py_str.startswith('+')) else "#ef4444"
         )
         return (
-            f'<div style="background:#161B22;border-radius:10px;padding:14px 16px;'
-            f'border:1px solid #252545;border-top:2px solid {accent};height:100%">'
-            f'<div style="font-size:22px;color:#6677aa;font-weight:700;text-transform:uppercase;'
-            f'letter-spacing:1.5px;margin-bottom:8px">{label}</div>'
-            f'<div style="font-size:52px;font-weight:800;color:white;margin-bottom:8px;'
-            f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
-            f'<div style="font-size:23px;color:{aop_col};font-weight:600;margin-bottom:3px">{aop_str}</div>'
-            f'<div style="font-size:23px;color:{_py_col};font-weight:600">{py_str}</div>'
+            f'<div style="background:#161B22;border-radius:12px;padding:14px 14px;'
+            f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
+            f'<div style="font-size:18px;color:#6677aa;font-weight:500;text-transform:uppercase;'
+            f'letter-spacing:1.5px;margin-bottom:2px">{label}</div>'
+            f'<div style="font-size:52px;font-weight:800;color:white;margin:2px 0 8px 0;'
+            f'line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
+            f'<div style="font-size:22px;color:{aop_col};font-weight:600;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{aop_str}</div>'
+            f'<div style="font-size:22px;color:{_py_col};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{py_str}</div>'
             f'</div>'
         )
 
@@ -401,34 +401,40 @@ with tab_fp:
     dc_vp = _vp(dc_rev, dc_aop)
     dc_vm = _vm(dc_rev, dc_aop)
     dc_aop_color = "#ef4444" if (dc_vp or 0) > 0 else "#22c55e"
-    dc_aop_str   = f"{dc_vp:+.1f}% vs AOP | {dc_vm:+.1f}" if dc_vp is not None else "— vs AOP"
-    dc_py_str    = f"{dc_rev - dc_py:+.1f} vs PY" if dc_py is not None else "— vs PY"
+    dc_aop_str   = f"{dc_vm:+.1f} | {dc_vp:+.1f}% vs AOP" if dc_vp is not None else "— vs AOP"
+    _dc_py_delta = dc_rev - dc_py if dc_py is not None else None
+    _dc_py_pct   = _dc_py_delta / abs(dc_py) * 100 if (_dc_py_delta is not None and dc_py) else None
+    dc_py_str    = (f"{_dc_py_delta:+.1f} | {_dc_py_pct:+.1f}% vs PY"
+                   if _dc_py_pct is not None else "— vs PY")
     dc_py_col    = ("#ef4444" if (dc_py is not None and dc_rev >= dc_py) else "#22c55e") if dc_py is not None else "#7788aa"
 
     gp_vp = _vp(gp_rev, gp_aop_v)
     gp_vm = _vm(gp_rev, gp_aop_v)
     gp_aop_color = rev_var_rag(gp_vp)
-    gp_aop_str   = f"{gp_vp:+.1f}% vs AOP | {gp_vm:+.1f}" if gp_vp is not None else f"{gp_margin_pct:.1f}% margin"
-    gp_py_str    = f"{gp_rev - gp_py:+.1f} vs PY" if gp_py is not None else f"{gp_margin_pct:.1f}% margin"
+    gp_aop_str   = f"{gp_vm:+.1f} | {gp_vp:+.1f}% vs AOP" if gp_vp is not None else f"{gp_margin_pct:.1f}% margin"
+    _gp_py_delta = gp_rev - gp_py if gp_py is not None else None
+    _gp_py_pct   = _gp_py_delta / abs(gp_py) * 100 if (_gp_py_delta is not None and gp_py) else None
+    gp_py_str    = (f"{_gp_py_delta:+.1f} | {_gp_py_pct:+.1f}% vs PY"
+                   if _gp_py_pct is not None else f"{gp_margin_pct:.1f}% margin")
 
     subs_str = f"{int(mob_subs):,}" if mob_subs else "—"
     s_vp = _vp(mob_subs, subs_aop) if (mob_subs and subs_aop) else None
     if s_vp is not None:
         s_vm = int(mob_subs - subs_aop)
-        subs_aop_str = f"{s_vp:+.1f}% vs AOP | {s_vm:+,}"
+        subs_aop_str = f"{s_vm:+,} | {s_vp:+.1f}% vs AOP"
         subs_aop_col = rev_var_rag(s_vp)
     else:
         subs_aop_str, subs_aop_col = "— vs AOP", "#445566"
     s_py_pct = _vp(mob_subs, subs_py) if (mob_subs and subs_py) else None
-    subs_py_str = (f"{s_py_pct:+.1f}% vs PY | {int(mob_subs - subs_py):+,}"
+    subs_py_str = (f"{int(mob_subs - subs_py):+,} | {s_py_pct:+.1f}% vs PY"
                    if s_py_pct is not None else "— vs PY")
 
     arpu_str = f"{arpu_val:,.0f}" if arpu_val else "—"
     arpu_py  = (mob_py * 1_000_000 / subs_py) if (mob_py and subs_py) else None
-    arpu_py_str = (f"{arpu_val - arpu_py:+,.0f} vs PY | {(arpu_val - arpu_py)/arpu_py*100:+.1f}%"
+    arpu_py_str = (f"{arpu_val - arpu_py:+,.0f} | {(arpu_val - arpu_py)/arpu_py*100:+.1f}% vs PY"
                    if (arpu_val and arpu_py) else "— vs PY")
     arpu_aop_pct = _vp(arpu_val, arpu_aop) if (arpu_val and arpu_aop) else None
-    arpu_aop_str = (f"{arpu_val - arpu_aop:+,.0f} vs AOP | {arpu_aop_pct:+.1f}%"
+    arpu_aop_str = (f"{arpu_val - arpu_aop:+,.0f} | {arpu_aop_pct:+.1f}% vs AOP"
                     if arpu_aop_pct is not None else "— vs AOP")
     arpu_aop_col = rev_var_rag(arpu_aop_pct)
 
@@ -443,7 +449,7 @@ with tab_fp:
             f"{rv_f:.1f}" if rv is not None else "—",
             vp,
             f"{vm:+.1f}" if vm is not None else "—",
-            f"{rv_f - py:+.1f} vs PY" if py is not None else None,
+            (f"{rv_f - py:+.1f} | {(rv_f - py)/py*100:+.1f}% vs PY" if py else None),
             accent, spark_series=trend,
         )
 
@@ -459,7 +465,8 @@ with tab_fp:
             st.markdown(fp_r1_card(
                 "Total Revenue", f"{fp_t_rev:.1f}",
                 fp_tv_pct, f"{fp_tv_m:+.1f}",
-                f"{fp_t_rev - fp_t_py:+.1f} vs PY" if fp_t_py is not None else None,
+                (f"{fp_t_rev - fp_t_py:+.1f} | {(fp_t_rev - fp_t_py)/fp_t_py*100:+.1f}% vs PY"
+                 if fp_t_py else None),
                 FP_ACCENTS[0], spark_series=fp_total_trend,
             ), unsafe_allow_html=True)
             st.markdown(_sp, unsafe_allow_html=True)
@@ -492,7 +499,7 @@ with tab_fp:
                 label,
                 f"{rv_f:.1f}" if rv is not None else "—",
                 None, "—",
-                f"{rv_f - py:+.1f} vs PY" if py is not None else None,
+                (f"{rv_f - py:+.1f} | {(rv_f - py)/py*100:+.1f}% vs PY" if py else None),
                 accent, spark_series=trend, hide_aop=True,
             )
 
@@ -531,50 +538,3 @@ with tab_fp:
         )
         st.plotly_chart(fig_lines, use_container_width=True)
 
-    # ── Commentary ────────────────────────────────────────────────────────
-    st.markdown("<div style='margin-top:16px'></div>", unsafe_allow_html=True)
-
-    rev_dir     = "above" if (fp_tv_pct or 0) >= 0 else "below"
-    yoy_abs     = abs(fp_t_rev - fp_t_py) if fp_t_py is not None else 0
-    yoy_sign    = "increase" if (fp_t_py is not None and fp_t_rev >= fp_t_py) else "decline"
-    aop_col_cmt = rev_var_rag(fp_tv_pct)
-
-    cmt_parts = [
-        f"Business Sales revenue of <strong style='color:white'>{fp_t_rev:.1f}</strong> "
-        f"in {sel_month} is "
-        f"<strong style='color:{aop_col_cmt}'>{abs(fp_tv_pct or 0):.1f}% {rev_dir} AOP</strong>"
-        + (f" ({fp_tv_m:+.1f})" if fp_t_aop else "")
-        + (f", a year-on-year {yoy_sign} of "
-           f"<strong style='color:#f59e0b'>{yoy_abs:.1f}</strong>." if fp_t_py is not None else "."),
-    ]
-    if mob_rev is not None:
-        mob_share = mob_rev / fp_t_rev * 100 if fp_t_rev else 0
-        cmt_parts.append(
-            f" Mobile revenue of <strong style='color:white'>{mob_rev:.1f}</strong> "
-            f"({mob_share:.0f}% of total)"
-        )
-        if arpu_val is not None:
-            cmt_parts.append(f" delivers an ARPU of <strong style='color:white'>{arpu_val:,.0f}</strong>.")
-        else:
-            cmt_parts.append(".")
-    if mrr_rev:
-        mrr_share = mrr_rev / fp_t_rev * 100 if fp_t_rev else 0
-        cmt_parts.append(
-            f" MRR stands at <strong style='color:white'>{mrr_rev:.1f}</strong> "
-            f"({mrr_share:.0f}% of total revenue)."
-        )
-    cmt_parts.append(
-        f" Direct Costs of <strong style='color:white'>{dc_rev:.1f}</strong> yield a "
-        f"Gross Profit of <strong style='color:white'>{gp_rev:.1f}</strong> "
-        f"({gp_margin_pct:.1f}% margin)."
-    )
-
-    st.markdown(
-        f'<div style="background:#161B22;border-radius:12px;padding:20px 24px;'
-        f'border:1px solid #1a3520;border-left:4px solid #22c55e">'
-        f'<div style="font-size:11px;color:#f59e0b;font-weight:700;text-transform:uppercase;'
-        f'letter-spacing:2px;margin-bottom:12px">&#x25A0;&nbsp;Commentary</div>'
-        f'<div style="font-size:15px;color:#aaccaa;line-height:1.8">{"".join(cmt_parts)}</div>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
