@@ -329,10 +329,11 @@ with tab_fp:
         gp_py = fp_t_py - dc_py
     gp_margin_pct = gp_rev / fp_t_rev * 100 if fp_t_rev else 0
 
-    mob_subs = _col(biz_latest, "Mobile_Subs")
-    subs_aop = _col(biz_latest, "Subs_AOP")
-    subs_py  = _col(biz_py_snap, "Mobile_Subs")
-    arpu_val = (mob_rev * 1_000_000 / mob_subs) if (mob_rev and mob_subs) else None
+    mob_subs  = _col(biz_latest, "Mobile_Subs")
+    subs_aop  = _col(biz_latest, "Mobile_Subs_AOP")
+    arpu_aop  = _col(biz_latest, "Mobile_ARPU_AOP")
+    subs_py   = _col(biz_py_snap, "Mobile_Subs")
+    arpu_val  = (mob_rev * 1_000_000 / mob_subs) if (mob_rev and mob_subs) else None
 
     def _trend(col, df=None):
         src = df if df is not None else biz
@@ -414,7 +415,7 @@ with tab_fp:
     if s_vp is not None:
         s_vm = int(mob_subs - subs_aop)
         subs_aop_str = f"{s_vp:+.1f}% vs AOP | {s_vm:+,} subs"
-        subs_aop_col = "#22c55e" if s_vp >= 0 else "#ef4444"
+        subs_aop_col = rev_var_rag(s_vp)
     else:
         subs_aop_str, subs_aop_col = "— vs AOP", "#445566"
     s_py_pct = _vp(mob_subs, subs_py) if (mob_subs and subs_py) else None
@@ -425,6 +426,10 @@ with tab_fp:
     arpu_py  = (mob_py * 1_000_000 / subs_py) if (mob_py and subs_py) else None
     arpu_py_str = (f"{arpu_val - arpu_py:+,.0f} vs PY | {(arpu_val - arpu_py)/arpu_py*100:+.1f}%"
                    if (arpu_val and arpu_py) else "— vs PY")
+    arpu_aop_pct = _vp(arpu_val, arpu_aop) if (arpu_val and arpu_aop) else None
+    arpu_aop_str = (f"{arpu_val - arpu_aop:+,.0f} vs AOP | {arpu_aop_pct:+.1f}%"
+                    if arpu_aop_pct is not None else "— vs AOP")
+    arpu_aop_col = rev_var_rag(arpu_aop_pct)
 
     def _r1_col_card(col_name, label, accent, trend):
         rv  = _col(biz_latest, col_name)
@@ -474,7 +479,7 @@ with tab_fp:
                                    accent=FP_ACCENTS[0]), unsafe_allow_html=True)
             st.markdown(_sp, unsafe_allow_html=True)
             st.markdown(fp_r2_card("ARPU (Mobile)", arpu_str,
-                                   "&nbsp;", "#aaaacc", arpu_py_str,
+                                   arpu_aop_str, arpu_aop_col, arpu_py_str,
                                    accent=FP_ACCENTS[1]), unsafe_allow_html=True)
 
     with right_area:
