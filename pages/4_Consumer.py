@@ -1043,15 +1043,16 @@ with tab_v2:
     wx_mom       = wx_rev - wx_prev_rev
 
     # ── Card builders ─────────────────────────────────────────────────────
-    def r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None):
+    def r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None, yoy_val=None):
         col = rev_var_rag(aop_pct)
         aop_html = (
             f'<span style="color:{col}">{aop_m_str}&nbsp;|&nbsp;{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP</span>'
             if aop_pct is not None
             else '<span style="color:#445566">— vs AOP</span>'
         )
+        yoy_col = ("#22c55e" if (yoy_val or 0) >= 0 else "#ef4444") if yoy_val is not None else "#f59e0b"
         yoy_html = (
-            f'<span style="color:#f59e0b;font-weight:700">{yoy_str}</span>'
+            f'<span style="color:{yoy_col};font-weight:700">{yoy_str}</span>'
             if yoy_str else '<span style="color:#445566">— vs PY</span>'
         )
         spark_html = (
@@ -1108,6 +1109,7 @@ with tab_v2:
         v2_tv_pct, f"{v2_tv_m:+.1f}",
         f"{v2_t_rev - v2_t_py:+.1f} vs PY" if v2_t_py is not None else None,
         "#00d4a0", spark_series=v2_total_trend,
+        yoy_val=v2_t_rev - v2_t_py if v2_t_py is not None else None,
     ), unsafe_allow_html=True)
 
     c2.markdown(r1_card(
@@ -1116,6 +1118,7 @@ with tab_v2:
         f"{_v2vm(pr_rev, pr_aop):+.1f}" if _v2vm(pr_rev, pr_aop) is not None else "—",
         f"{pr_rev - pr_py_v:+.1f} vs PY" if pr_py_v is not None else None,
         "#a78bfa", spark_series=v2_pre_trend,
+        yoy_val=pr_rev - pr_py_v if pr_py_v is not None else None,
     ), unsafe_allow_html=True)
 
     c3.markdown(r1_card(
@@ -1124,6 +1127,7 @@ with tab_v2:
         f"{_v2vm(pp_rev, pp_aop):+.1f}" if _v2vm(pp_rev, pp_aop) is not None else "—",
         f"{pp_rev - pp_py_v:+.1f} vs PY" if pp_py_v is not None else None,
         "#4a9eff", spark_series=v2_post_trend,
+        yoy_val=pp_rev - pp_py_v if pp_py_v is not None else None,
     ), unsafe_allow_html=True)
 
     c4.markdown(r1_card(
@@ -1132,6 +1136,7 @@ with tab_v2:
         f"{_v2vm(wx_rev, wx_aop):+.1f}" if _v2vm(wx_rev, wx_aop) is not None else "—",
         f"{wx_rev - wx_py_v:+.1f} vs PY" if wx_py_v is not None else None,
         "#f59e0b", spark_series=v2_wx_trend,
+        yoy_val=wx_rev - wx_py_v if wx_py_v is not None else None,
     ), unsafe_allow_html=True)
 
     c5.markdown(r1_card(
@@ -1140,6 +1145,7 @@ with tab_v2:
         f"{v2_other_rev - v2_other_aop:+.1f}" if v2_other_aop else "—",
         f"{v2_other_rev - v2_other_py:+.1f} vs PY" if v2_other_py is not None else None,
         "#ff6b6b", spark_series=v2_other_trend,
+        yoy_val=v2_other_rev - v2_other_py if v2_other_py is not None else None,
     ), unsafe_allow_html=True)
 
     # ════════════════════════════════════════════════════════════════════
