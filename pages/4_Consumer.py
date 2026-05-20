@@ -1045,7 +1045,7 @@ with tab_v2:
             if spark_series else ""
         )
         return (
-            f'<div style="background:#161B22;border-radius:10px;padding:14px 12px;'
+            f'<div style="background:#161B22;border-radius:10px;padding:9px 12px;'
             f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
             f'<div style="font-size:26px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.5px;margin-bottom:4px">{label}</div>'
@@ -1133,6 +1133,7 @@ with tab_v2:
     # ════════════════════════════════════════════════════════════════════
     # ROW 2 — [1,1,3] columns: costs|prepaid metrics|revenue mix donut
     # ════════════════════════════════════════════════════════════════════
+    st.markdown("<div style='margin:14px 0 8px'></div>", unsafe_allow_html=True)
     col_AB, col_C, _ = st.columns([2, 1.5, 1.5])
 
     with col_AB:
