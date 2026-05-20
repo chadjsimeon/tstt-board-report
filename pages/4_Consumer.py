@@ -24,21 +24,6 @@ months    = get_month_order(consumer)
 segments  = consumer["Segment"].unique().tolist()
 sel_month = st.sidebar.selectbox("Focus Month", months, index=len(months) - 1)
 
-# ── Snapshot metrics strip ────────────────────────────────────────────────────
-latest_snap = consumer[consumer["Month"] == sel_month]
-total_rev   = latest_snap["Revenue"].sum()
-total_subs  = latest_snap["Subscribers"].sum()
-avg_churn   = latest_snap["Churn_Pct"].mean()
-avg_arpu    = ((latest_snap["ARPU"] * latest_snap["Subscribers"]).sum()
-               / total_subs if total_subs else 0)
-
-m1, m2, m3, m4 = st.columns(4)
-m1.metric("Total Revenue",     f"{total_rev:,.0f}")
-m2.metric("Total Subscribers", f"{total_subs:,.0f}")
-m3.metric("Avg Churn",         f"{avg_churn:.1f}%")
-m4.metric("Blended ARPU",      f"{avg_arpu:,.0f}")
-
-st.markdown("---")
 
 # ═════════════════════════════════════════════════════════════════════════════
 # PAGE-LEVEL HELPERS  (shared by all tabs)
