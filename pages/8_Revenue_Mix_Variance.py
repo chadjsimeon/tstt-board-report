@@ -6,6 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data
 from utils.charts import inject_css
+from utils.rag import rev_var_rag
 
 inject_css()
 
@@ -248,7 +249,7 @@ def _hl(name, color):
         )
     pct  = d / ly * 100
     sign = "↑" if pct >= 0 else "↓"
-    c    = "#22c55e" if pct >= 0 else "#ef4444"
+    c    = rev_var_rag(pct)
     return (
         f'<span style="color:{color};font-weight:700;">{name}</span> revenue '
         f'<span style="color:{c};font-weight:600;">{sign}&thinsp;{abs(pct):.1f}% YoY</span> '

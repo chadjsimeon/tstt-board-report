@@ -5,6 +5,7 @@ st.set_page_config(page_title="TSTT | Financial Performance", page_icon="💰", 
 import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data
+from utils.rag import rev_var_rag
 from utils.charts import (
     inject_css, page_header, styled_metric,
     line_chart, waterfall_chart, grouped_bar, stacked_bar,
@@ -115,7 +116,7 @@ with tab0:
         py_vals  = [v for v, m in zip(py_vals,  _mask) if m]
         var_vals = [a - p for a, p in zip(act_vals, py_vals)]
 
-        _var_colors = ["#22c55e" if v >= 0 else "#ef4444" for v in var_vals]
+        _var_colors = [rev_var_rag((a - p) / p * 100 if p else None) for a, p in zip(act_vals, py_vals)]
 
         # Negative actual bars: suppress trace text (goes below axis), use annotation at y=0
         _ACT_OFFSET = 0.18

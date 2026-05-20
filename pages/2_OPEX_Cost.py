@@ -6,6 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data
 from utils.charts import inject_css, page_header, GREEN, RED
+from utils.rag import rev_var_rag
 
 inject_css()
 
@@ -62,7 +63,7 @@ with col_left:
     cats       = latest.sort_values("Plan", ascending=True).copy()
     n          = len(cats)
     fig_height = max(520, n * 72 + 40)
-    bar_colors = ["#22c55e" if v <= 0 else "#ef4444" for v in cats["Variance"]]
+    bar_colors = [rev_var_rag(-(row["Variance"] / row["Plan"] * 100) if row["Plan"] else None) for _, row in cats.iterrows()]
 
     fig = go.Figure()
 
@@ -121,7 +122,7 @@ with col_left:
 
     # Summary line — amber label, variance in its own colour
     sign    = "+" if var_pct > 0 else ""
-    var_col = "#ef4444" if total_var > 0 else "#22c55e"
+    var_col = rev_var_rag(-var_pct)
     st.markdown(
         f'<p style="font-size:22px;font-weight:700;color:#f59e0b;margin-top:2px">'
         f'Total OPEX: {total_actual:,.2f} &nbsp;vs Plan&nbsp; {total_plan:,.2f}'
@@ -142,7 +143,7 @@ with col_right:
     for rank, (_, row) in enumerate(movements.iterrows(), 1):
         var      = row["Variance"]
         vpct     = row["Variance_Pct"]
-        color    = "#ef4444" if var > 0 else "#22c55e"
+        color    = rev_var_rag(-(var / row["Plan"] * 100) if row["Plan"] else None)
         badge_bg = "#3a1212" if var > 0 else "#0f2e1a"
         label    = "above plan" if var > 0 else "below plan"
         sign     = "+" if var < 0 else "-"

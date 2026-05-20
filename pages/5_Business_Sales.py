@@ -351,7 +351,12 @@ with tab_fp:
     FP_ACCENTS = ["#00d4a0", "#4a9eff", "#a78bfa", "#f59e0b", "#ff6b6b"]
 
     # ── Card builders ─────────────────────────────────────────────────────
-    def fp_r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None, hide_aop=False):
+    def _parse_pct(s):
+        if not s or '|' not in s: return None
+        try: return float(s.split('|')[1].split('%')[0].strip())
+        except Exception: return None
+
+    def fp_r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None, hide_aop=False, py_col=None):
         col = rev_var_rag(aop_pct)
         if hide_aop:
             aop_html = '<span style="color:transparent">&nbsp;</span>'
@@ -360,7 +365,7 @@ with tab_fp:
                 f'<span style="color:{col}">{aop_m_str}&nbsp;|&nbsp;{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP</span>'
                 if aop_pct is not None else '<span style="color:#445566">— vs AOP</span>'
             )
-        _yoy_col = "#22c55e" if (yoy_str and yoy_str.startswith('+')) else "#ef4444"
+        _yoy_col = py_col if py_col else rev_var_rag(_parse_pct(yoy_str))
         yoy_html = (
             f'<span style="color:{_yoy_col};font-weight:700">{yoy_str}</span>'
             if yoy_str else '<span style="color:#445566">— vs PY</span>'
@@ -370,43 +375,41 @@ with tab_fp:
             if spark_series else '<div style="margin-top:8px;height:44px"></div>'
         )
         return (
-            f'<div style="background:#161B22;border-radius:12px;padding:20px 14px;'
-            f'border:1px solid #252545;border-top:3px solid {accent}">'
-            f'<div style="font-size:20px;color:#6677aa;font-weight:500;text-transform:uppercase;'
-            f'letter-spacing:1.5px;margin-bottom:4px">{label}</div>'
-            f'<div style="font-size:64px;font-weight:800;color:white;margin:4px 0 12px 0;'
-            f'line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
-            f'<div style="font-size:26px;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{aop_html}</div>'
-            f'<div style="font-size:26px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{yoy_html}</div>'
+            f'<div style="background:#161B22;border-radius:10px;padding:7px 12px;'
+            f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
+            f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'letter-spacing:1.5px;margin-bottom:2px">{label}</div>'
+            f'<div style="font-size:62px;font-weight:800;color:white;margin-bottom:2px;'
+            f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
+            f'<div style="font-size:29px;font-weight:600;margin-bottom:0px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{aop_html}</div>'
+            f'<div style="font-size:29px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{yoy_html}</div>'
             f'{spark_html}</div>'
         )
 
     def fp_r2_card(label, val_str, aop_str, aop_col, py_str, accent="#4a9eff", py_col=None):
-        _py_col = py_col if py_col else (
-            "#22c55e" if (py_str and py_str.startswith('+')) else "#ef4444"
-        )
+        _py_col = py_col if py_col else rev_var_rag(_parse_pct(py_str))
         return (
-            f'<div style="background:#161B22;border-radius:12px;padding:14px 14px;'
+            f'<div style="background:#161B22;border-radius:10px;padding:7px 12px;'
             f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
-            f'<div style="font-size:18px;color:#6677aa;font-weight:500;text-transform:uppercase;'
+            f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.5px;margin-bottom:2px">{label}</div>'
-            f'<div style="font-size:52px;font-weight:800;color:white;margin:2px 0 8px 0;'
-            f'line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
-            f'<div style="font-size:22px;color:{aop_col};font-weight:600;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{aop_str}</div>'
-            f'<div style="font-size:22px;color:{_py_col};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{py_str}</div>'
+            f'<div style="font-size:62px;font-weight:800;color:white;margin-bottom:2px;'
+            f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
+            f'<div style="font-size:29px;color:{aop_col};font-weight:600;margin-bottom:0px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{aop_str}</div>'
+            f'<div style="font-size:29px;color:{_py_col};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{py_str}</div>'
             f'</div>'
         )
 
     # ── Pre-compute strings ────────────────────────────────────────────────
     dc_vp = _vp(dc_rev, dc_aop)
     dc_vm = _vm(dc_rev, dc_aop)
-    dc_aop_color = "#ef4444" if (dc_vp or 0) > 0 else "#22c55e"
+    dc_aop_color = rev_var_rag(-(dc_vp or 0))
     dc_aop_str   = f"{dc_vm:+.1f} | {dc_vp:+.1f}% vs AOP" if dc_vp is not None else "— vs AOP"
     _dc_py_delta = dc_rev - dc_py if dc_py is not None else None
     _dc_py_pct   = _dc_py_delta / abs(dc_py) * 100 if (_dc_py_delta is not None and dc_py) else None
     dc_py_str    = (f"{_dc_py_delta:+.1f} | {_dc_py_pct:+.1f}% vs PY"
                    if _dc_py_pct is not None else "— vs PY")
-    dc_py_col    = ("#ef4444" if (dc_py is not None and dc_rev >= dc_py) else "#22c55e") if dc_py is not None else "#7788aa"
+    dc_py_col    = rev_var_rag(-_dc_py_pct) if _dc_py_pct is not None else "#7788aa"
 
     gp_vp = _vp(gp_rev, gp_aop_v)
     gp_vm = _vm(gp_rev, gp_aop_v)
@@ -454,8 +457,7 @@ with tab_fp:
         )
 
     # ── Layout ────────────────────────────────────────────────────────────
-    st.markdown("<div style='margin-bottom:10px'></div>", unsafe_allow_html=True)
-    _sp = "<div style='height:10px'></div>"
+    _sp = "<div style='height:6px'></div>"
 
     left_area, right_area = st.columns([2, 3])
 
@@ -484,7 +486,7 @@ with tab_fp:
             st.markdown(_sp, unsafe_allow_html=True)
             st.markdown(fp_r2_card("Mobile Subs", subs_str,
                                    subs_aop_str, subs_aop_col, subs_py_str,
-                                   accent=FP_ACCENTS[0]), unsafe_allow_html=True)
+                                   accent=FP_ACCENTS[0], py_col="#f59e0b"), unsafe_allow_html=True)
             st.markdown(_sp, unsafe_allow_html=True)
             st.markdown(fp_r2_card("ARPU (Mobile)", arpu_str,
                                    arpu_aop_str, arpu_aop_col, arpu_py_str,
@@ -493,18 +495,18 @@ with tab_fp:
     with right_area:
         c3, c4, c5 = st.columns(3)
 
-        def _mrr_card(label, rv, py, accent, trend):
+        def _mrr_card(label, rv, py, accent, trend, py_col=None):
             rv_f = rv if rv is not None else 0.0
             return fp_r1_card(
                 label,
                 f"{rv_f:.1f}" if rv is not None else "—",
                 None, "—",
                 (f"{rv_f - py:+.1f} | {(rv_f - py)/py*100:+.1f}% vs PY" if py else None),
-                accent, spark_series=trend, hide_aop=True,
+                accent, spark_series=trend, hide_aop=True, py_col=py_col,
             )
 
         with c3:
-            st.markdown(_mrr_card("MRR",   mrr_rev, mrr_py, FP_ACCENTS[2], mrr_trend), unsafe_allow_html=True)
+            st.markdown(_mrr_card("MRR",   mrr_rev, mrr_py, FP_ACCENTS[2], mrr_trend, py_col="#f59e0b"), unsafe_allow_html=True)
         with c4:
             st.markdown(_mrr_card("USAGE", usg_rev, usg_py, FP_ACCENTS[3], usg_trend), unsafe_allow_html=True)
         with c5:

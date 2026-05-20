@@ -139,7 +139,7 @@ def _dpdi_kpi(label, value, line1, l1_col, line2, l2_col, accent, spark=None):
         f'</div>'
     )
 
-_vc = lambda p: ("#22c55e" if p >= 0 else "#ef4444") if p is not None else "#7788aa"
+_vc = lambda p: rev_var_rag(p) if p is not None else "#7788aa"
 _vl = lambda p: (f"{p:+.1f}% vs PY" if p is not None else "— vs PY")
 
 K = 1000
@@ -161,7 +161,7 @@ c2.markdown(_dpdi_kpi(
     "#a78bfa", excl_spark,
 ), unsafe_allow_html=True)
 _dc_py_str = (f"{dc_py_pct:+.1f}% vs PY" if dc_py_pct is not None else "— vs PY")
-_dc_py_col = (("#22c55e" if dc_py_pct <= 0 else "#ef4444") if dc_py_pct is not None else "#7788aa")
+_dc_py_col = rev_var_rag(-dc_py_pct) if dc_py_pct is not None else "#7788aa"
 c3.markdown(_dpdi_kpi(
     "Direct Costs", f"{total_dc*K:,.0f}",
     dc_sub_text, dc_sub_color,

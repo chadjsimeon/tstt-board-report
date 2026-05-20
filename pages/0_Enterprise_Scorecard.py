@@ -58,9 +58,11 @@ def arrow(kpi_name, actual, aop):
     if pct < 0.02:
         return "→", "#f59e0b"
     if kpi_name in HIGHER_BETTER:
-        return ("↑", "#22c55e") if float(actual) > float(aop) else ("↓", "#ef4444")
+        if float(actual) >= float(aop): return "↑", "#22c55e"
+        return ("↓", "#f59e0b") if pct < 0.10 else ("↓", "#ef4444")
     if kpi_name in LOWER_BETTER:
-        return ("↓", "#22c55e") if float(actual) < float(aop) else ("↑", "#ef4444")
+        if float(actual) <= float(aop): return "↓", "#22c55e"
+        return ("↑", "#f59e0b") if pct < 0.10 else ("↑", "#ef4444")
     return "", "#666666"
 
 

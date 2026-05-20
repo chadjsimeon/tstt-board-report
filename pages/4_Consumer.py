@@ -106,7 +106,7 @@ def _tab_hdr(title, period="YTD April 2026 | TTM"):
 
 def _vc(pct):
     if pct is None: return "#888888"
-    return "#22c55e" if pct >= 0 else "#ef4444"
+    return rev_var_rag(pct)
 
 
 def _vs(pct, suffix="% vs AOP"):
@@ -301,7 +301,7 @@ with tab2:
     rev_py_pct = (rev_py_m / apr25_rev * 100) if (rev_py_m is not None and apr25_rev) else None
     r_l2       = (f"{rev_py_m:+.1f} | {rev_py_pct:+.1f}% vs PY"
                   if rev_py_pct is not None else "— vs PY")
-    r_py_col   = ("#22c55e" if (rev_py_m or 0) >= 0 else "#ef4444") if rev_py_m is not None else "#7788aa"
+    r_py_col   = "#f59e0b" if rev_py_m is not None else "#7788aa"
 
     a_l1_col     = rev_var_rag(arpu_aop_pct)
     a_l1         = (f"${arpu_aop_m:+.0f} | {arpu_aop_pct:+.1f}% vs AOP"
@@ -531,7 +531,7 @@ with tab3:
     pp_py_pct   = pp_py_m / pp25_rev * 100 if (pp_py_m is not None and pp25_rev) else None
     pp_r_l2    = (f"{pp_py_m:+.1f} | {pp_py_pct:+.1f}% vs PY"
                   if pp_py_pct is not None else "— vs PY")
-    pp_r_py_col = ("#22c55e" if (pp_py_m or 0) >= 0 else "#ef4444") if pp_py_m is not None else "#7788aa"
+    pp_r_py_col = rev_var_rag(pp_py_pct) if pp_py_pct is not None else "#7788aa"
 
     pp_a_l1_col = rev_var_rag(pp_arpu_aop_pct)
     pp_a_l1 = (f"${pp_arpu_lat - pp_arpu_aop:+.0f} | {pp_arpu_aop_pct:+.1f}% vs AOP"
@@ -777,7 +777,7 @@ with tab4:
     wx_py_pct   = wx_py_m / wx25_rev * 100 if (wx_py_m is not None and wx25_rev) else None
     wx_r_l2    = (f"{wx_py_m:+.1f} | {wx_py_pct:+.1f}% vs PY"
                   if wx_py_pct is not None else "— vs PY")
-    wx_r_py_col = ("#22c55e" if (wx_py_m or 0) >= 0 else "#ef4444") if wx_py_m is not None else "#7788aa"
+    wx_r_py_col = rev_var_rag(wx_py_pct) if wx_py_pct is not None else "#7788aa"
 
     wx_a_l1_col = rev_var_rag(wx_arpu_aop_pct)
     wx_a_l1 = (f"${wx_arpu_lat - wx_arpu_aop:+.0f} | {wx_arpu_aop_pct:+.1f}% vs AOP"
