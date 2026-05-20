@@ -1188,13 +1188,13 @@ with tab_v2:
                 line=dict(color="rgba(255,255,255,0.35)", width=2),
             ),
             textinfo="percent",
-            textfont=dict(size=14, color="white"),
+            textfont=dict(size=22, color="white"),
             insidetextorientation="radial",
             customdata=d_segs,
             hovertemplate="<b>%{customdata}</b><br>%{value:.1f} (%{percent})<extra></extra>",
             title=dict(
                 text=f"<b>{d_total:.1f}</b>",
-                font=dict(size=26, color="white"),
+                font=dict(size=36, color="white"),
                 position="middle center",
             ),
         ))
@@ -1202,10 +1202,10 @@ with tab_v2:
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="white"), height=427,
             title=dict(text=f"<b>{sel_month} Revenue Mix</b>",
-                       font=dict(size=22, color="white"), x=0),
+                       font=dict(size=26, color="white"), x=0),
             legend=dict(
                 bgcolor="rgba(0,0,0,0)",
-                font=dict(size=16, color="white"),
+                font=dict(size=22, color="white"),
                 orientation="h",
                 x=0.5, y=-0.12,
                 xanchor="center",
