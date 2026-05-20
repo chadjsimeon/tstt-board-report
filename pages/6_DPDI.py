@@ -80,9 +80,18 @@ rev_py_pct  = (total_rev - py_rev)      / abs(py_rev)      * 100 if py_rev      
 excl_py_pct = (excl_rev  - py_excl_rev) / abs(py_excl_rev) * 100 if py_excl_rev else None
 gp_py_pct   = (total_gp  - py_gp)       / abs(py_gp)       * 100 if py_gp       else None
 
-_tg       = dpdi[dpdi["Month"].isin(trend_months)].groupby("Month")
-rev_spark = _tg["Revenue"].sum().reindex(trend_months, fill_value=0).tolist()
-gp_spark  = _tg["Gross_Profit"].sum().reindex(trend_months, fill_value=0).tolist()
+_tg        = dpdi[dpdi["Month"].isin(trend_months)].groupby("Month")
+rev_spark  = _tg["Revenue"].sum().reindex(trend_months, fill_value=0).tolist()
+gp_spark   = _tg["Gross_Profit"].sum().reindex(trend_months, fill_value=0).tolist()
+dc_spark   = _tg["Direct_Costs"].sum().reindex(trend_months, fill_value=0).tolist()
+
+_excl_tg   = (dpdi[(dpdi["Month"].isin(trend_months)) & (dpdi["Product"] != "e-GOVTT")]
+              .groupby("Month"))
+excl_spark = _excl_tg["Revenue"].sum().reindex(trend_months, fill_value=0).tolist()
+
+_eg_tg     = (dpdi[(dpdi["Month"].isin(trend_months)) & (dpdi["Product"] == "e-GOVTT")]
+              .groupby("Month"))
+egovtt_spark = _eg_tg["Revenue"].sum().reindex(trend_months, fill_value=0).tolist()
 
 
 def _sparkline(series, color, height=44):
@@ -146,13 +155,13 @@ c2.markdown(_dpdi_kpi(
     "Excl. e-GOVTT", f"{excl_rev*K:,.0f}",
     f"{excl_var_pct:+.1f}% vs AOP", _excl_rag,
     _vl(excl_py_pct), _vc(excl_py_pct),
-    "#a78bfa",
+    "#a78bfa", excl_spark,
 ), unsafe_allow_html=True)
 c3.markdown(_dpdi_kpi(
     "Direct Costs", f"{total_dc*K:,.0f}",
     dc_sub_text, dc_sub_color,
     f"GP Margin: {gp_margin:.1f}%", "#7788aa",
-    "#ff6b6b",
+    "#ff6b6b", dc_spark,
 ), unsafe_allow_html=True)
 c4.markdown(_dpdi_kpi(
     "Gross Profit", f"{total_gp*K:,.0f}",
@@ -164,7 +173,7 @@ c5.markdown(_dpdi_kpi(
     "e-GOVTT Pipeline", f"{egovtt_pipeline*K:,.0f}",
     "Key opportunity →", "#00ff88",
     f"Actual: {egovtt_rev*K:,.0f}" if egovtt_rev else "No revenue YTD", "#556677",
-    "#00aa55",
+    "#00aa55", egovtt_spark,
 ), unsafe_allow_html=True)
 st.markdown("<div style='margin-bottom:1.5rem'></div>", unsafe_allow_html=True)
 
