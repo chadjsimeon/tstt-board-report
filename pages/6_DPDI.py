@@ -63,29 +63,109 @@ st.markdown(f"""
 <hr style="border:none;border-top:1px solid #1a1a2a;margin:0.9rem 0 1.2rem 0">
 """, unsafe_allow_html=True)
 
-# ── KPI cards ─────────────────────────────────────────────────────────────────
-def _dpdi_card(label, value_str, sub_str, sub_color, accent, note=""):
+# ── vs PY / sparkline prep ────────────────────────────────────────────────────
+sel_idx      = months.index(sel_month)
+py_month     = months[sel_idx - 12] if sel_idx >= 12 else None
+trend_months = months[max(0, sel_idx - 12): sel_idx + 1]
+
+snap_py = dpdi[dpdi["Month"] == py_month] if py_month else dpdi.iloc[:0]
+ytd_py  = snap_py.groupby("Product")[_agg_cols].sum() if not snap_py.empty else None
+py_rev        = ytd_py["Revenue"].sum()       if ytd_py is not None else 0.0
+py_egovtt_rev = (ytd_py.loc["e-GOVTT", "Revenue"]
+                 if ytd_py is not None and "e-GOVTT" in ytd_py.index else 0.0)
+py_excl_rev   = py_rev - py_egovtt_rev
+py_gp         = ytd_py["Gross_Profit"].sum()  if ytd_py is not None else 0.0
+
+rev_py_pct  = (total_rev - py_rev)      / abs(py_rev)      * 100 if py_rev      else None
+excl_py_pct = (excl_rev  - py_excl_rev) / abs(py_excl_rev) * 100 if py_excl_rev else None
+gp_py_pct   = (total_gp  - py_gp)       / abs(py_gp)       * 100 if py_gp       else None
+
+_tg       = dpdi[dpdi["Month"].isin(trend_months)].groupby("Month")
+rev_spark = _tg["Revenue"].sum().reindex(trend_months, fill_value=0).tolist()
+gp_spark  = _tg["Gross_Profit"].sum().reindex(trend_months, fill_value=0).tolist()
+
+
+def _sparkline(series, color, height=44):
+    vals = [float(v) for v in series]
+    mn, mx = min(vals), max(vals)
+    rng = mx - mn if mx != mn else 1
+    w, pts = 220, []
+    for i, v in enumerate(vals):
+        x = i * w / max(len(vals) - 1, 1)
+        y = height - (v - mn) / rng * height * 0.78 - height * 0.11
+        pts.append(f"{x:.1f},{y:.1f}")
+    lp = " ".join(pts)
+    fp = f"0,{height} {lp} {w},{height}"
+    r, g, b = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
     return (
-        f'<div style="background:#161B22;border-radius:10px;padding:14px 16px;'
-        f'border:1px solid #252545;border-top:2px solid {accent};height:100%;min-height:165px">'
-        f'<div style="font-size:19px;color:#6677aa;font-weight:700;text-transform:uppercase;'
-        f'letter-spacing:1.2px;margin-bottom:5px">{label}</div>'
-        f'<div style="font-size:42px;font-weight:800;color:white;margin-bottom:6px">{value_str}</div>'
-        f'<div style="font-size:21px;color:{sub_color};font-weight:600;margin-bottom:3px">{sub_str or "&nbsp;"}</div>'
-        f'<div style="font-size:15px;color:#556677;font-weight:600">{note or "&nbsp;"}</div>'
+        f'<svg width="100%" height="{height}" viewBox="0 0 {w} {height}" '
+        f'preserveAspectRatio="none" style="display:block;margin-top:8px">'
+        f'<polygon points="{fp}" fill="rgba({r},{g},{b},0.15)"/>'
+        f'<polyline points="{lp}" fill="none" stroke="{color}" stroke-width="1.5"/>'
+        f'</svg>'
+    )
+
+
+# ── KPI cards ─────────────────────────────────────────────────────────────────
+def _dpdi_kpi(label, value, line1, l1_col, line2, l2_col, accent, spark=None):
+    sp_html = (
+        f'<div style="margin-top:10px;opacity:0.9">{_sparkline(spark, accent, 44)}</div>'
+    ) if spark else ""
+    return (
+        f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
+        f'border:1px solid #2a2a4a;border-top:3px solid {accent};'
+        f'height:100%;box-sizing:border-box">'
+        f'<div style="font-size:17px;color:#7788aa;font-weight:600;text-transform:uppercase;'
+        f'letter-spacing:1px;margin-bottom:8px">{label}</div>'
+        f'<div style="font-size:34px;font-weight:800;color:white;line-height:1.1;'
+        f'margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+        f'{value}</div>'
+        f'<div style="font-size:18px;color:{l1_col};font-weight:600;margin-bottom:3px">'
+        f'{line1}</div>'
+        f'<div style="font-size:18px;color:{l2_col};font-weight:600">{line2}</div>'
+        f'{sp_html}'
         f'</div>'
     )
+
+_vc = lambda p: ("#22c55e" if p >= 0 else "#ef4444") if p is not None else "#7788aa"
+_vl = lambda p: (f"{p:+.1f}% vs PY" if p is not None else "— vs PY")
 
 K = 1000
 c1, c2, c3, c4, c5 = st.columns(5)
 _rev_rag  = rev_var_rag(rev_var_pct)
 _excl_rag = rev_var_rag(excl_var_pct)
 _gp_rag   = gp_margin_rag(gp_margin)
-c1.markdown(_dpdi_card("Total Revenue",    f"{total_rev*K:,.0f}",       f"{rev_var_pct:+.1f}% vs AOP",    _rev_rag,  _rev_rag),  unsafe_allow_html=True)
-c2.markdown(_dpdi_card("Excl. e-GOVTT",   f"{excl_rev*K:,.0f}",        f"{excl_var_pct:+.1f}% vs AOP",   _excl_rag, _excl_rag), unsafe_allow_html=True)
-c3.markdown(_dpdi_card("Direct Costs",     f"{total_dc*K:,.0f}",        dc_sub_text,                       dc_sub_color, "#ff6b6b"), unsafe_allow_html=True)
-c4.markdown(_dpdi_card("Gross Profit",     f"{total_gp*K:,.0f}",        f"GP Margin: {gp_margin:.1f}%",   _gp_rag,   _gp_rag),   unsafe_allow_html=True)
-c5.markdown(_dpdi_card("e-GOVTT Pipeline", f"{egovtt_pipeline*K:,.0f}", "Key opportunity →",              "#00ff88", "#00aa55"), unsafe_allow_html=True)
+
+c1.markdown(_dpdi_kpi(
+    "Total Revenue", f"{total_rev*K:,.0f}",
+    f"{rev_var_pct:+.1f}% vs AOP", _rev_rag,
+    _vl(rev_py_pct), _vc(rev_py_pct),
+    "#4a9eff", rev_spark,
+), unsafe_allow_html=True)
+c2.markdown(_dpdi_kpi(
+    "Excl. e-GOVTT", f"{excl_rev*K:,.0f}",
+    f"{excl_var_pct:+.1f}% vs AOP", _excl_rag,
+    _vl(excl_py_pct), _vc(excl_py_pct),
+    "#a78bfa",
+), unsafe_allow_html=True)
+c3.markdown(_dpdi_kpi(
+    "Direct Costs", f"{total_dc*K:,.0f}",
+    dc_sub_text, dc_sub_color,
+    f"GP Margin: {gp_margin:.1f}%", "#7788aa",
+    "#ff6b6b",
+), unsafe_allow_html=True)
+c4.markdown(_dpdi_kpi(
+    "Gross Profit", f"{total_gp*K:,.0f}",
+    f"GP Margin: {gp_margin:.1f}%", _gp_rag,
+    _vl(gp_py_pct), _vc(gp_py_pct),
+    "#22c55e", gp_spark,
+), unsafe_allow_html=True)
+c5.markdown(_dpdi_kpi(
+    "e-GOVTT Pipeline", f"{egovtt_pipeline*K:,.0f}",
+    "Key opportunity →", "#00ff88",
+    f"Actual: {egovtt_rev*K:,.0f}" if egovtt_rev else "No revenue YTD", "#556677",
+    "#00aa55",
+), unsafe_allow_html=True)
 st.markdown("<div style='margin-bottom:1.5rem'></div>", unsafe_allow_html=True)
 
 # ── Two-column charts ─────────────────────────────────────────────────────────
@@ -143,8 +223,6 @@ with col_left:
     st.plotly_chart(fig_bar, use_container_width=True)
 
 with col_right:
-    sel_idx   = months.index(sel_month)
-    trend_months = months[max(0, sel_idx - 12): sel_idx + 1]
     trend_df  = (
         dpdi[dpdi["Month"].isin(trend_months)]
         .groupby("Month")[["Revenue", "Revenue_AOP"]]
