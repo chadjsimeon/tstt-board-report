@@ -76,10 +76,12 @@ py_egovtt_rev = (ytd_py.loc["e-GOVTT", "Revenue"]
                  if ytd_py is not None and "e-GOVTT" in ytd_py.index else 0.0)
 py_excl_rev   = py_rev - py_egovtt_rev
 py_gp         = ytd_py["Gross_Profit"].sum()  if ytd_py is not None else 0.0
+py_dc         = ytd_py["Direct_Costs"].sum()  if ytd_py is not None else 0.0
 
 rev_py_pct  = (total_rev - py_rev)      / abs(py_rev)      * 100 if py_rev      else None
 excl_py_pct = (excl_rev  - py_excl_rev) / abs(py_excl_rev) * 100 if py_excl_rev else None
 gp_py_pct   = (total_gp  - py_gp)       / abs(py_gp)       * 100 if py_gp       else None
+dc_py_pct   = (total_dc  - py_dc)       / abs(py_dc)       * 100 if py_dc       else None
 
 _tg        = dpdi[dpdi["Month"].isin(trend_months)].groupby("Month")
 rev_spark  = _tg["Revenue"].sum().reindex(trend_months, fill_value=0).tolist()
@@ -158,10 +160,12 @@ c2.markdown(_dpdi_kpi(
     _vl(excl_py_pct), _vc(excl_py_pct),
     "#a78bfa", excl_spark,
 ), unsafe_allow_html=True)
+_dc_py_str = (f"{dc_py_pct:+.1f}% vs PY" if dc_py_pct is not None else "— vs PY")
+_dc_py_col = (("#22c55e" if dc_py_pct <= 0 else "#ef4444") if dc_py_pct is not None else "#7788aa")
 c3.markdown(_dpdi_kpi(
     "Direct Costs", f"{total_dc*K:,.0f}",
     dc_sub_text, dc_sub_color,
-    f"GP Margin: {gp_margin:.1f}%", "#7788aa",
+    _dc_py_str, _dc_py_col,
     "#ff6b6b", dc_spark,
 ), unsafe_allow_html=True)
 c4.markdown(_dpdi_kpi(
