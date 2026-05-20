@@ -5,7 +5,7 @@ st.set_page_config(page_title="TSTT | DPDI", page_icon="💻", layout="wide")
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data, get_month_order
 from utils.charts import inject_css
-from utils.rag import rev_var_rag, gp_margin_rag
+from utils.rag import rag, rev_var_rag, gp_margin_rag
 
 inject_css()
 data = load_all_data()
@@ -45,7 +45,7 @@ _dc_aop_ref    = total_dc_aop if total_dc_aop else total_aop
 dc_below_aop   = total_dc < _dc_aop_ref
 _dc_var_pct    = (total_dc - _dc_aop_ref) / abs(_dc_aop_ref) * 100 if _dc_aop_ref else 0
 dc_sub_text    = f"{_dc_var_pct:+.1f}% vs AOP | {(total_dc - _dc_aop_ref)*1000:+,.0f}" if _dc_aop_ref else "— vs AOP"
-dc_sub_color   = "#00ff88" if dc_below_aop else "#FF4444"
+dc_sub_color   = rag(_dc_var_pct, 0, 10, higher=False)
 
 # ── Page header ───────────────────────────────────────────────────────────────
 st.markdown(f"""
