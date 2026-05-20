@@ -673,35 +673,6 @@ with tab3:
     with mr:
         pass
 
-    # ── Commentary ────────────────────────────────────────────────────────────
-    _pp_rev_dir = "above" if (pp_aop_pct or 0) >= 0 else "below"
-    _pp_aop_col = rev_var_rag(pp_aop_pct)
-    _pp_py_cl   = (f", {abs(pp_py_m):.1f} "
-                   f"{'above' if (pp_py_m or 0) >= 0 else 'below'} prior year"
-                   if pp_py_m is not None else "")
-    _pp_s_dir   = "increased" if (pp_subs_py_pct or 0) >= 0 else "declined"
-    _pp_a_dir   = "above" if (pp_arpu_py_pct or 0) >= 0 else "below"
-    _pp_churn_n = ("stable retention"
-                   if (pp_churn or 0) < 3
-                   else "churn pressure requiring bundle retention offers")
-    _pp_churn_cl = (f"churn at {pp_churn:.1f}% indicating {_pp_churn_n}"
-                    if pp_churn is not None else "churn data unavailable")
-    pp_cmt = (
-        f"Postpaid revenue of <strong style='color:white'>{pp26_rev:.1f}</strong> "
-        f"in Apr-26 is <strong style='color:{_pp_aop_col}'>"
-        f"{abs(pp_aop_pct or 0):.1f}% {_pp_rev_dir} AOP</strong>{_pp_py_cl}. "
-        f"Voice+Data bundles account for 52% of postpaid revenue with Data Only "
-        f"contributing 31%, a structural shift toward data-led usage that underlines "
-        f"the importance of network investment and competitive bundle packaging. "
-        f"The subscriber base of <strong style='color:white'>{_fmt_k(pp_subs_lat)}</strong> "
-        f"has {_pp_s_dir} {abs(pp_subs_py_pct or 0):.1f}% year-on-year, "
-        f"with {_pp_churn_cl}. "
-        f"ARPU of <strong style='color:white'>${pp_arpu_lat:.0f}</strong> is "
-        f"{abs(pp_arpu_py_pct or 0):.1f}% {_pp_a_dir} prior year; "
-        f"sustaining ARPU through upselling to higher-tier data bundles "
-        f"remains the key commercial priority for postpaid."
-    )
-    st.markdown(_commentary(pp_cmt), unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 4 — WTTx Revenue
@@ -927,38 +898,6 @@ with tab4:
     with mr:
         pass
 
-    # ── Commentary ────────────────────────────────────────────────────────────
-    _wx_rev_dir = "above" if (wx_aop_pct or 0) >= 0 else "below"
-    _wx_aop_col = rev_var_rag(wx_aop_pct)
-    _wx_py_cl   = (f", {abs(wx_py_m):.1f} "
-                   f"{'above' if (wx_py_m or 0) >= 0 else 'below'} prior year"
-                   if wx_py_m is not None else "")
-    _wx_s_dir   = "increased" if (wx_subs_py_pct or 0) >= 0 else "declined"
-    _wx_a_dir   = "above" if (wx_arpu_py_pct or 0) >= 0 else "below"
-    _wx_churn_n = ("healthy retention"
-                   if (wx_churn or 0) < 3
-                   else "elevated churn requiring targeted retention activity")
-    _wx_churn_cl = (f"churn at {wx_churn:.1f}% indicating {_wx_churn_n}"
-                    if wx_churn is not None else "churn data unavailable")
-    wx_cmt = (
-        f"WTTx revenue of <strong style='color:white'>{wx26_rev:.1f}</strong> "
-        f"in Apr-26 is <strong style='color:{_wx_aop_col}'>"
-        f"{abs(wx_aop_pct or 0):.1f}% {_wx_rev_dir} AOP</strong>{_wx_py_cl}. "
-        f"Broadband services dominate at 72% of WTTx revenue, underscoring the "
-        f"product's strategic role as TSTT's primary fixed-line data access offering. "
-        f"Voice bundles contribute 20%, reflecting bundling adoption among residential "
-        f"customers, while equipment subsidies (~8%) present a structural margin drag "
-        f"that could be meaningfully improved by reviewing the subsidy model for new "
-        f"connections without impacting gross adds. "
-        f"The subscriber base of <strong style='color:white'>{_fmt_k(wx_subs_lat)}</strong> "
-        f"has {_wx_s_dir} {abs(wx_subs_py_pct or 0):.1f}% year-on-year, "
-        f"with {_wx_churn_cl}. "
-        f"ARPU of <strong style='color:white'>${wx_arpu_lat:.0f}</strong> is "
-        f"{abs(wx_arpu_py_pct or 0):.1f}% {_wx_a_dir} prior year; "
-        f"upselling broadband tiers and converged bundles remains the primary lever "
-        f"to sustain ARPU growth as market penetration matures."
-    )
-    st.markdown(_commentary(wx_cmt), unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB V2 — Consumer Sales V2 (summary overview)
