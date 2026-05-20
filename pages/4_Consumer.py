@@ -1118,7 +1118,6 @@ with tab_v2:
         f"{_v2vm(pr_rev, pr_aop):+.1f}" if _v2vm(pr_rev, pr_aop) is not None else "—",
         f"{pr_rev - pr_py_v:+.1f} vs PY" if pr_py_v is not None else None,
         "#a78bfa", spark_series=v2_pre_trend,
-        yoy_val=pr_rev - pr_py_v if pr_py_v is not None else None,
     ), unsafe_allow_html=True)
 
     c3.markdown(r1_card(
@@ -1136,7 +1135,6 @@ with tab_v2:
         f"{_v2vm(wx_rev, wx_aop):+.1f}" if _v2vm(wx_rev, wx_aop) is not None else "—",
         f"{wx_rev - wx_py_v:+.1f} vs PY" if wx_py_v is not None else None,
         "#f59e0b", spark_series=v2_wx_trend,
-        yoy_val=wx_rev - wx_py_v if wx_py_v is not None else None,
     ), unsafe_allow_html=True)
 
     c5.markdown(r1_card(
