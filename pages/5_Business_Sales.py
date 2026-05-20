@@ -414,12 +414,12 @@ with tab_fp:
     s_vp = _vp(mob_subs, subs_aop) if (mob_subs and subs_aop) else None
     if s_vp is not None:
         s_vm = int(mob_subs - subs_aop)
-        subs_aop_str = f"{s_vp:+.1f}% vs AOP | {s_vm:+,} subs"
+        subs_aop_str = f"{s_vp:+.1f}% vs AOP | {s_vm:+,}"
         subs_aop_col = rev_var_rag(s_vp)
     else:
         subs_aop_str, subs_aop_col = "— vs AOP", "#445566"
     s_py_pct = _vp(mob_subs, subs_py) if (mob_subs and subs_py) else None
-    subs_py_str = (f"{s_py_pct:+.1f}% vs PY | {int(mob_subs - subs_py):+,} subs"
+    subs_py_str = (f"{s_py_pct:+.1f}% vs PY | {int(mob_subs - subs_py):+,}"
                    if s_py_pct is not None else "— vs PY")
 
     arpu_str = f"{arpu_val:,.0f}" if arpu_val else "—"
