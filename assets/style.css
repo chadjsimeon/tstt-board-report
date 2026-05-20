@@ -11,8 +11,11 @@
 }
 
 .main .block-container {
-    padding: 0.8rem 2rem 2rem !important;
-    max-width: 100% !important;
+    padding: 0.5rem 1.2rem 0.5rem !important;
+    max-width: 1280px !important;
+    min-width: 1280px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
 }
 
 /* Sidebar */
@@ -36,7 +39,7 @@ section[data-testid="stSidebar"] [data-testid="stSidebarNav"] a[aria-selected="t
     background: linear-gradient(135deg, #161B22 0%, #0f1e3c 60%, #0d2040 100%);
     border-radius: 12px;
     border: 1px solid #2a3a5a;
-    margin-bottom: 1.4rem;
+    margin-bottom: 0.6rem;
 }
 .header-title { display: flex; align-items: center; gap: 1rem; }
 
