@@ -1317,7 +1317,7 @@ with tab_v2:
     # ROW 2 — [1,1,3] columns: costs|prepaid metrics|revenue mix donut
     # ════════════════════════════════════════════════════════════════════
     st.markdown("<div style='margin:14px 0 8px'></div>", unsafe_allow_html=True)
-    col_A, col_B, col_C, _ = st.columns([1, 1, 2, 1])
+    col_A, col_B, col_C, _ = st.columns([1, 1, 1.5, 1.5])
 
     with col_A:
         st.markdown(r2_card(
@@ -1380,7 +1380,7 @@ with tab_v2:
         ))
         fig_d.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=360,
+            font=dict(color="white"), height=420,
             title=dict(text=f"<b>{sel_month} Revenue Mix</b>",
                        font=dict(size=22, color="white"), x=0),
             legend=dict(
