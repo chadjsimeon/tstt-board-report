@@ -1253,15 +1253,16 @@ with tab_v2:
         dot = _AMBER_DOT if is_ph else ""
         note_h = (f'<div style="font-size:13px;color:#f59e0b;margin-top:4px;font-style:italic">'
                   f'{note}</div>') if note else ""
-        l2_h = (f'<div style="font-size:18px;color:{line2_col};font-weight:600;margin-top:2px">'
+        l2_h = (f'<div style="font-size:23px;color:{line2_col};font-weight:600;margin-top:2px">'
                 f'{line2}</div>') if line2 else ""
         return (
             f'<div style="background:#161B22;border-radius:10px;padding:12px 14px;'
-            f'border:1px solid #252545;border-top:2px solid {accent};height:100%">'
-            f'<div style="font-size:19px;color:#6677aa;font-weight:700;text-transform:uppercase;'
-            f'letter-spacing:1.2px;margin-bottom:5px;display:flex;align-items:center">{label}{dot}</div>'
-            f'<div style="font-size:32px;font-weight:800;color:white;margin-bottom:4px">{val_str}</div>'
-            f'<div style="font-size:20px;color:{line1_col};font-weight:600">{line1 or "&nbsp;"}</div>'
+            f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
+            f'<div style="font-size:22px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'letter-spacing:1.5px;margin-bottom:8px;display:flex;align-items:center">{label}{dot}</div>'
+            f'<div style="font-size:52px;font-weight:800;color:white;margin-bottom:8px;'
+            f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
+            f'<div style="font-size:23px;color:{line1_col};font-weight:600">{line1 or "&nbsp;"}</div>'
             f'{l2_h}{note_h}</div>'
         )
 

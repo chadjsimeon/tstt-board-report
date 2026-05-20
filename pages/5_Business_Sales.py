@@ -60,10 +60,10 @@ def _kpi_tile(label, value, sub="", sub_color="#8888aa", accent="#4a9eff"):
     return (
         f'<div style="background:#161B22;border-radius:10px;padding:18px 20px;'
         f'border:1px solid #252545;border-top:3px solid {accent}">'
-        f'<div style="font-size:13px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+        f'<div style="font-size:22px;color:#6677aa;font-weight:700;text-transform:uppercase;'
         f'letter-spacing:1.5px;margin-bottom:6px">{label}</div>'
-        f'<div style="font-size:32px;font-weight:800;color:white;line-height:1.1">{value}</div>'
-        + (f'<div style="font-size:15px;color:{sub_color};margin-top:6px;font-weight:600">{sub}</div>' if sub else "")
+        f'<div style="font-size:52px;font-weight:800;color:white;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{value}</div>'
+        + (f'<div style="font-size:23px;color:{sub_color};margin-top:6px;font-weight:600">{sub}</div>' if sub else "")
         + f'</div>'
     )
 
@@ -372,12 +372,12 @@ with tab_fp:
         return (
             f'<div style="background:#161B22;border-radius:10px;padding:16px 14px;'
             f'border:1px solid #252545;border-top:3px solid {accent}">'
-            f'<div style="font-size:16px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'<div style="font-size:22px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.5px;margin-bottom:8px">{label}</div>'
-            f'<div style="font-size:42px;font-weight:800;color:white;margin-bottom:8px;'
+            f'<div style="font-size:52px;font-weight:800;color:white;margin-bottom:8px;'
             f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
-            f'<div style="font-size:19px;font-weight:600;margin-bottom:4px">{aop_html}</div>'
-            f'<div style="font-size:19px;font-weight:600">{yoy_html}</div>'
+            f'<div style="font-size:23px;font-weight:600;margin-bottom:4px">{aop_html}</div>'
+            f'<div style="font-size:23px;font-weight:600">{yoy_html}</div>'
             f'{spark_html}</div>'
         )
 
@@ -388,11 +388,12 @@ with tab_fp:
         return (
             f'<div style="background:#161B22;border-radius:10px;padding:14px 16px;'
             f'border:1px solid #252545;border-top:2px solid {accent};height:100%">'
-            f'<div style="font-size:16px;color:#6677aa;font-weight:700;text-transform:uppercase;'
-            f'letter-spacing:1.2px;margin-bottom:5px">{label}</div>'
-            f'<div style="font-size:38px;font-weight:800;color:white;margin-bottom:6px">{val_str}</div>'
-            f'<div style="font-size:19px;color:{aop_col};font-weight:600;margin-bottom:3px">{aop_str}</div>'
-            f'<div style="font-size:19px;color:{_py_col};font-weight:600">{py_str}</div>'
+            f'<div style="font-size:22px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'letter-spacing:1.5px;margin-bottom:8px">{label}</div>'
+            f'<div style="font-size:52px;font-weight:800;color:white;margin-bottom:8px;'
+            f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
+            f'<div style="font-size:23px;color:{aop_col};font-weight:600;margin-bottom:3px">{aop_str}</div>'
+            f'<div style="font-size:23px;color:{_py_col};font-weight:600">{py_str}</div>'
             f'</div>'
         )
 
