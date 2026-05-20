@@ -271,17 +271,17 @@ with tab2:
             f'<div style="margin-top:10px;opacity:0.9">{_sparkline(spark, accent, 44)}</div>'
         ) if spark else ""
         return (
-            f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
-            f'border:1px solid #2a2a4a;border-top:3px solid {accent};'
+            f'<div style="background:#161B22;border-radius:10px;padding:14px 12px;'
+            f'border:1px solid #252545;border-top:3px solid {accent};'
             f'height:100%;box-sizing:border-box">'
-            f'<div style="font-size:17px;color:#7788aa;font-weight:600;text-transform:uppercase;'
-            f'letter-spacing:1px;margin-bottom:8px">{label}</div>'
-            f'<div style="font-size:34px;font-weight:800;color:white;line-height:1.1;'
-            f'margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+            f'<div style="font-size:19px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'letter-spacing:1.5px;margin-bottom:8px">{label}</div>'
+            f'<div style="font-size:42px;font-weight:800;color:white;line-height:1.05;'
+            f'margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
             f'{value}</div>'
-            f'<div style="font-size:18px;color:{l1_col};font-weight:600;margin-bottom:3px">'
+            f'<div style="font-size:20px;color:{l1_col};font-weight:600;margin-bottom:3px">'
             f'{line1}</div>'
-            f'<div style="font-size:18px;color:{l2_col};font-weight:600">{line2}</div>'
+            f'<div style="font-size:20px;color:{l2_col};font-weight:600">{line2}</div>'
             f'{b_html}{sp_html}'
             f'</div>'
         )
@@ -584,10 +584,9 @@ with tab3:
     pp_r_py_col = ("#22c55e" if (pp_py_m or 0) >= 0 else "#ef4444") if pp_py_m is not None else "#7788aa"
 
     pp_a_l1_col = rev_var_rag(pp_arpu_aop_pct)
-    pp_a_l1 = (f"vs AOP: {pp_arpu_aop_pct:+.1f}%"
-               if pp_arpu_aop_pct is not None else "vs AOP: —")
-    pp_a_l2_col = ("#22c55e" if (pp_arpu_py_pct or 0) >= 0
-                   else "#ef4444" if pp_arpu_py_pct is not None else "#7788aa")
+    pp_a_l1 = (f"${pp_arpu_lat - pp_arpu_aop:+.0f} | {pp_arpu_aop_pct:+.1f}% vs AOP"
+               if pp_arpu_aop_pct is not None else "— vs AOP")
+    pp_a_l2_col = "#f59e0b" if pp_arpu_py_pct is not None else "#7788aa"
     pp_a_l2 = (f"vs PY: {pp_arpu_py_pct:+.1f}%"
                if pp_arpu_py_pct is not None else "vs PY: —")
 
@@ -867,8 +866,8 @@ with tab4:
     wx_r_py_col = ("#22c55e" if (wx_py_m or 0) >= 0 else "#ef4444") if wx_py_m is not None else "#7788aa"
 
     wx_a_l1_col = rev_var_rag(wx_arpu_aop_pct)
-    wx_a_l1 = (f"vs AOP: {wx_arpu_aop_pct:+.1f}%"
-               if wx_arpu_aop_pct is not None else "vs AOP: —")
+    wx_a_l1 = (f"${wx_arpu_lat - wx_arpu_aop:+.0f} | {wx_arpu_aop_pct:+.1f}% vs AOP"
+               if wx_arpu_aop_pct is not None else "— vs AOP")
     wx_a_l2_col = ("#22c55e" if (wx_arpu_py_pct or 0) >= 0
                    else "#ef4444" if wx_arpu_py_pct is not None else "#7788aa")
     wx_a_l2 = (f"vs PY: {wx_arpu_py_pct:+.1f}%"
@@ -877,8 +876,7 @@ with tab4:
     _wx_s_l1_col = rev_var_rag(wx_subs_aop_pct)
     _wx_s_l1 = (f"{(wx_subs_close - wx_subs_aop)/1000:+.1f}K | {wx_subs_aop_pct:+.1f}% vs AOP"
                 if wx_subs_aop_pct is not None else "— vs AOP")
-    _wx_s_l2_col = ("#22c55e" if (wx_subs_py_pct or 0) >= 0
-                    else "#ef4444" if wx_subs_py_pct is not None else "#7788aa")
+    _wx_s_l2_col = "#f59e0b" if wx_subs_py_pct is not None else "#7788aa"
     _wx_s_l2 = (f"vs PY: {wx_subs_py_pct:+.1f}%"
                 if wx_subs_py_pct is not None else "vs PY: —")
 
@@ -1219,7 +1217,7 @@ with tab_v2:
     def r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None):
         col = rev_var_rag(aop_pct)
         aop_html = (
-            f'<span style="color:{col}">{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP&nbsp;|&nbsp;{aop_m_str}</span>'
+            f'<span style="color:{col}">{aop_m_str}&nbsp;|&nbsp;{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP</span>'
             if aop_pct is not None
             else '<span style="color:#445566">— vs AOP</span>'
         )
