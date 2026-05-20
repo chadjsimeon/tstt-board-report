@@ -683,20 +683,13 @@ with tab3:
     _mov_ymax = max(_all_y) * 1.014
 
     # ── Active Plans — Postpaid by active Plan sheet ──────────────────────────
-    def _shorten_plan(name):
-        n = str(name)
-        for pfx in ("My Postpaid ", "b-"):
-            n = n.replace(pfx, "")
-        n = n.replace(" plan", "").replace(" Plan", "")
-        return n[:28] + "…" if len(n) > 28 else n
-
     _pp_plans_df = load_postpaid_plans()
     if not _pp_plans_df.empty:
         _active = _pp_plans_df[_pp_plans_df["Type"] == "Active"].sort_values("Sub_Count", ascending=False)
         _legacy = _pp_plans_df[_pp_plans_df["Type"] == "Legacy"]
         _top5   = _active.head(5)
         _other  = _active.iloc[5:]
-        pp_plan_names = [_shorten_plan(n) for n in _top5["Plan"]] + ["Other Active", "Legacy"]
+        pp_plan_names = list(_top5["Plan"]) + ["Other Active", "Legacy"]
         pp_plan_vals  = _top5["Sub_Count"].tolist() + [
             _other["Sub_Count"].sum(), _legacy["Sub_Count"].sum()
         ]
