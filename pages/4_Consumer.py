@@ -405,7 +405,7 @@ with tab2:
             line=dict(color="#555577", width=1.8, dash="dash"),
             hovertemplate="%{x}<br>AOP %{y:.3f} / day<extra></extra>",
         ))
-        _base_layout(fig, "Avg Daily Prepaid Revenue", 380,
+        _base_layout(fig, "Avg Daily Prepaid Revenue", 480,
                      y_range=([0.6, dvr.max() + dvr_pad]
                                if len(dvr) > 0 else None))
         fig.update_layout(showlegend=False)
