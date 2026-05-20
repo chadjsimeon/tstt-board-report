@@ -20,7 +20,6 @@ footer                           { display: none !important; }
 .main .block-container {
     padding: 0.3rem 1.2rem 0.2rem !important;
     max-width: 1280px !important;
-    min-width: 1280px !important;
     margin-left: auto !important;
     margin-right: auto !important;
 }
