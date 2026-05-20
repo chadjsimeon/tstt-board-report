@@ -1101,7 +1101,6 @@ with tab_v2:
     # ════════════════════════════════════════════════════════════════════
     # ROW 1 — 5 KPI cards
     # ════════════════════════════════════════════════════════════════════
-    st.markdown("<div style='margin-bottom:10px'></div>", unsafe_allow_html=True)
     c1, c2, c3, c4, c5 = st.columns(5)
 
     c1.markdown(r1_card(
