@@ -1050,7 +1050,7 @@ with tab_v2:
             if aop_pct is not None
             else '<span style="color:#445566">— vs AOP</span>'
         )
-        yoy_col = ("#22c55e" if (yoy_val or 0) >= 0 else "#ef4444") if yoy_val is not None else "#f59e0b"
+        yoy_col = ("#22c55e" if (yoy_val or 0) >= 0 else "#f59e0b") if yoy_val is not None else "#f59e0b"
         yoy_html = (
             f'<span style="color:{yoy_col};font-weight:700">{yoy_str}</span>'
             if yoy_str else '<span style="color:#445566">— vs PY</span>'
