@@ -1074,11 +1074,11 @@ with tab_v2:
                 ) if line1 else ""
         mh = f"min-height:{min_height};" if min_height else ""
         return (
-            f'<div style="background:#161B22;border-radius:10px;padding:12px 14px;'
+            f'<div style="background:#161B22;border-radius:10px;padding:7px 14px;'
             f'border:1px solid #252545;border-top:3px solid {accent};height:100%;{mh}">'
             f'<div style="font-size:26px;color:#6677aa;font-weight:700;text-transform:uppercase;'
-            f'letter-spacing:1.5px;margin-bottom:4px;display:flex;align-items:center">{label}{dot}</div>'
-            f'<div style="font-size:58px;font-weight:800;color:white;margin-bottom:4px;'
+            f'letter-spacing:1.5px;margin-bottom:3px;display:flex;align-items:center">{label}{dot}</div>'
+            f'<div style="font-size:58px;font-weight:800;color:white;margin-bottom:3px;'
             f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
             f'{l1_h}{l2_h}{note_h}</div>'
         )
