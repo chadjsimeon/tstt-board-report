@@ -251,20 +251,20 @@ with tab2:
             f'font-size:10px;color:#f87171;font-weight:600;margin-top:6px">{badge}</span>'
         ) if badge else ""
         sp_html = (
-            f'<div style="margin-top:10px;opacity:0.9">{_sparkline(spark, accent, 44)}</div>'
+            f'<div style="margin-top:6px;opacity:0.9">{_sparkline(spark, accent, 44)}</div>'
         ) if spark else ""
         return (
-            f'<div style="background:#161B22;border-radius:10px;padding:14px 12px;'
+            f'<div style="background:#161B22;border-radius:10px;padding:7px 12px;'
             f'border:1px solid #252545;border-top:3px solid {accent};'
             f'height:100%;box-sizing:border-box">'
-            f'<div style="font-size:22px;color:#6677aa;font-weight:700;text-transform:uppercase;'
-            f'letter-spacing:1.5px;margin-bottom:8px">{label}</div>'
-            f'<div style="font-size:52px;font-weight:800;color:white;line-height:1.05;'
-            f'margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+            f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+            f'letter-spacing:1.5px;margin-bottom:2px">{label}</div>'
+            f'<div style="font-size:62px;font-weight:800;color:white;line-height:1.05;'
+            f'margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
             f'{value}</div>'
-            f'<div style="font-size:23px;color:{l1_col};font-weight:600;margin-bottom:3px">'
+            f'<div style="font-size:29px;color:{l1_col};font-weight:600;margin-bottom:0px">'
             f'{line1}</div>'
-            f'<div style="font-size:23px;color:{l2_col};font-weight:600">{line2}</div>'
+            f'<div style="font-size:29px;color:{l2_col};font-weight:600">{line2}</div>'
             f'{b_html}{sp_html}'
             f'</div>'
         )
