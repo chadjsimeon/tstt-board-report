@@ -183,7 +183,6 @@ tab_v2, tab2, tab3, tab4 = st.tabs([
 # TAB 2 — Prepaid Revenue
 # ─────────────────────────────────────────────────────────────────────────────
 with tab2:
-    st.markdown(_tab_hdr("Prepaid Revenue"), unsafe_allow_html=True)
 
     # ── Data prep ────────────────────────────────────────────────────────────
     pre_mons    = months[-13:]
@@ -449,7 +448,6 @@ with tab2:
 # TAB 3 — Postpaid Revenue
 # ─────────────────────────────────────────────────────────────────────────────
 with tab3:
-    st.markdown(_tab_hdr("Postpaid Revenue"), unsafe_allow_html=True)
 
     # ── Data prep ────────────────────────────────────────────────────────────
     pp_mons   = months[-13:]
@@ -678,7 +676,6 @@ with tab3:
 # TAB 4 — WTTx Revenue
 # ─────────────────────────────────────────────────────────────────────────────
 with tab4:
-    st.markdown(_tab_hdr("WTTx Revenue"), unsafe_allow_html=True)
 
     # ── Data prep ────────────────────────────────────────────────────────────
     wx_mons   = months[-13:]
