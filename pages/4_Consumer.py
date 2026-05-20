@@ -1326,6 +1326,7 @@ with tab_v2:
             dc_trend, dc_col,
             is_ph=dc_is_ph, accent="#ef4444",
             note="est. (58% proxy)" if dc_is_ph else "",
+            min_height="200px",
         ), unsafe_allow_html=True)
         st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
         st.markdown(r2_card(
@@ -1334,6 +1335,7 @@ with tab_v2:
             gp_trend, gp_col,
             is_ph=gp_is_ph, accent="#22c55e",
             note="est. (42% proxy)" if gp_is_ph else "",
+            min_height="200px",
         ), unsafe_allow_html=True)
 
     with col_B:
@@ -1341,14 +1343,14 @@ with tab_v2:
             "Prepaid MoU / Sub", pre_mou_str,
             pre_mou_trend, pre_mou_col,
             is_ph=pre_mou_ph, accent="#a78bfa",
-            note="", min_height="185px",
+            note="", min_height="200px",
         ), unsafe_allow_html=True)
         st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
         st.markdown(r2_card(
             "Prepaid GB / Sub", pre_gb_str,
             pre_gb_trend, pre_gb_col,
             is_ph=pre_gb_ph, accent="#a78bfa",
-            note="", min_height="185px",
+            note="", min_height="200px",
         ), unsafe_allow_html=True)
 
     with col_C:
@@ -1380,7 +1382,7 @@ with tab_v2:
         ))
         fig_d.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=460,
+            font=dict(color="white"), height=440,
             title=dict(text=f"<b>{sel_month} Revenue Mix</b>",
                        font=dict(size=22, color="white"), x=0),
             legend=dict(
