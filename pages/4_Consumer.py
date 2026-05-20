@@ -289,16 +289,14 @@ with tab2:
     a_l1_col = rev_var_rag(arpu_aop_pct)
     a_l1 = (f"${arpu_aop_m:+.0f} | {arpu_aop_pct:+.1f}% vs AOP"
             if arpu_aop_pct is not None else "— vs AOP")
-    a_l2_col = ("#22c55e" if (arpu_py_pct or 0) >= 0
-                else "#ef4444" if arpu_py_pct is not None else "#7788aa")
+    a_l2_col = "#f59e0b" if arpu_py_pct is not None else "#7788aa"
     a_l2 = (f"vs PY: {arpu_py_pct:+.1f}%"
             if arpu_py_pct is not None else "vs PY: —")
 
     s_l1_col = rev_var_rag(subs_aop_pct)
     s_l1 = (f"{subs_aop_m/1000:+.1f}K | {subs_aop_pct:+.1f}% vs AOP"
             if subs_aop_pct is not None else "— vs AOP")
-    s_l2_col = ("#22c55e" if (subs_py_pct or 0) >= 0
-                else "#ef4444" if subs_py_pct is not None else "#7788aa")
+    s_l2_col = "#f59e0b" if subs_py_pct is not None else "#7788aa"
     s_l2 = (f"vs PY: {subs_py_pct:+.1f}%"
             if subs_py_pct is not None else "vs PY: —")
 
@@ -1028,14 +1026,14 @@ with tab_v2:
     wx_mom       = wx_rev - wx_prev_rev
 
     # ── Card builders ─────────────────────────────────────────────────────
-    def r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None, yoy_val=None):
+    def r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None, yoy_val=None, yoy_neg_col="#f59e0b"):
         col = rev_var_rag(aop_pct)
         aop_html = (
             f'<span style="color:{col}">{aop_m_str}&nbsp;|&nbsp;{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP</span>'
             if aop_pct is not None
             else '<span style="color:#445566">— vs AOP</span>'
         )
-        yoy_col = ("#22c55e" if (yoy_val or 0) >= 0 else "#f59e0b") if yoy_val is not None else "#f59e0b"
+        yoy_col = ("#22c55e" if (yoy_val or 0) >= 0 else yoy_neg_col) if yoy_val is not None else "#f59e0b"
         yoy_html = (
             f'<span style="color:{yoy_col};font-weight:700">{yoy_str}</span>'
             if yoy_str else '<span style="color:#445566">— vs PY</span>'
@@ -1102,6 +1100,8 @@ with tab_v2:
         f"{_v2vm(pr_rev, pr_aop):+.1f}" if _v2vm(pr_rev, pr_aop) is not None else "—",
         f"{pr_rev - pr_py_v:+.1f} vs PY" if pr_py_v is not None else None,
         "#a78bfa", spark_series=v2_pre_trend,
+        yoy_val=pr_rev - pr_py_v if pr_py_v is not None else None,
+        yoy_neg_col="#ef4444",
     ), unsafe_allow_html=True)
 
     c3.markdown(r1_card(
