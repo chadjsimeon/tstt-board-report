@@ -1048,10 +1048,10 @@ with tab_v2:
             f'<div style="background:#161B22;border-radius:10px;padding:14px 12px;'
             f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
             f'<div style="font-size:26px;color:#6677aa;font-weight:700;text-transform:uppercase;'
-            f'letter-spacing:1.5px;margin-bottom:8px">{label}</div>'
-            f'<div style="font-size:58px;font-weight:800;color:white;margin-bottom:8px;'
+            f'letter-spacing:1.5px;margin-bottom:4px">{label}</div>'
+            f'<div style="font-size:58px;font-weight:800;color:white;margin-bottom:4px;'
             f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
-            f'<div style="font-size:27px;font-weight:600;margin-bottom:3px">{aop_html}</div>'
+            f'<div style="font-size:27px;font-weight:600;margin-bottom:1px">{aop_html}</div>'
             f'<div style="font-size:27px;font-weight:600">{yoy_html}</div>'
             f'{spark_html}'
             f'</div>'
@@ -1068,7 +1068,7 @@ with tab_v2:
         dot = _AMBER_DOT if is_ph else ""
         note_h = (f'<div style="font-size:13px;color:#f59e0b;margin-top:4px;font-style:italic">'
                   f'{note}</div>') if note else ""
-        l2_h = (f'<div style="font-size:27px;color:{line2_col};font-weight:600;margin-top:2px">'
+        l2_h = (f'<div style="font-size:27px;color:{line2_col};font-weight:600;margin-top:1px">'
                 f'{line2}</div>') if line2 else ""
         l1_h = (f'<div style="font-size:27px;color:{line1_col};font-weight:600">{line1}</div>'
                 ) if line1 else ""
@@ -1077,8 +1077,8 @@ with tab_v2:
             f'<div style="background:#161B22;border-radius:10px;padding:12px 14px;'
             f'border:1px solid #252545;border-top:3px solid {accent};height:100%;{mh}">'
             f'<div style="font-size:26px;color:#6677aa;font-weight:700;text-transform:uppercase;'
-            f'letter-spacing:1.5px;margin-bottom:8px;display:flex;align-items:center">{label}{dot}</div>'
-            f'<div style="font-size:58px;font-weight:800;color:white;margin-bottom:8px;'
+            f'letter-spacing:1.5px;margin-bottom:4px;display:flex;align-items:center">{label}{dot}</div>'
+            f'<div style="font-size:58px;font-weight:800;color:white;margin-bottom:4px;'
             f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
             f'{l1_h}{l2_h}{note_h}</div>'
         )
