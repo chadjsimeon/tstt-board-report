@@ -1133,7 +1133,6 @@ with tab_v2:
     # ════════════════════════════════════════════════════════════════════
     # ROW 2 — [1,1,3] columns: costs|prepaid metrics|revenue mix donut
     # ════════════════════════════════════════════════════════════════════
-    st.markdown("<div style='margin:14px 0 8px'></div>", unsafe_allow_html=True)
     col_AB, col_C, _ = st.columns([2, 1.5, 1.5])
 
     with col_AB:
