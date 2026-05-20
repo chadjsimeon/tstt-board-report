@@ -736,24 +736,7 @@ with tab3:
         st.plotly_chart(fig, use_container_width=True)
 
     with mr:
-        pp_products  = ["Voice + Data", "Data Only", "Enterprise"]
-        pp_splits    = [0.52, 0.31, 0.17]
-        pp_prod_vals = [pp26_rev * s for s in pp_splits]
-        fig = go.Figure(go.Bar(
-            y=pp_products[::-1], x=pp_prod_vals[::-1], orientation="h",
-            marker_color=["#93c5fd", "#60a5fa", "#4a9eff"],
-            text=[f"{v:.0f}  ({s*100:.0f}%)"
-                  for v, s in zip(pp_prod_vals[::-1], pp_splits[::-1])],
-            textposition="outside", textfont=dict(color="white", size=14),
-        ))
-        _base_layout(fig, "Revenue by Bundle Type — Apr '26", 320)
-        fig.update_layout(
-            showlegend=False,
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
-                       range=[0, max(pp_prod_vals) * 1.45]),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=15)),
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        pass
 
     # ── Commentary ────────────────────────────────────────────────────────────
     _pp_rev_dir = "above" if (pp_aop_pct or 0) >= 0 else "below"
@@ -1007,24 +990,7 @@ with tab4:
         st.plotly_chart(fig, use_container_width=True)
 
     with mr:
-        wx_products  = ["Broadband", "Voice Bundle", "Equipment"]
-        wx_splits    = [0.72, 0.20, 0.08]
-        wx_prod_vals = [wx26_rev * s for s in wx_splits]
-        fig = go.Figure(go.Bar(
-            y=wx_products[::-1], x=wx_prod_vals[::-1], orientation="h",
-            marker_color=["#7ffce8", "#3de0c0", "#00d4a0"],
-            text=[f"{v:.0f}  ({s*100:.0f}%)"
-                  for v, s in zip(wx_prod_vals[::-1], wx_splits[::-1])],
-            textposition="outside", textfont=dict(color="white", size=14),
-        ))
-        _base_layout(fig, "Revenue by Service Type — Apr '26", 320)
-        fig.update_layout(
-            showlegend=False,
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
-                       range=[0, max(wx_prod_vals) * 1.45]),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=15)),
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        pass
 
     # ── Commentary ────────────────────────────────────────────────────────────
     _wx_rev_dir = "above" if (wx_aop_pct or 0) >= 0 else "below"
