@@ -1310,41 +1310,42 @@ with tab_v2:
     # ROW 2 — [1,1,3] columns: costs|prepaid metrics|revenue mix donut
     # ════════════════════════════════════════════════════════════════════
     st.markdown("<div style='margin:14px 0 8px'></div>", unsafe_allow_html=True)
-    col_A, col_B, col_C, _ = st.columns([1, 1, 1.5, 1.5])
+    col_AB, col_C, _ = st.columns([2, 1.5, 1.5])
 
-    with col_A:
-        st.markdown(r2_card(
+    with col_AB:
+        _dc_html  = r2_card(
             "Direct Costs", f"{dc_act:.1f}",
             dc_aop_str, dc_aop_col,
             dc_trend, dc_col,
             is_ph=dc_is_ph, accent="#ef4444",
             note="est. (58% proxy)" if dc_is_ph else "",
-            min_height="200px",
-        ), unsafe_allow_html=True)
-        st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
-        st.markdown(r2_card(
+        )
+        _gp_html  = r2_card(
             "Gross Profit", f"{gp_act:.1f}",
             gp_aop_str, gp_aop_col,
             gp_trend, gp_col,
             is_ph=gp_is_ph, accent="#22c55e",
             note="est. (42% proxy)" if gp_is_ph else "",
-            min_height="200px",
-        ), unsafe_allow_html=True)
-
-    with col_B:
-        st.markdown(r2_card(
+        )
+        _mou_html = r2_card(
             "Prepaid MoU / Sub", pre_mou_str,
             pre_mou_trend, pre_mou_col,
             is_ph=pre_mou_ph, accent="#a78bfa",
-            note="", min_height="200px",
-        ), unsafe_allow_html=True)
-        st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
-        st.markdown(r2_card(
+        )
+        _gb_html  = r2_card(
             "Prepaid GB / Sub", pre_gb_str,
             pre_gb_trend, pre_gb_col,
             is_ph=pre_gb_ph, accent="#a78bfa",
-            note="", min_height="200px",
-        ), unsafe_allow_html=True)
+        )
+        st.markdown(
+            f'<div style="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;">'
+            f'<div style="display:flex;flex-direction:column">{_dc_html}</div>'
+            f'<div style="display:flex;flex-direction:column">{_mou_html}</div>'
+            f'<div style="display:flex;flex-direction:column">{_gp_html}</div>'
+            f'<div style="display:flex;flex-direction:column">{_gb_html}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     with col_C:
         # Revenue Mix donut — 4 consolidated segments
