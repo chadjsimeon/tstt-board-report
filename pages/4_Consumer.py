@@ -386,7 +386,7 @@ with tab2:
             line=dict(color="#555577", width=1.8, dash="dash"),
             hovertemplate="%{x}<br>AOP %{y:.3f} / day<extra></extra>",
         ))
-        _base_layout(fig, "Avg Daily Prepaid Revenue", 427,
+        _base_layout(fig, "Avg Daily Prepaid Revenue", 320,
                      y_range=([0.6, dvr.max() + dvr_pad]
                                if len(dvr) > 0 else None))
         fig.update_layout(showlegend=False)
@@ -412,7 +412,7 @@ with tab2:
                 fig,
                 f"<b>Subscribers by ARPU Category</b>"
                 + (f" — {_arpu_data_label}" if _arpu_data_label else ""),
-                242,
+                320,
             )
             fig.update_layout(
                 showlegend=False,
