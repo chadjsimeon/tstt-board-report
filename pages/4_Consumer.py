@@ -12,7 +12,7 @@ from utils.charts import (
     line_chart, stacked_bar, grouped_bar, donut_chart, dim,
     GREEN, RED, BLUE, YELLOW, PURPLE, ORANGE, CYAN, ACCENT,
 )
-from utils.rag import rev_var_rag, churn_prepaid_rag, churn_postpaid_rag, churn_wttx_rag
+from utils.rag import rag, rev_var_rag, churn_prepaid_rag, churn_postpaid_rag, churn_wttx_rag
 
 inject_css()
 data     = load_all_data()
@@ -1142,22 +1142,36 @@ with tab_v2:
     v2_pnl_sel = v2_pnl[v2_pnl["Month"] == sel_month]
     v2_pnl_py  = v2_pnl[v2_pnl["Month"] == v2_py_mon]
 
+    def _pnl(row, col):
+        v = row[col].values[0] if col in row.columns and not row.empty else None
+        return float(v) if v is not None and pd.notna(v) and v != 0 else None
+
     if not v2_pnl_sel.empty:
         dc_act     = float(v2_pnl_sel["CONSUMER SALES_COS"].values[0])
         cs_rev_pnl = float(v2_pnl_sel["CONSUMER SALES_Rev"].values[0])
         gp_act     = cs_rev_pnl - dc_act
         dc_is_ph   = gp_is_ph = False
+        dc_aop     = _pnl(v2_pnl_sel, "CONSUMER SALES_COS_AOP")
+        gp_aop     = _pnl(v2_pnl_sel, "CONSUMER SALES_GP_AOP")
     else:
         dc_act   = v2_t_rev * 0.58
         gp_act   = v2_t_rev * 0.42
         dc_is_ph = gp_is_ph = True
+        dc_aop = gp_aop = None
 
     dc_py = gp_py = None
     if not v2_pnl_py.empty:
-        dc_py_v    = float(v2_pnl_py["CONSUMER SALES_COS"].values[0])
+        dc_py_v     = float(v2_pnl_py["CONSUMER SALES_COS"].values[0])
         cs_rev_py_v = float(v2_pnl_py["CONSUMER SALES_Rev"].values[0])
-        dc_py      = dc_py_v
-        gp_py      = cs_rev_py_v - dc_py_v
+        dc_py       = dc_py_v
+        gp_py       = cs_rev_py_v - dc_py_v
+
+    dc_aop_pct  = (dc_act - dc_aop) / abs(dc_aop) * 100 if dc_aop else None
+    gp_aop_pct  = (gp_act - gp_aop) / abs(gp_aop) * 100 if gp_aop else None
+    dc_aop_str  = f"{dc_aop_pct:+.1f}% vs AOP" if dc_aop_pct is not None else "— vs AOP"
+    gp_aop_str  = f"{gp_aop_pct:+.1f}% vs AOP" if gp_aop_pct is not None else "— vs AOP"
+    dc_aop_col  = rag(dc_aop_pct, 0, 10, higher=False) if dc_aop_pct is not None else "#7788aa"
+    gp_aop_col  = rev_var_rag(gp_aop_pct)
 
     dc_trend = f"{dc_act - dc_py:+.1f} vs PY" if dc_py is not None else "—"
     dc_col   = "#22c55e" if (dc_py is not None and dc_act <= dc_py) else "#ef4444"
@@ -1236,18 +1250,21 @@ with tab_v2:
         'title="Estimated — not sourced from live data"></span>'
     )
 
-    def r2_card(label, val_str, trend_str, trend_col, is_ph=False, accent="#4a9eff", note=""):
+    def r2_card(label, val_str, line1, line1_col, line2="", line2_col="#7788aa",
+               is_ph=False, accent="#4a9eff", note=""):
         dot = _AMBER_DOT if is_ph else ""
         note_h = (f'<div style="font-size:13px;color:#f59e0b;margin-top:4px;font-style:italic">'
-                  f'{note or "&nbsp;"}</div>')
+                  f'{note}</div>') if note else ""
+        l2_h = (f'<div style="font-size:18px;color:{line2_col};font-weight:600;margin-top:2px">'
+                f'{line2}</div>') if line2 else ""
         return (
             f'<div style="background:#161B22;border-radius:10px;padding:12px 14px;'
-            f'border:1px solid #252545;border-top:2px solid {accent};height:100%;min-height:130px">'
+            f'border:1px solid #252545;border-top:2px solid {accent};height:100%">'
             f'<div style="font-size:19px;color:#6677aa;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:1.2px;margin-bottom:5px;display:flex;align-items:center">{label}{dot}</div>'
             f'<div style="font-size:32px;font-weight:800;color:white;margin-bottom:4px">{val_str}</div>'
-            f'<div style="font-size:20px;color:{trend_col};font-weight:600">{trend_str or "&nbsp;"}</div>'
-            f'{note_h}</div>'
+            f'<div style="font-size:20px;color:{line1_col};font-weight:600">{line1 or "&nbsp;"}</div>'
+            f'{l2_h}{note_h}</div>'
         )
 
     # ════════════════════════════════════════════════════════════════════
@@ -1304,6 +1321,7 @@ with tab_v2:
     with col_A:
         st.markdown(r2_card(
             "Direct Costs", f"{dc_act:.1f}",
+            dc_aop_str, dc_aop_col,
             dc_trend, dc_col,
             is_ph=dc_is_ph, accent="#ef4444",
             note="est. (58% proxy)" if dc_is_ph else "",
@@ -1311,6 +1329,7 @@ with tab_v2:
         st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
         st.markdown(r2_card(
             "Gross Profit", f"{gp_act:.1f}",
+            gp_aop_str, gp_aop_col,
             gp_trend, gp_col,
             is_ph=gp_is_ph, accent="#22c55e",
             note="est. (42% proxy)" if gp_is_ph else "",
