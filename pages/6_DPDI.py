@@ -43,7 +43,8 @@ gp_margin    = total_gp / total_rev * 100 if total_rev else 0
 ebitda_display = f"({abs(total_ebitda):.1f})" if total_ebitda < 0 else f"{total_ebitda:.1f}"
 _dc_aop_ref    = total_dc_aop if total_dc_aop else total_aop
 dc_below_aop   = total_dc < _dc_aop_ref
-dc_sub_text    = "Below AOP ↓" if dc_below_aop else f"{(total_dc - _dc_aop_ref) / abs(_dc_aop_ref) * 100:+.1f}% vs AOP"
+_dc_var_pct    = (total_dc - _dc_aop_ref) / abs(_dc_aop_ref) * 100 if _dc_aop_ref else 0
+dc_sub_text    = f"{_dc_var_pct:+.1f}% vs AOP | {(total_dc - _dc_aop_ref)*1000:+,.0f}" if _dc_aop_ref else "— vs AOP"
 dc_sub_color   = "#00ff88" if dc_below_aop else "#FF4444"
 
 # ── Page header ───────────────────────────────────────────────────────────────
