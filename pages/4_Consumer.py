@@ -1168,24 +1168,15 @@ with tab_v2:
 
     dc_aop_pct  = (dc_act - dc_aop) / abs(dc_aop) * 100 if dc_aop else None
     gp_aop_pct  = (gp_act - gp_aop) / abs(gp_aop) * 100 if gp_aop else None
-    _am = "#f59e0b"
-    dc_aop_str  = (
-        f'{dc_aop_pct:+.1f}% vs AOP&nbsp;&nbsp;'
-        f'<span style="color:{_am}">{dc_act - dc_aop:+.1f}</span>'
-        if dc_aop_pct is not None else "— vs AOP"
-    )
-    gp_aop_str  = (
-        f'{gp_aop_pct:+.1f}% vs AOP&nbsp;&nbsp;'
-        f'<span style="color:{_am}">{gp_act - gp_aop:+.1f}</span>'
-        if gp_aop_pct is not None else "— vs AOP"
-    )
+    dc_aop_str  = f"{dc_aop_pct:+.1f}% vs AOP" if dc_aop_pct is not None else "— vs AOP"
+    gp_aop_str  = f"{gp_aop_pct:+.1f}% vs AOP" if gp_aop_pct is not None else "— vs AOP"
     dc_aop_col  = rag(dc_aop_pct, 0, 10, higher=False) if dc_aop_pct is not None else "#7788aa"
     gp_aop_col  = rev_var_rag(gp_aop_pct)
 
     dc_trend = f"{dc_act - dc_py:+.1f} vs PY" if dc_py is not None else "—"
-    dc_col   = "#22c55e" if (dc_py is not None and dc_act <= dc_py) else "#ef4444"
+    dc_col   = "#f59e0b" if dc_py is not None else "#7788aa"
     gp_trend = f"{gp_act - gp_py:+.1f} vs PY" if gp_py is not None else "—"
-    gp_col   = ("#22c55e" if gp_act >= gp_py else "#ef4444") if gp_py is not None else "#8899bb"
+    gp_col   = "#f59e0b" if gp_py is not None else "#8899bb"
 
     # Usage metrics — MoU from no available source yet; GB/Sub from Prepaid_Data_Usage
     _du = load_prepaid_data_usage()
