@@ -47,23 +47,6 @@ _dc_var_pct    = (total_dc - _dc_aop_ref) / abs(_dc_aop_ref) * 100 if _dc_aop_re
 dc_sub_text    = f"{_dc_var_pct:+.1f}% vs AOP | {(total_dc - _dc_aop_ref)*1000:+,.0f}" if _dc_aop_ref else "— vs AOP"
 dc_sub_color   = rag(_dc_var_pct, 0, 10, higher=False)
 
-# ── Page header ───────────────────────────────────────────────────────────────
-st.markdown(f"""
-<div style="padding:1.2rem 0 0.5rem 0">
-  <div style="font-size:0.65rem;font-weight:700;color:#445566;text-transform:uppercase;
-              letter-spacing:2.5px;margin-bottom:0.5rem">
-    TSTT &nbsp;|&nbsp; BOARD OF DIRECTORS REPORT
-  </div>
-  <div style="font-size:2rem;font-weight:700;color:#ffffff;line-height:1.1;margin-bottom:0.4rem">
-    DPDI Financial Overview
-  </div>
-  <div style="font-size:0.8rem;color:#7788aa">
-    {sel_month} &nbsp;&nbsp;|&nbsp;&nbsp; All figures in TTD'000 unless stated
-  </div>
-</div>
-<hr style="border:none;border-top:1px solid #1a1a2a;margin:0.9rem 0 1.2rem 0">
-""", unsafe_allow_html=True)
-
 # ── vs PY / sparkline prep ────────────────────────────────────────────────────
 sel_idx      = months.index(sel_month)
 py_month     = months[sel_idx - 12] if sel_idx >= 12 else None
@@ -121,20 +104,20 @@ def _sparkline(series, color, height=44):
 # ── KPI cards ─────────────────────────────────────────────────────────────────
 def _dpdi_kpi(label, value, line1, l1_col, line2, l2_col, accent, spark=None):
     sp_html = (
-        f'<div style="margin-top:10px;opacity:0.9">{_sparkline(spark, accent, 44)}</div>'
+        f'<div style="margin-top:8px;opacity:0.85">{_sparkline(spark, accent, 44)}</div>'
     ) if spark else ""
     return (
-        f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
-        f'border:1px solid #2a2a4a;border-top:3px solid {accent};'
-        f'height:100%;box-sizing:border-box">'
-        f'<div style="font-size:22px;color:#6677aa;font-weight:700;text-transform:uppercase;'
-        f'letter-spacing:1.5px;margin-bottom:8px">{label}</div>'
-        f'<div style="font-size:52px;font-weight:800;color:white;line-height:1.05;'
-        f'margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+        f'<div style="background:#161B22;border-radius:10px;padding:7px 12px;'
+        f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
+        f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+        f'letter-spacing:1.5px;margin-bottom:2px">{label}</div>'
+        f'<div style="font-size:62px;font-weight:800;color:white;margin-bottom:2px;'
+        f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
         f'{value}</div>'
-        f'<div style="font-size:23px;color:{l1_col};font-weight:600;margin-bottom:3px">'
-        f'{line1}</div>'
-        f'<div style="font-size:23px;color:{l2_col};font-weight:600">{line2}</div>'
+        f'<div style="font-size:29px;color:{l1_col};font-weight:600;margin-bottom:0px;'
+        f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{line1}</div>'
+        f'<div style="font-size:29px;color:{l2_col};font-weight:600;'
+        f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{line2}</div>'
         f'{sp_html}'
         f'</div>'
     )
@@ -273,34 +256,6 @@ with col_right:
         margin=dict(l=10, r=10, t=70, b=30),
     )
     st.plotly_chart(fig_trend, use_container_width=True)
-
-# ── Key commentary ────────────────────────────────────────────────────────────
-st.markdown("""
-<div style="background:#161B22;border:1px solid #0d2a2a;border-radius:6px;
-            padding:1.2rem 1.6rem;margin-top:0.4rem">
-  <div style="font-size:0.62rem;font-weight:700;color:#00aaaa;text-transform:uppercase;
-              letter-spacing:2.2px;margin-bottom:0.85rem;border-left:3px solid #00aaaa;
-              padding-left:8px">KEY COMMENTARY</div>
-  <ul style="list-style:none;padding:0;margin:0;font-size:0.83rem;line-height:2">
-    <li><span style="color:#00ff88;margin-right:10px">●</span>
-      <b style="color:white">e-GOVTT</b>
-      <span style="color:#cccccc"> — Primary revenue opportunity; AOP pipeline value represents
-      key FY2026 activation target pending government contract finalization.</span></li>
-    <li><span style="color:#FF8844;margin-right:10px">●</span>
-      <b style="color:white">e-Tender</b>
-      <span style="color:#cccccc"> — Most mature product, generating the largest share of YTD
-      revenue with active deployment at Ministry of Finance.</span></li>
-    <li><span style="color:#FF4444;margin-right:10px">●</span>
-      <b style="color:white">EBITDA</b>
-      <span style="color:#cccccc"> — Portfolio-wide EBITDA remains negative due to investment
-      and go-to-market costs; positive run-rate expected from FY2027.</span></li>
-    <li><span style="color:#4488ff;margin-right:10px">●</span>
-      <b style="color:white">e-Health · e-Pay · e-Kiosk</b>
-      <span style="color:#cccccc"> — In pilot or pre-revenue stage. Commercial launches
-      targeted Q3–Q4 FY2026 to drive subscriber and revenue growth.</span></li>
-  </ul>
-</div>
-""", unsafe_allow_html=True)
 
 # ── Confidential footer ───────────────────────────────────────────────────────
 st.markdown("""

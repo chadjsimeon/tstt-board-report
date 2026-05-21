@@ -6,7 +6,6 @@ import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data
 from utils.charts import inject_css
-from utils.rag import rev_var_rag
 
 inject_css()
 
@@ -237,38 +236,6 @@ with wf_col:
         margin=dict(l=10, r=10, t=44, b=30),
     )
     st.plotly_chart(fig_wf, use_container_width=True)
-
-# ── Row 3: Segment highlights callout ─────────────────────────────────────────
-def _hl(name, color):
-    d  = bridge_delta.get(name, 0.0)
-    ly = ly_seg.get(name, 0.0)
-    if ly == 0:
-        return (
-            f'<span style="color:{color};font-weight:700;">{name}</span> '
-            f'revenue — (no prior-year data)'
-        )
-    pct  = d / ly * 100
-    sign = "↑" if pct >= 0 else "↓"
-    c    = rev_var_rag(pct)
-    return (
-        f'<span style="color:{color};font-weight:700;">{name}</span> revenue '
-        f'<span style="color:{c};font-weight:600;">{sign}&thinsp;{abs(pct):.1f}% YoY</span> '
-        f'({d:+.1f})'
-    )
-
-hl_parts = [_hl("Consumer", SEG_COLORS["Consumer"]),
-            _hl("Business", SEG_COLORS["Business"]),
-            _hl("AMPLIA",   SEG_COLORS["AMPLIA"])]
-hl_body  = " &nbsp;&nbsp;|&nbsp;&nbsp; ".join(hl_parts)
-
-st.markdown(f"""
-<div style="background:{CARD_BG};border-radius:10px;padding:20px 24px;
-            border:1px solid rgba(74,158,255,0.08);border-left:3px solid #f59e0b;">
-    <div style="color:#f59e0b;font-size:13px;font-weight:700;text-transform:uppercase;
-                letter-spacing:1.5px;margin-bottom:10px;">
-        &#x25A0;&nbsp;Segment Highlights — {_mon_lbl} vs {_ly_lbl}</div>
-    <div style="color:#c0c8d8;font-size:16px;line-height:2.0;">{hl_body}</div>
-</div>""", unsafe_allow_html=True)
 
 # ── Confidential Footer ───────────────────────────────────────────────────────
 st.markdown("""

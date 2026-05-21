@@ -24,7 +24,6 @@ HOW TO RUN THE DASHBOARD
   ─────────────────────────────── ──────────────────────────────────────────────
   app.py                          Home / Executive Summary (KPI tiles)
   pages/0_Enterprise_Scorecard.py Enterprise Scorecard
-  pages/1_Financial_Performance.py Financial Performance (v1 — EBITDA bridge)
   pages/2_OPEX_Cost.py            OPEX & Cost Management
   pages/3_Cash_CAPEX.py           Cash, Working Capital & CAPEX
   pages/4_Consumer_Sales.py       Consumer Sales (overview)
