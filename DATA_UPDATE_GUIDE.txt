@@ -27,13 +27,16 @@ HOW TO RUN THE DASHBOARD
   pages/1_Financial_Performance.py Financial Performance (v1 — EBITDA bridge)
   pages/2_OPEX_Cost.py            OPEX & Cost Management
   pages/3_Cash_CAPEX.py           Cash, Working Capital & CAPEX
-  pages/4_Consumer.py             Consumer (Prepaid · Postpaid · WTTx)
-  pages/5_Business_Sales.py       Business Sales
-  pages/6_DPDI.py                 DPDI
-  pages/7_Amplia.py               Amplia
-  pages/8_Financial_Performance_V2.py  Financial Performance v2 (KPI cards + GP)
-  pages/8_Revenue_Mix_Variance.py Revenue Mix & Variance Drivers
-  pages/9_Export.py               PowerPoint Export
+  pages/4_Consumer_Sales.py       Consumer Sales (overview)
+  pages/5_Prepaid_Revenue.py      Prepaid Revenue
+  pages/6_Postpaid_Revenue.py     Postpaid Revenue
+  pages/7_WTTx_Revenue.py         WTTx Revenue
+  pages/8_Business_Sales.py       Business Sales
+  pages/9_DPDI.py                 DPDI
+  pages/10_Amplia.py              Amplia
+  pages/11_Financial_Performance_V2.py  Financial Performance v2 (KPI cards + GP)
+  pages/12_Revenue_Mix_Variance.py Revenue Mix & Variance Drivers
+  pages/13_Export.py              PowerPoint Export
 
 
 ================================================================================
@@ -550,20 +553,20 @@ or update the hardcoded values directly in the page file.
 
   Chart                               File / Location          How to fix
   ─────────────────────────────────── ──────────────────────── ──────────────
-  Postpaid Active Plans donut         pages/4_Consumer.py      Add PP_Plans sheet
-  (falls back to Basic Voice 35K,     ~line 652                in TSTT_Board_Data
+  Postpaid Active Plans donut         pages/6_Postpaid_Revenue.py   Add PP_Plans sheet
+  (falls back to Basic Voice 35K,     (plan-type donut)             in TSTT_Board_Data
   Basic Data 38K, Standard 22K, etc.)
 
-  WTTx Subscribers by Plan Type donut pages/4_Consumer.py      Add WTTx_Plans sheet
-  (falls back to Voice Only 8K,       ~line 914                in TSTT_Board_Data
+  WTTx Subscribers by Plan Type donut pages/7_WTTx_Revenue.py       Add WTTx_Plans sheet
+  (falls back to Voice Only 8K,       (plan-type donut)             in TSTT_Board_Data
   Bundles 35K, Data Only 62K)
 
-  Postpaid Revenue by Bundle Type     pages/4_Consumer.py      Update pp_splits list
-  (hardcoded: Voice+Data 52%,         ~line 706-708            (or add a data source)
+  Postpaid Revenue by Bundle Type     pages/6_Postpaid_Revenue.py   Update pp_splits list
+  (hardcoded: Voice+Data 52%,         (bundle-type chart)           (or add a data source)
   Data Only 31%, Enterprise 17%)
 
-  WTTx Revenue by Service Type        pages/4_Consumer.py      Update wx_splits list
-  (hardcoded: Broadband 72%,          ~line 968-970            (or add a data source)
+  WTTx Revenue by Service Type        pages/7_WTTx_Revenue.py       Update wx_splits list
+  (hardcoded: Broadband 72%,          (service-type chart)          (or add a data source)
   Voice Bundle 20%, Equipment 8%)
 
 NOTE: All four charts apply their hardcoded percentages/counts to the real
