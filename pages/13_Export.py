@@ -28,18 +28,6 @@ try:
 except Exception:
     period_label = ""
 
-# ── Header ───────────────────────────────────────────────────────────────────────
-st.markdown(f"""
-<div style="width:100%;background:#0d1117;padding:16px 24px;margin-bottom:20px;display:block;">
-  <div style="font-size:0.75rem;color:#00e676;font-weight:600;margin-bottom:4px;">EXPORT</div>
-  <div style="font-size:1.4rem;font-weight:700;color:white;">Download Board Report</div>
-  <div style="font-size:0.8rem;color:#8b949e;margin-top:4px;">
-      High-fidelity PowerPoint — every dashboard page captured exactly as shown
-      &nbsp;·&nbsp; YTD {period_label}
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
 # ── About ────────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div style="background:#161b22;border-radius:8px;padding:18px 22px;
