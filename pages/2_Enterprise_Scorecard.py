@@ -3,7 +3,6 @@ import streamlit as st
 st.set_page_config(page_title="TSTT | Enterprise Scorecard", page_icon="🎯", layout="wide")
 
 import pandas as pd
-from datetime import datetime
 from utils.data_loader import load_all_data
 from utils.charts import inject_css
 
@@ -17,14 +16,6 @@ st.markdown("""
 
 data    = load_all_data()
 kpi_all = data["KPI_Summary"]
-
-# ── Derive period label from data ─────────────────────────────────────────────
-period_label = "—"
-try:
-    period_raw   = kpi_all["Month"].dropna().iloc[-1]
-    period_label = datetime.strptime(period_raw, "%b-%y").strftime("%B %Y")
-except Exception:
-    pass
 
 # ── KPI direction sets ────────────────────────────────────────────────────────
 HIGHER_BETTER = {
@@ -150,19 +141,6 @@ def quadrant_html(section_key, section_display, accent):
     )
 
 
-# ── Page header ───────────────────────────────────────────────────────────────
-st.markdown(f"""
-<div style="display:flex;justify-content:space-between;align-items:center;
-            padding:1.1rem 1.6rem;
-            background:linear-gradient(135deg,#161B22 0%,#0f1e3c 60%,#0d2040 100%);
-            border-radius:12px;border:1px solid #2a3a5a;margin-bottom:1rem">
-    <div style="font-size:1.4rem;font-weight:700;color:white;
-                letter-spacing:0.5px">Enterprise Scorecard</div>
-    <div style="font-size:0.88rem;font-weight:600;color:#00d4a0;
-                letter-spacing:0.5px">{period_label} | Balanced View</div>
-</div>
-""", unsafe_allow_html=True)
-
 # ── 2×2 CSS Grid — all four cards perfectly equal ─────────────────────────────
 q_financial = quadrant_html("Financial",  "Financial",            "#00d4a0")
 q_customer  = quadrant_html("Customer",   "Customer",             "#4a9eff")
@@ -174,7 +152,7 @@ st.markdown(f"""
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
-    height: calc(100vh - 180px);
+    height: calc(100vh - 100px);
     gap: 14px;
 ">
     {q_financial}

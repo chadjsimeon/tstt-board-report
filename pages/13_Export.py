@@ -38,10 +38,10 @@ st.markdown("""
   Every page of the dashboard is screenshotted in a headless browser and placed
   full-bleed on a 16:9 slide, so the deck matches the live dashboard pixel-for-pixel.
   The deck opens with the Executive Summary, then each sidebar page in order —
-  Financial Performance, Enterprise Scorecard, OPEX Cost, Cash &amp; CAPEX,
-  Consumer Sales, Prepaid / Postpaid / WTTx Revenue, Business Sales, DPDI,
-  Amplia Financial, Amplia Commercial and Revenue Mix &amp; Variance. Pages
-  taller than a slide are split automatically.
+  Financial Performance, Revenue Mix &amp; Variance, Enterprise Scorecard,
+  OPEX Cost, Cash &amp; CAPEX, Consumer Sales, Prepaid / Postpaid / WTTx
+  Revenue, Business Sales, DPDI, Amplia Financial and Amplia Commercial.
+  Pages taller than a slide are split automatically.
 </div>
 """, unsafe_allow_html=True)
 

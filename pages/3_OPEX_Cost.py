@@ -36,14 +36,6 @@ total_plan   = latest["Plan"].sum()
 total_var    = total_actual - total_plan
 var_pct      = total_var / total_plan * 100 if total_plan else 0
 
-# ── Period badge ──────────────────────────────────────────────────────────────
-st.markdown(
-    f'<span style="background:#1a2744;color:#7eb8f7;padding:5px 14px;border-radius:12px;'
-    f'font-size:16px;font-weight:600;border:1px solid #2a4080">Period: {sel_month}</span>',
-    unsafe_allow_html=True,
-)
-st.markdown("<div style='margin-top:16px'></div>", unsafe_allow_html=True)
-
 # ── Two-column layout ─────────────────────────────────────────────────────────
 col_left, col_right = st.columns([3, 2])
 

@@ -48,11 +48,6 @@ capex_plan      = float(capex_plan_raw) if pd.notna(capex_plan_raw) and capex_pl
 capex_remaining = capex_plan - capex_act
 capex_progress  = min(capex_act / capex_plan * 100, 100) if capex_plan else 0
 
-try:
-    period_label = pd.to_datetime(latest["Month"], format="%b-%y").strftime("%B %Y")
-except Exception:
-    period_label = str(latest["Month"])
-
 # ── Collections — read from Collections_Billing sheet ─────────────────────────
 latest_month = str(latest["Month"])
 prior_month  = None  # no longer derived from billing column headers
@@ -198,17 +193,6 @@ cap_pct_color = "#ef4444" if capex_over else "#4a9eff"
 cap_rem_color = "#ef4444" if capex_remaining < 0 else "#6688aa"
 cap_rem_label = "over budget" if capex_remaining < 0 else "remaining"
 cap_rem_sign  = "+" if capex_remaining < 0 else ""
-
-# ── Page header ───────────────────────────────────────────────────────────────
-st.markdown(
-    f'<div style="padding:6px 0 10px 0;border-bottom:1px solid #21262d;margin-bottom:10px;'
-    f'display:flex;justify-content:space-between;align-items:center">'
-    f'<span style="font-size:1.4rem;font-weight:700;color:white">Cash · Working Capital · CAPEX</span>'
-    f'<span style="font-size:1rem;color:#556677;background:#161B22;padding:4px 14px;'
-    f'border-radius:20px;border:1px solid #21262d">{period_label}</span>'
-    f'</div>',
-    unsafe_allow_html=True,
-)
 
 # ── KPI row ───────────────────────────────────────────────────────────────────
 def _kpi(label, value, sub, color):
