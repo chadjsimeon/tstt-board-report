@@ -133,21 +133,6 @@ ly_seg["Other"] = max(0.0, ly_tot - sum(ly_seg.values()))
 
 bridge_delta = {name: cur_seg[name] - ly_seg.get(name, 0.0) for name in cur_seg}
 
-# ── Page Header ───────────────────────────────────────────────────────────────
-st.markdown(f"""
-<div style="display:flex;justify-content:space-between;align-items:center;
-            margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #1e3050;">
-    <div style="display:flex;align-items:center;gap:12px;">
-        <span style="background:#A78BFA;color:#000;font-size:13px;font-weight:800;
-                     padding:4px 10px;border-radius:4px;">03</span>
-        <div>
-            <span style="font-size:26px;font-weight:800;color:white;">Revenue Mix &amp; Variance Drivers</span>
-            <span style="font-size:14px;color:{MUTED};margin-left:14px;">{_ytd_lbl}</span>
-        </div>
-    </div>
-    <div style="color:{MUTED};font-size:12px;font-style:italic;">All figures in  unless otherwise stated</div>
-</div>""", unsafe_allow_html=True)
-
 # ── Row 1: Full-width stacked bar ─────────────────────────────────────────────
 fig_bar = go.Figure()
 for name, vals, color in SEGS:

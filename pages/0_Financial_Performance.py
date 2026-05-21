@@ -1,6 +1,6 @@
 import streamlit as st
 
-st.set_page_config(page_title="TSTT | Financial Performance v2", page_icon="📊", layout="wide")
+st.set_page_config(page_title="TSTT | Financial Performance", page_icon="📊", layout="wide")
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -143,18 +143,6 @@ def driver_block(label, color, col, aop_col, ly_col, is_margin=False, last_entry
     {"<div style='color:#8888aa;font-size:13px;line-height:1.6;'>" + line2 + "</div>" if line2 else ""}
 </div>"""
 
-
-# ── Page Header ───────────────────────────────────────────────────────────────
-st.markdown(f"""
-<div style="display:flex;justify-content:space-between;align-items:center;
-            margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #1e3050;">
-    <div style="display:flex;align-items:center;gap:12px;">
-        <span style="background:#00d4a0;color:#000;font-size:13px;font-weight:800;
-                     padding:4px 10px;border-radius:4px;">02</span>
-        <span style="font-size:26px;font-weight:800;color:white;">Financial Performance</span>
-    </div>
-    <div style="color:{MUTED};font-size:12px;">Financial Performance</div>
-</div>""", unsafe_allow_html=True)
 
 # ── KPI Cards ─────────────────────────────────────────────────────────────────
 METRICS = [

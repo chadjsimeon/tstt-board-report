@@ -5,7 +5,7 @@ st.set_page_config(page_title="TSTT | OPEX & Cost", page_icon="📊", layout="wi
 import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data
-from utils.charts import inject_css, page_header, GREEN, RED
+from utils.charts import inject_css, GREEN, RED
 from utils.rag import rev_var_rag
 
 inject_css()
@@ -25,8 +25,6 @@ st.markdown("""
 
 data = load_all_data()
 opex = data["OPEX"]
-
-page_header("OPEX & Cost Management", "Actual vs Plan · Cost-Out Tracking")
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 months    = opex["Month"].unique().tolist()
