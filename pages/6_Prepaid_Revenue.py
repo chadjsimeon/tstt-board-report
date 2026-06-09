@@ -149,9 +149,9 @@ s_l2         = (f"{subs_py_delta:+.1f}K | {subs_py_pct:+.1f}% vs PY"
 
 _c1     = _pre_kpi("Prepaid Revenue", f"{apr26_rev:.1f}",
                    r_l1, r_aop_col, r_l2, r_py_col, "#a78bfa", rev_spark)
-_c3     = _pre_kpi("ARPU", f"${arpu_lat:.0f}",
+_c3     = _pre_kpi("ARPU (TT$)", f"{arpu_lat:.0f}",
                    a_l1, a_l1_col, a_l2, a_l2_col, "#f59e0b", arpu_spark)
-_c_subs = _pre_kpi(f"Subscribers — {_arpu_latest_month}", _fmt_k(subs_lat),
+_c_subs = _pre_kpi("Subscribers", _fmt_k(subs_lat),
                    s_l1, s_l1_col, s_l2, s_l2_col, "#22c55e", subs_spark)
 
 # Subscriber movements card
@@ -173,8 +173,8 @@ _mov_html = "".join(
 _c2 = (
     f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
     f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
-    f'<div style="font-size:18px;color:#7788aa;font-weight:600;text-transform:uppercase;'
-    f'letter-spacing:1px;margin-bottom:10px">Movements —{_arpu_latest_month}</div>'
+    f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+    f'letter-spacing:1.5px;margin-bottom:10px">Subscriber Movements</div>'
     f'{_mov_html}'
     f'</div>'
 )
@@ -257,8 +257,7 @@ with mr:
         ))
         _base_layout(
             fig,
-            f"<b>Subscribers by ARPU Category</b>"
-            + (f" — {_arpu_data_label}" if _arpu_data_label else ""),
+            "<b>Subscribers by ARPU Category</b>",
             320,
         )
         fig.update_layout(

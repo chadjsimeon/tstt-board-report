@@ -125,9 +125,9 @@ _wx_s_l2 = (f"{wx_subs_py_delta:+.1f}K | {wx_subs_py_pct:+.1f}% vs PY"
 
 _wx_c1     = _pre_kpi("WTTx Revenue", f"{wx26_rev:.1f}",
                        wx_r_l1, wx_r_aop_col, wx_r_l2, wx_r_py_col, "#00d4a0", wx_rev_spark)
-_wx_c3     = _pre_kpi("ARPU", f"${wx_arpu_lat:.0f}",
+_wx_c3     = _pre_kpi("ARPU (TT$)", f"{wx_arpu_lat:.0f}",
                        wx_a_l1, wx_a_l1_col, wx_a_l2, wx_a_l2_col, "#f59e0b", wx_arpu_spark)
-_wx_c_subs = _pre_kpi(f"Subscribers — {_wx_subs_mon}", _fmt_k(wx_subs_close),
+_wx_c_subs = _pre_kpi("Subscribers", _fmt_k(wx_subs_close),
                        _wx_s_l1, _wx_s_l1_col, _wx_s_l2, _wx_s_l2_col, "#22c55e", wx_subs_spark)
 
 _wx_churn_lbl  = f"Churn ({wx_churn_derived:.1f}%)"
@@ -148,8 +148,8 @@ _wx_mov_html = "".join(
 _wx_c2 = (
     f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
     f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
-    f'<div style="font-size:18px;color:#7788aa;font-weight:600;text-transform:uppercase;'
-    f'letter-spacing:1px;margin-bottom:10px">Movements —{_wx_subs_mon}</div>'
+    f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+    f'letter-spacing:1.5px;margin-bottom:10px">Subscriber Movements</div>'
     f'{_wx_mov_html}'
     f'</div>'
 )
@@ -248,7 +248,7 @@ with ml:
         title=dict(
             text="<b>Subscribers by Plan Type</b>"
                  + (" <span style='color:#f87171'> ⚠ no data</span>" if _wx_dummy else ""),
-            font=dict(size=22, color="white"), x=0,
+            font=dict(size=28, color="white"), x=0,
         ),
         legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=22, color="white"),
                     x=_wx_dw + 0.04, y=0.5, xanchor="left", yanchor="middle"),

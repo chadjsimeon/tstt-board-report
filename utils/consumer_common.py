@@ -47,7 +47,7 @@ def _base_layout(fig, title, height, y_range=None):
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"), height=height,
-        title=dict(text=f"<b>{title}</b>", font=dict(size=16, color="white"), x=0),
+        title=dict(text=f"<b>{title}</b>", font=dict(size=28, color="white"), x=0),
         xaxis=kw,
         yaxis=dict(**kw, range=y_range),
         legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h",

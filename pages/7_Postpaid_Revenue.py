@@ -125,9 +125,9 @@ _pp_s_l2 = (f"{pp_subs_py_delta:+.1f}K | {pp_subs_py_pct:+.1f}% vs PY"
 
 _pp_c1     = _pre_kpi("Postpaid Revenue", f"{pp26_rev:.1f}",
                        pp_r_l1, pp_r_aop_col, pp_r_l2, pp_r_py_col, "#4a9eff", pp_rev_spark)
-_pp_c3     = _pre_kpi("ARPU", f"${pp_arpu_lat:.0f}",
+_pp_c3     = _pre_kpi("ARPU (TT$)", f"{pp_arpu_lat:.0f}",
                        pp_a_l1, pp_a_l1_col, pp_a_l2, pp_a_l2_col, "#f59e0b", pp_arpu_spark)
-_pp_c_subs = _pre_kpi(f"Subscribers — {_pp_subs_mon}", _fmt_k(pp_subs_close),
+_pp_c_subs = _pre_kpi("Subscribers", _fmt_k(pp_subs_close),
                        _pp_s_l1, _pp_s_l1_col, _pp_s_l2, _pp_s_l2_col, "#22c55e", pp_subs_spark)
 
 _pp_churn_lbl  = f"Churn ({pp_churn_derived:.1f}%)"
@@ -148,8 +148,8 @@ _pp_mov_html = "".join(
 _pp_c2 = (
     f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
     f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
-    f'<div style="font-size:18px;color:#7788aa;font-weight:600;text-transform:uppercase;'
-    f'letter-spacing:1px;margin-bottom:10px">Movements —{_pp_subs_mon}</div>'
+    f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+    f'letter-spacing:1.5px;margin-bottom:10px">Subscriber Movements</div>'
     f'{_pp_mov_html}'
     f'</div>'
 )
@@ -252,7 +252,7 @@ with ml:
         title=dict(
             text="<b>Subscribers by Active Plan</b>"
                  + (" <span style='color:#f87171'> ⚠ no data</span>" if _pp_dummy else ""),
-            font=dict(size=22, color="white"), x=0,
+            font=dict(size=28, color="white"), x=0,
         ),
         legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=20, color="white"),
                     x=_pp_dw + 0.04, y=0.5, xanchor="left", yanchor="middle"),
