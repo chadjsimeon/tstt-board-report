@@ -97,7 +97,7 @@ def kpi_card(label, col, aop_col, ly_col, color, is_margin=False):
         if pd.notna(ly) and ly != 0:
             d = (actual - ly) if is_margin else (actual - ly) / abs(ly) * 100
             lbl = f"vs PY {'+' if d >= 0 else ''}{d:.1f}{unit}"
-            badges.append(_badge(lbl, d, "#4a9eff", "#FFD700"))
+            badges.append(_aop_badge(lbl, d))
 
     spark_col = col if col in last12.columns else None
     sparkline = make_svg_sparkline(last12[spark_col].fillna(0).tolist(), color) if spark_col else ""

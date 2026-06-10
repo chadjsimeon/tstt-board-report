@@ -129,12 +129,12 @@ r_l1       = (f"{rev_aop_m:+.1f} | {rev_aop_pct:+.1f}% vs AOP"
 rev_py_pct = (rev_py_m / apr25_rev * 100) if (rev_py_m is not None and apr25_rev) else None
 r_l2       = (f"{rev_py_m:+.1f} | {rev_py_pct:+.1f}% vs PY"
               if rev_py_pct is not None else "— vs PY")
-r_py_col   = "#f59e0b" if rev_py_m is not None else "#7788aa"
+r_py_col   = rev_var_rag(rev_py_pct) if rev_py_pct is not None else "#7788aa"
 
 a_l1_col     = rev_var_rag(arpu_aop_pct)
 a_l1         = (f"${arpu_aop_m:+.0f} | {arpu_aop_pct:+.1f}% vs AOP"
                 if arpu_aop_pct is not None else "— vs AOP")
-a_l2_col     = "#f59e0b" if arpu_py_pct is not None else "#7788aa"
+a_l2_col     = rev_var_rag(arpu_py_pct) if arpu_py_pct is not None else "#7788aa"
 arpu_py_delta = arpu_lat - arpu_25 if arpu_25 else None
 a_l2         = (f"${arpu_py_delta:+.0f} | {arpu_py_pct:+.1f}% vs PY"
                 if arpu_py_pct is not None else "— vs PY")
@@ -142,7 +142,7 @@ a_l2         = (f"${arpu_py_delta:+.0f} | {arpu_py_pct:+.1f}% vs PY"
 s_l1_col     = rev_var_rag(subs_aop_pct)
 s_l1         = (f"{subs_aop_m/1000:+.1f}K | {subs_aop_pct:+.1f}% vs AOP"
                 if subs_aop_pct is not None else "— vs AOP")
-s_l2_col     = "#f59e0b" if subs_py_pct is not None else "#7788aa"
+s_l2_col     = rev_var_rag(subs_py_pct) if subs_py_pct is not None else "#7788aa"
 subs_py_delta = (subs_lat - subs_25) / 1000 if subs_25 else None
 s_l2         = (f"{subs_py_delta:+.1f}K | {subs_py_pct:+.1f}% vs PY"
                 if subs_py_pct is not None else "— vs PY")

@@ -110,7 +110,7 @@ pp_a_l1_col = rev_var_rag(pp_arpu_aop_pct)
 pp_a_l1 = (f"${pp_arpu_lat - pp_arpu_aop:+.0f} | {pp_arpu_aop_pct:+.1f}% vs AOP"
            if pp_arpu_aop_pct is not None else "— vs AOP")
 pp_arpu_py_delta = pp_arpu_lat - pp_arpu_25 if pp_arpu_25 else None
-pp_a_l2_col = "#f59e0b" if pp_arpu_py_pct is not None else "#7788aa"
+pp_a_l2_col = rev_var_rag(pp_arpu_py_pct) if pp_arpu_py_pct is not None else "#7788aa"
 pp_a_l2 = (f"${pp_arpu_py_delta:+.0f} | {pp_arpu_py_pct:+.1f}% vs PY"
            if pp_arpu_py_pct is not None else "— vs PY")
 
@@ -118,8 +118,7 @@ _pp_s_l1_col = rev_var_rag(pp_subs_aop_pct)
 _pp_s_l1 = (f"{(pp_subs_close - pp_subs_aop)/1000:+.1f}K | {pp_subs_aop_pct:+.1f}% vs AOP"
             if pp_subs_aop_pct is not None else "— vs AOP")
 pp_subs_py_delta = (pp_subs_close - pp_subs_25) / 1000 if pp_subs_25 else None
-_pp_s_l2_col = ("#22c55e" if (pp_subs_py_pct or 0) >= 0
-                else "#ef4444" if pp_subs_py_pct is not None else "#7788aa")
+_pp_s_l2_col = rev_var_rag(pp_subs_py_pct) if pp_subs_py_pct is not None else "#7788aa"
 _pp_s_l2 = (f"{pp_subs_py_delta:+.1f}K | {pp_subs_py_pct:+.1f}% vs PY"
             if pp_subs_py_pct is not None else "— vs PY")
 

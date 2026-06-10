@@ -110,8 +110,7 @@ wx_a_l1_col = rev_var_rag(wx_arpu_aop_pct)
 wx_a_l1 = (f"${wx_arpu_lat - wx_arpu_aop:+.0f} | {wx_arpu_aop_pct:+.1f}% vs AOP"
            if wx_arpu_aop_pct is not None else "— vs AOP")
 wx_arpu_py_delta = wx_arpu_lat - wx_arpu_25 if wx_arpu_25 else None
-wx_a_l2_col = ("#22c55e" if (wx_arpu_py_pct or 0) >= 0
-               else "#ef4444" if wx_arpu_py_pct is not None else "#7788aa")
+wx_a_l2_col = rev_var_rag(wx_arpu_py_pct) if wx_arpu_py_pct is not None else "#7788aa"
 wx_a_l2 = (f"${wx_arpu_py_delta:+.0f} | {wx_arpu_py_pct:+.1f}% vs PY"
            if wx_arpu_py_pct is not None else "— vs PY")
 
@@ -119,7 +118,7 @@ _wx_s_l1_col = rev_var_rag(wx_subs_aop_pct)
 _wx_s_l1 = (f"{(wx_subs_close - wx_subs_aop)/1000:+.1f}K | {wx_subs_aop_pct:+.1f}% vs AOP"
             if wx_subs_aop_pct is not None else "— vs AOP")
 wx_subs_py_delta = (wx_subs_close - wx_subs_25) / 1000 if wx_subs_25 else None
-_wx_s_l2_col = "#f59e0b" if wx_subs_py_pct is not None else "#7788aa"
+_wx_s_l2_col = rev_var_rag(wx_subs_py_pct) if wx_subs_py_pct is not None else "#7788aa"
 _wx_s_l2 = (f"{wx_subs_py_delta:+.1f}K | {wx_subs_py_pct:+.1f}% vs PY"
             if wx_subs_py_pct is not None else "— vs PY")
 

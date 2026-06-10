@@ -148,13 +148,13 @@ dc_delta = dc_act - dc_py if dc_py is not None else None
 dc_pct   = dc_delta / abs(dc_py) * 100 if (dc_delta is not None and dc_py) else None
 dc_trend = (f"{dc_delta:+.1f} | {dc_pct:+.1f}% vs PY"
             if dc_pct is not None else "—")
-dc_col   = "#f59e0b" if dc_py is not None else "#7788aa"
+dc_col   = rev_var_rag(-dc_pct) if dc_pct is not None else "#7788aa"
 
 gp_delta = gp_act - gp_py if gp_py is not None else None
 gp_pct   = gp_delta / abs(gp_py) * 100 if (gp_delta is not None and gp_py) else None
 gp_trend = (f"{gp_delta:+.1f} | {gp_pct:+.1f}% vs PY"
             if gp_pct is not None else "—")
-gp_col   = "#f59e0b" if gp_py is not None else "#8899bb"
+gp_col   = rev_var_rag(gp_pct) if gp_pct is not None else "#8899bb"
 
 # Usage metrics — MoU from no available source yet; GB/Sub from Prepaid_Data_Usage
 _du = load_prepaid_data_usage()
@@ -262,7 +262,7 @@ c1.markdown(r1_card(
     (f"{v2_t_rev - v2_t_py:+.1f} | {(v2_t_rev - v2_t_py) / v2_t_py * 100:+.1f}% vs PY"
      if v2_t_py else None),
     "#00d4a0", spark_series=v2_total_trend,
-    yoy_val=v2_t_rev - v2_t_py if v2_t_py is not None else None,
+    yoy_force_col=rev_var_rag((v2_t_rev - v2_t_py) / v2_t_py * 100) if v2_t_py else None,
 ), unsafe_allow_html=True)
 
 c2.markdown(r1_card(
@@ -272,6 +272,7 @@ c2.markdown(r1_card(
     (f"{pr_rev - pr_py_v:+.1f} | {(pr_rev - pr_py_v) / pr_py_v * 100:+.1f}% vs PY"
      if pr_py_v else None),
     "#a78bfa", spark_series=v2_pre_trend,
+    yoy_force_col=rev_var_rag((pr_rev - pr_py_v) / pr_py_v * 100) if pr_py_v else None,
 ), unsafe_allow_html=True)
 
 c3.markdown(r1_card(
@@ -281,7 +282,7 @@ c3.markdown(r1_card(
     (f"{pp_rev - pp_py_v:+.1f} | {(pp_rev - pp_py_v) / pp_py_v * 100:+.1f}% vs PY"
      if pp_py_v else None),
     "#4a9eff", spark_series=v2_post_trend,
-    yoy_val=pp_rev - pp_py_v if pp_py_v is not None else None,
+    yoy_force_col=rev_var_rag((pp_rev - pp_py_v) / pp_py_v * 100) if pp_py_v else None,
 ), unsafe_allow_html=True)
 
 c4.markdown(r1_card(
@@ -291,7 +292,7 @@ c4.markdown(r1_card(
     (f"{wx_rev - wx_py_v:+.1f} | {(wx_rev - wx_py_v) / wx_py_v * 100:+.1f}% vs PY"
      if wx_py_v else None),
     "#f59e0b", spark_series=v2_wx_trend,
-    yoy_force_col="#ef4444",
+    yoy_force_col=rev_var_rag((wx_rev - wx_py_v) / wx_py_v * 100) if wx_py_v else None,
 ), unsafe_allow_html=True)
 
 c5.markdown(r1_card(
@@ -301,7 +302,7 @@ c5.markdown(r1_card(
     (f"{v2_other_rev - v2_other_py:+.1f} | {(v2_other_rev - v2_other_py) / v2_other_py * 100:+.1f}% vs PY"
      if v2_other_py else None),
     "#ff6b6b", spark_series=v2_other_trend,
-    yoy_val=v2_other_rev - v2_other_py if v2_other_py is not None else None,
+    yoy_force_col=rev_var_rag((v2_other_rev - v2_other_py) / v2_other_py * 100) if v2_other_py else None,
 ), unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════

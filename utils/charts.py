@@ -260,8 +260,9 @@ def kpi_card(name, actual, unit, vs_aop_pct, vs_py_pct, status_emoji="", accent_
         border_class = f"{border}-border"
         border_style = ""
 
+    from utils.rag import rev_var_rag
     aop_class = "green-text" if vs_aop_pct >= 0 else "red-text"
-    py_class  = "green-text" if vs_py_pct  >= 0 else "red-text"
+    py_color  = rev_var_rag(vs_py_pct)
 
     try:
         val_str = f"{actual:,.0f}"
@@ -275,6 +276,6 @@ def kpi_card(name, actual, unit, vs_aop_pct, vs_py_pct, status_emoji="", accent_
         <div class="kpi-meta">
             <span class="{aop_class}">AOP: {vs_aop_pct:+.1f}%</span>
             &nbsp;&nbsp;
-            <span class="{py_class}">PY: {vs_py_pct:+.1f}%</span>
+            <span style="color:{py_color};font-weight:600">PY: {vs_py_pct:+.1f}%</span>
         </div>
     </div>""", unsafe_allow_html=True)

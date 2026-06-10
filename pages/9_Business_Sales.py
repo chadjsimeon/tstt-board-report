@@ -249,7 +249,7 @@ with left_area:
         st.markdown(_sp, unsafe_allow_html=True)
         st.markdown(fp_r2_card("Mobile Subs", subs_str,
                                subs_aop_str, subs_aop_col, subs_py_str,
-                               accent=FP_ACCENTS[0], py_col="#f59e0b"), unsafe_allow_html=True)
+                               accent=FP_ACCENTS[0]), unsafe_allow_html=True)
         st.markdown(_sp, unsafe_allow_html=True)
         st.markdown(fp_r2_card("ARPU (Mobile)", arpu_str,
                                arpu_aop_str, arpu_aop_col, arpu_py_str,
@@ -269,7 +269,7 @@ with right_area:
         )
 
     with c3:
-        st.markdown(_mrr_card("MRR",   mrr_rev, mrr_py, FP_ACCENTS[2], mrr_trend, py_col="#f59e0b"), unsafe_allow_html=True)
+        st.markdown(_mrr_card("MRR",   mrr_rev, mrr_py, FP_ACCENTS[2], mrr_trend), unsafe_allow_html=True)
     with c4:
         st.markdown(_mrr_card("USAGE", usg_rev, usg_py, FP_ACCENTS[3], usg_trend), unsafe_allow_html=True)
     with c5:

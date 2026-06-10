@@ -6,6 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data
 from utils.charts import inject_css
+from utils.rag import rev_var_rag
 
 inject_css()
 
@@ -67,7 +68,7 @@ def make_svg_sparkline(series, color, width=220, height=56):
 
 
 def _variance_row(label, pct_delta, dollar_delta, unit, is_margin=False):
-    color = "#00d4a0" if pct_delta >= 0 else "#FF4444"
+    color = rev_var_rag(pct_delta)
     pct_str = f"{'+' if pct_delta >= 0 else ''}{pct_delta:.1f}{unit}"
     if is_margin:
         content = f"{label}&nbsp;&nbsp;<b>{pct_str}</b>"
