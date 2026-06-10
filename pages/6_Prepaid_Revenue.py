@@ -227,12 +227,6 @@ with ml:
         name="Actual", marker_color="#a78bfa",
         hovertemplate="%{x}<br>%{y:.3f} / day<extra></extra>",
     ))
-    fig.add_trace(go.Scatter(
-        x=pre_daily["Month"], y=pre_daily["Daily_AOP"],
-        name="AOP", mode="lines",
-        line=dict(color="#555577", width=1.8, dash="dash"),
-        hovertemplate="%{x}<br>AOP %{y:.3f} / day<extra></extra>",
-    ))
     _base_layout(fig, "Avg Daily Prepaid Revenue", 320,
                  y_range=([0.6, dvr.max() + dvr_pad]
                            if len(dvr) > 0 else None))
