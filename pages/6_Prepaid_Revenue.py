@@ -149,7 +149,7 @@ s_l2         = (f"{subs_py_delta:+.1f}K | {subs_py_pct:+.1f}% vs PY"
 
 _c1     = _pre_kpi("Prepaid Revenue", f"{apr26_rev:.1f}",
                    r_l1, r_aop_col, r_l2, r_py_col, "#a78bfa", rev_spark)
-_c3     = _pre_kpi("ARPU (TT$)", f"{arpu_lat:.0f}",
+_c3     = _pre_kpi("ARPU (TT$ -/subscriber)", f"{arpu_lat:.0f}",
                    a_l1, a_l1_col, a_l2, a_l2_col, "#f59e0b", arpu_spark)
 _c_subs = _pre_kpi("Subscribers", _fmt_k(subs_lat),
                    s_l1, s_l1_col, s_l2, s_l2_col, "#22c55e", subs_spark)

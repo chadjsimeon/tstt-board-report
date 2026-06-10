@@ -124,7 +124,7 @@ _wx_s_l2 = (f"{wx_subs_py_delta:+.1f}K | {wx_subs_py_pct:+.1f}% vs PY"
 
 _wx_c1     = _pre_kpi("WTTx Revenue", f"{wx26_rev:.1f}",
                        wx_r_l1, wx_r_aop_col, wx_r_l2, wx_r_py_col, "#00d4a0", wx_rev_spark)
-_wx_c3     = _pre_kpi("ARPU (TT$)", f"{wx_arpu_lat:.0f}",
+_wx_c3     = _pre_kpi("ARPU (TT$ -/subscriber)", f"{wx_arpu_lat:.0f}",
                        wx_a_l1, wx_a_l1_col, wx_a_l2, wx_a_l2_col, "#f59e0b", wx_arpu_spark)
 _wx_c_subs = _pre_kpi("Subscribers", _fmt_k(wx_subs_close),
                        _wx_s_l1, _wx_s_l1_col, _wx_s_l2, _wx_s_l2_col, "#22c55e", wx_subs_spark)

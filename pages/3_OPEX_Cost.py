@@ -27,7 +27,13 @@ data = load_all_data()
 opex = data["OPEX"]
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
-months    = opex["Month"].unique().tolist()
+# Only offer months with booked Actual spend — exclude future AOP/Plan-only
+# months so the default (and exports) land on the last month with real data.
+_all_months   = opex["Month"].unique().tolist()
+_actual_month = opex.groupby("Month", sort=False)["Actual"].apply(
+    lambda s: s.fillna(0).abs().sum() > 0
+)
+months    = [m for m in _all_months if _actual_month.get(m, False)] or _all_months
 sel_month = st.sidebar.selectbox("Focus Month", months, index=len(months) - 1)
 
 latest       = opex[opex["Month"] == sel_month].copy()

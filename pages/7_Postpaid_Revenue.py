@@ -124,7 +124,7 @@ _pp_s_l2 = (f"{pp_subs_py_delta:+.1f}K | {pp_subs_py_pct:+.1f}% vs PY"
 
 _pp_c1     = _pre_kpi("Postpaid Revenue", f"{pp26_rev:.1f}",
                        pp_r_l1, pp_r_aop_col, pp_r_l2, pp_r_py_col, "#4a9eff", pp_rev_spark)
-_pp_c3     = _pre_kpi("ARPU (TT$)", f"{pp_arpu_lat:.0f}",
+_pp_c3     = _pre_kpi("ARPU (TT$ -/subscriber)", f"{pp_arpu_lat:.0f}",
                        pp_a_l1, pp_a_l1_col, pp_a_l2, pp_a_l2_col, "#f59e0b", pp_arpu_spark)
 _pp_c_subs = _pre_kpi("Subscribers", _fmt_k(pp_subs_close),
                        _pp_s_l1, _pp_s_l1_col, _pp_s_l2, _pp_s_l2_col, "#22c55e", pp_subs_spark)
