@@ -378,11 +378,13 @@ def load_all_data():
         # ── P&L_Segments AMPLIA row → AMPLIA_Financial ───────────────────────────
         amplia_seg = pnl_seg[pnl_seg["Segment"].str.contains("AMPLIA", na=False)].copy()
         amplia_fin = amplia_seg.rename(
-            columns={"COS": "Direct_Costs", "COS_AOP": "Direct_Costs_AOP"}
+            columns={"COS": "Direct_Costs", "COS_AOP": "Direct_Costs_AOP",
+                     "GP_AOP": "Gross_Profit_AOP"}
         ).reset_index(drop=True)
         amplia_fin = _scale(amplia_fin, [
-            "Revenue", "Revenue_AOP", "Gross_Profit",
-            "EBITDA", "EBITDA_AOP", "PAT", "OPEX", "Direct_Costs",
+            "Revenue", "Revenue_AOP", "Gross_Profit", "Gross_Profit_AOP",
+            "EBITDA", "EBITDA_AOP", "PAT", "PAT_AOP",
+            "OPEX", "OPEX_AOP", "Direct_Costs", "Direct_Costs_AOP",
         ])
         data["AMPLIA_Financial"] = amplia_fin
 
