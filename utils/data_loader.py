@@ -126,7 +126,8 @@ def load_all_data():
             row["Total_COS"]     = m_data["COS"].sum()
             row["Total_COS_AOP"] = m_data["COS_AOP"].sum()
             row["Total_GP"]      = m_data["Gross_Profit"].sum()
-            row["Total_OPEX"]    = m_data["OPEX"].sum()
+            row["Total_OPEX"]     = m_data["OPEX"].sum()
+            row["Total_OPEX_AOP"] = m_data["OPEX_AOP"].sum()
             row["EBITDA"]        = m_data["EBITDA"].sum()
             bd_rows.append(row)
 
@@ -136,7 +137,8 @@ def load_all_data():
         # Ensure all columns expected by dashboard pages always exist (default 0)
         _required_cols = [
             "Total_Rev", "Total_Rev_AOP", "Total_Rev_PY",
-            "Total_COS", "Total_COS_AOP", "Total_GP", "Total_OPEX", "EBITDA",
+            "Total_COS", "Total_COS_AOP", "Total_GP",
+            "Total_OPEX", "Total_OPEX_AOP", "EBITDA",
         ]
         for seg in ["CONSUMER SALES", "BUSINESS SALES", "AMPLIA", "DPDI", "OTHER"]:
             for sfx in ["Rev", "COS", "GP", "Rev_AOP", "COS_AOP", "GP_AOP", "OPEX", "EBITDA"]:

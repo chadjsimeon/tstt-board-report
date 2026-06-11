@@ -25,8 +25,18 @@ pnl["Gross_Profit_PY"] = pnl["_dt"].apply(
     lambda dt, lk=gp_lk: lk.get(dt - pd.DateOffset(months=12))
 )
 pnl.drop(columns=["_dt"], inplace=True)
-fin = fin.merge(pnl[["Month", "Gross_Profit", "Gross_Profit_AOP", "Gross_Profit_PY"]],
+fin = fin.merge(pnl[["Month", "Gross_Profit", "Gross_Profit_AOP", "Gross_Profit_PY",
+                     "Total_OPEX", "Total_OPEX_AOP"]],
                 on="Month", how="left")
+
+# EBITDA = Gross Profit − OPEX (override booked EBITDA so OPEX data drives the figure)
+fin["EBITDA"]     = fin["Gross_Profit"]     - fin["Total_OPEX"]
+fin["EBITDA_AOP"] = fin["Gross_Profit_AOP"] - fin["Total_OPEX_AOP"]
+fin["EBITDA_Margin_AOP"] = (fin["EBITDA_AOP"] / fin["Revenue_AOP"] * 100)
+fin["_dt"] = pd.to_datetime(fin["Month"], format="%b-%y", errors="coerce")
+_eb_lk = fin.dropna(subset=["_dt"]).set_index("_dt")["EBITDA"]
+fin["EBITDA_PY"] = fin["_dt"].apply(lambda dt, lk=_eb_lk: lk.get(dt - pd.DateOffset(months=12)))
+fin.drop(columns=["_dt"], inplace=True)
 
 if fin.empty:
     st.info("No P&L data available. Please populate the P&L_Segments sheet in TSTT_Master_Data_Template.xlsx.")
@@ -197,16 +207,5 @@ with chart_col:
     st.plotly_chart(fig, use_container_width=True)
 
 with driver_col:
-    blocks = "".join([
-        driver_block("Revenue",      REV_COLOR, "Revenue",      "Revenue_AOP",      "Revenue_PY",      False),
-        driver_block("Gross Profit", GP_COLOR,  "Gross_Profit", "Gross_Profit_AOP", "Gross_Profit_PY", False),
-        driver_block("EBITDA",       EBI_COLOR, "EBITDA",       "EBITDA_AOP",       "EBITDA_PY",       False),
-        driver_block("PAT",          PAT_COLOR, "PAT",          "PAT_AOP",          "PAT_PY",          False, last_entry=True),
-    ])
-    st.markdown(f"""
-<div style="background:{CARD_BG};border-radius:12px;padding:24px;
-            border:1px solid rgba(74,158,255,0.08);">
-    <div style="color:white;font-size:15px;font-weight:700;margin-bottom:20px;">
-        Key Drivers — {latest['Month']}</div>
-    {blocks}
-</div>""", unsafe_allow_html=True)
+    # Key Drivers removed — column intentionally left empty for a manual text box.
+    st.empty()
