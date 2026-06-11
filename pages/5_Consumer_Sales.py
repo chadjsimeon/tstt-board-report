@@ -139,8 +139,8 @@ if not v2_pnl_py.empty:
 
 dc_aop_pct  = (dc_act - dc_aop) / abs(dc_aop) * 100 if dc_aop else None
 gp_aop_pct  = (gp_act - gp_aop) / abs(gp_aop) * 100 if gp_aop else None
-dc_aop_str  = f"{dc_aop_pct:+.1f}% vs AOP" if dc_aop_pct is not None else "— vs AOP"
-gp_aop_str  = f"{gp_aop_pct:+.1f}% vs AOP" if gp_aop_pct is not None else "— vs AOP"
+dc_aop_str  = f"{dc_act - dc_aop:+.1f} | {dc_aop_pct:+.1f}% vs AOP" if dc_aop_pct is not None else "— vs AOP"
+gp_aop_str  = f"{gp_act - gp_aop:+.1f} | {gp_aop_pct:+.1f}% vs AOP" if gp_aop_pct is not None else "— vs AOP"
 dc_aop_col  = rag(dc_aop_pct, 0, 10, higher=False) if dc_aop_pct is not None else "#7788aa"
 gp_aop_col  = rev_var_rag(gp_aop_pct)
 
