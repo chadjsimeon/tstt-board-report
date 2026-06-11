@@ -27,8 +27,17 @@ wttx     = consumer[consumer["Segment"] == "WTTx"].copy()
 
 # ── Data prep ────────────────────────────────────────────────────────────
 wx_mons   = months[-13:]
-wx_latest = wttx[wttx["Month"] == "Apr-26"]
-wx_apr25  = wttx[wttx["Month"] == "Apr-25"]
+# Latest WTTx month with booked revenue (was hardcoded to Apr-26)
+_wx_rev_by_mon  = wttx.groupby("Month")["Revenue"].sum()
+wx_latest_month = next(
+    (m for m in reversed(wx_mons)
+     if pd.notna(_wx_rev_by_mon.get(m)) and _wx_rev_by_mon.get(m, 0) > 0),
+    wx_mons[-1],
+)
+wx_py_month = (pd.to_datetime(wx_latest_month, format="%b-%y")
+               - pd.DateOffset(months=12)).strftime("%b-%y")
+wx_latest = wttx[wttx["Month"] == wx_latest_month]
+wx_apr25  = wttx[wttx["Month"] == wx_py_month]
 
 # Revenue
 wx26_rev  = float(wx_latest["Revenue"].sum())  if not wx_latest.empty else 0.0

@@ -27,8 +27,17 @@ wttx     = consumer[consumer["Segment"] == "WTTx"].copy()
 
 # ── Data prep ────────────────────────────────────────────────────────────
 pre_mons    = months[-13:]
-pre_latest  = prepaid[prepaid["Month"] == "Apr-26"]
-pre_apr25   = prepaid[prepaid["Month"] == "Apr-25"]
+# Latest prepaid month with booked revenue (was hardcoded to Apr-26)
+_pre_rev_by_mon  = prepaid.groupby("Month")["Revenue"].sum()
+pre_latest_month = next(
+    (m for m in reversed(pre_mons)
+     if pd.notna(_pre_rev_by_mon.get(m)) and _pre_rev_by_mon.get(m, 0) > 0),
+    pre_mons[-1],
+)
+pre_py_month = (pd.to_datetime(pre_latest_month, format="%b-%y")
+                - pd.DateOffset(months=12)).strftime("%b-%y")
+pre_latest  = prepaid[prepaid["Month"] == pre_latest_month]
+pre_apr25   = prepaid[prepaid["Month"] == pre_py_month]
 
 # ── Prepaid subscriber totals — source of truth from ARPU buckets file ──
 _arpu_df = load_prepaid_arpu()

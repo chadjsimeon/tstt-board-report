@@ -27,8 +27,17 @@ wttx     = consumer[consumer["Segment"] == "WTTx"].copy()
 
 # ── Data prep ────────────────────────────────────────────────────────────
 pp_mons   = months[-13:]
-pp_latest = postpaid[postpaid["Month"] == "Apr-26"]
-pp_apr25  = postpaid[postpaid["Month"] == "Apr-25"]
+# Latest postpaid month with booked revenue (was hardcoded to Apr-26)
+_pp_rev_by_mon  = postpaid.groupby("Month")["Revenue"].sum()
+pp_latest_month = next(
+    (m for m in reversed(pp_mons)
+     if pd.notna(_pp_rev_by_mon.get(m)) and _pp_rev_by_mon.get(m, 0) > 0),
+    pp_mons[-1],
+)
+pp_py_month = (pd.to_datetime(pp_latest_month, format="%b-%y")
+               - pd.DateOffset(months=12)).strftime("%b-%y")
+pp_latest = postpaid[postpaid["Month"] == pp_latest_month]
+pp_apr25  = postpaid[postpaid["Month"] == pp_py_month]
 
 # Revenue
 pp26_rev  = float(pp_latest["Revenue"].sum())  if not pp_latest.empty else 0.0
