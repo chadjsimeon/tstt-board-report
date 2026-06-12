@@ -82,14 +82,14 @@ mrr_py  = _mrr_col(mrr_py_snap, "MRR")
 usg_py  = _mrr_col(mrr_py_snap, "USAGE")
 occ_py  = _mrr_col(mrr_py_snap, "OCC")
 
-gp_col_v = _col(biz_latest, "Gross_Profit")
-gp_rev   = gp_col_v if gp_col_v is not None else (fp_t_rev - dc_rev)
-gp_aop_v = _col(biz_latest, "GP_AOP")
-if gp_aop_v is None and fp_t_aop and dc_aop is not None:
-    gp_aop_v = fp_t_aop - dc_aop
-gp_py = _col(biz_py_snap, "Gross_Profit")
-if gp_py is None and fp_t_py is not None and dc_py is not None:
-    gp_py = fp_t_py - dc_py
+# Gross Profit = Revenue − Direct Costs, derived from the summed totals.
+# The per-row Gross_Profit/GP_AOP columns drift from Rev − COS when summed
+# across the month's sub-segment rows, so they are only a fallback.
+gp_rev   = (fp_t_rev - dc_rev) if fp_t_rev else _col(biz_latest, "Gross_Profit")
+gp_aop_v = ((fp_t_aop - dc_aop) if (fp_t_aop and dc_aop is not None)
+            else _col(biz_latest, "GP_AOP"))
+gp_py    = ((fp_t_py - dc_py) if (fp_t_py is not None and dc_py is not None)
+            else _col(biz_py_snap, "Gross_Profit"))
 gp_margin_pct = gp_rev / fp_t_rev * 100 if fp_t_rev else 0
 
 mob_subs  = _col(biz_latest, "Mobile_Subs")
@@ -183,17 +183,16 @@ _gp_py_pct   = _gp_py_delta / abs(gp_py) * 100 if (_gp_py_delta is not None and 
 gp_py_str    = (f"{_gp_py_delta:+.1f} | {_gp_py_pct:+.1f}% vs PY"
                if _gp_py_pct is not None else f"{gp_margin_pct:.1f}% margin")
 
-subs_str = f"{int(mob_subs):,}" if mob_subs else "—"
+subs_str = f"{int(mob_subs)/1000:,.0f}K" if mob_subs else "—"
 s_vp = _vp(mob_subs, subs_aop) if (mob_subs and subs_aop) else None
 if s_vp is not None:
     s_vm = int(mob_subs - subs_aop)
-    subs_aop_str = f"{s_vm:+,} | {s_vp:+.1f}% vs AOP"
+    subs_aop_str = f"{(s_vm)/1000:+,.1f} | {s_vp:+.1f}% vs AOP"
     subs_aop_col = rev_var_rag(s_vp)
 else:
     subs_aop_str, subs_aop_col = "— vs AOP", "#445566"
 s_py_pct = _vp(mob_subs, subs_py) if (mob_subs and subs_py) else None
-subs_py_str = (f"{int(mob_subs - subs_py):+,} | {s_py_pct:+.1f}% vs PY"
-               if s_py_pct is not None else "— vs PY")
+subs_py_str = f"{(int(mob_subs) - int(subs_py))/1000:+,.1f} | {s_py_pct:+.1f}% vs PY" if s_py_pct is not None else "— vs PY"
 
 arpu_str = f"{arpu_val:,.0f}" if arpu_val else "—"
 arpu_py  = (mob_py * 1_000_000 / subs_py) if (mob_py and subs_py) else None
@@ -251,7 +250,7 @@ with left_area:
                                subs_aop_str, subs_aop_col, subs_py_str,
                                accent=FP_ACCENTS[0]), unsafe_allow_html=True)
         st.markdown(_sp, unsafe_allow_html=True)
-        st.markdown(fp_r2_card("ARPU (Mobile)", arpu_str,
+        st.markdown(fp_r2_card("ARPU TT$ -/sub", arpu_str,
                                arpu_aop_str, arpu_aop_col, arpu_py_str,
                                accent=FP_ACCENTS[1]), unsafe_allow_html=True)
 
@@ -293,7 +292,7 @@ with right_area:
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"), height=420,
         title=dict(text="<b>MRR / OCC / USAGE Trend</b>",
-                   font=dict(size=15, color="white"), x=0),
+                   font=dict(size=30, color="white"), x=0),
         xaxis=dict(showgrid=False, tickfont=dict(size=15), tickangle=-30),
         yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)",
                    tickfont=dict(size=15), tickprefix="$"),
