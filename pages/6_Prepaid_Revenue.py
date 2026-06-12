@@ -241,32 +241,63 @@ _arpu_prev_month = (pd.to_datetime(_arpu_latest_month, format="%b-%y")
                     - pd.DateOffset(months=1)).strftime("%b-%y")
 pre_arpu_cats_prev = _arpu_cat_snapshot(_arpu_prev_month)
 
-def _arpu_cat_chart(cats, month_label):
-    _cat_names  = ([c for c in cats if c not in _ARPU_ORDER_BOTTOM_UP]
-                   + [c for c in _ARPU_ORDER_BOTTOM_UP if c in cats])
+def _arpu_cat_chart(cats, prev_cats, month_label, prev_label):
+    """Grouped vertical bars: categories on the x-axis (VLV → VHV), prior
+    month standing beside the current month in the same colour, shaded."""
+    _cat_names  = ([c for c in _ARPU_ORDER_BOTTOM_UP if c in cats]
+                   + [c for c in cats if c not in _ARPU_ORDER_BOTTOM_UP])
+    _x_lbls     = [c.replace(" ", "<br>", 1) for c in _cat_names]   # "VHV<br>$300+"
     _cat_vals   = [cats[c] for c in _cat_names]
+    _prev_vals  = [prev_cats.get(c, 0) for c in _cat_names]
     _cat_colors = [_ARPU_COLORS.get(c, "#6b7280") for c in _cat_names]
     _cat_total  = sum(_cat_vals)
     _cat_pcts   = [v / _cat_total * 100 if _cat_total else 0 for v in _cat_vals]
-    fig = go.Figure(go.Bar(
-        y=_cat_names, x=_cat_vals, orientation="h",
+    _prev_total = sum(_prev_vals)
+    _prev_pcts  = [v / _prev_total * 100 if _prev_total else 0 for v in _prev_vals]
+
+    fig = go.Figure()
+    if any(_prev_vals):
+        fig.add_trace(go.Bar(
+            x=_x_lbls, y=_prev_vals,
+            name=prev_label,
+            marker_color=[dim(c, 0.35) for c in _cat_colors],
+            marker_line=dict(color=[dim(c, 0.70) for c in _cat_colors], width=1),
+            text=[f"{p:.0f}%" for p in _prev_pcts],
+            textposition="outside", textfont=dict(color="#8899aa", size=20),
+            cliponaxis=False,
+            customdata=_cat_names,
+            hovertemplate=f"<b>%{{customdata}}</b> — {prev_label}<br>%{{y:,.0f}} subs<extra></extra>",
+        ))
+    fig.add_trace(go.Bar(
+        x=_x_lbls, y=_cat_vals,
+        name=month_label,
         marker_color=_cat_colors,
         text=[f"{p:.0f}%" for p in _cat_pcts],
-        textposition="outside", textfont=dict(color="white", size=22),
-        hovertemplate="<b>%{y}</b><br>%{x:,.0f} subs<extra></extra>",
+        textposition="outside", textfont=dict(color="white", size=20),
+        cliponaxis=False,
+        customdata=_cat_names,
+        hovertemplate=f"<b>%{{customdata}}</b> — {month_label}<br>%{{y:,.0f}} subs<extra></extra>",
     ))
-    _base_layout(fig, f"<b>Subs by ARPU — {month_label}</b>", 320)
+    _base_layout(
+        fig,
+        f"<b>Subs by ARPU — {month_label}</b>"
+        f" <span style='font-size:18px;color:#8888aa'>(shaded: {prev_label})</span>",
+        320,
+    )
+    _max_v = max(_cat_vals + _prev_vals) if (_cat_vals or _prev_vals) else None
     fig.update_layout(
+        barmode="group",
+        bargap=0.28, bargroupgap=0.06,
         showlegend=False,
-        xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=20),
-                   range=[0, max(_cat_vals) * 1.45] if _cat_vals else None),
-        yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=20),
-                   categoryorder="array", categoryarray=_cat_names),
+        xaxis=dict(tickfont=dict(color="white", size=16),
+                   categoryorder="array", categoryarray=_x_lbls),
+        yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=16),
+                   range=[0, _max_v * 1.22] if _max_v else None),
     )
     return fig
 
 # ── Charts: Avg Daily Revenue  |  Subscribers by ARPU Category ───────────
-ml, mc, mr = st.columns([40, 30, 30])
+ml, mr = st.columns([55, 45])
 
 with ml:
     dvr     = pre_daily["Daily_Rev"].dropna().values
@@ -283,16 +314,12 @@ with ml:
     fig.update_layout(showlegend=False)
     st.plotly_chart(fig, use_container_width=True)
 
-with mc:
-    if pre_arpu_cats_prev:
-        st.plotly_chart(_arpu_cat_chart(pre_arpu_cats_prev, _arpu_prev_month),
-                        use_container_width=True)
-    else:
-        st.info(f"No ARPU bucket data for {_arpu_prev_month}.")
-
 with mr:
     if pre_arpu_cats:
-        st.plotly_chart(_arpu_cat_chart(pre_arpu_cats, _arpu_latest_month),
-                        use_container_width=True)
+        st.plotly_chart(
+            _arpu_cat_chart(pre_arpu_cats, pre_arpu_cats_prev,
+                            _arpu_latest_month, _arpu_prev_month),
+            use_container_width=True,
+        )
     else:
         st.info("No ARPU bucket data available for the selected month.")
