@@ -1,14 +1,14 @@
 """
-TSTT Board Report — high-fidelity screenshot PowerPoint exporter (test run).
+TSTT Board Report — high-fidelity screenshot PowerPoint exporter.
 
-Drives headless Chromium over the live Streamlit dashboard, screenshots the
-Consumer Sales page tab-by-tab, and assembles the captures into a 16:9 .pptx.
-Any tab taller than a slide is auto-split into multiple legible slides.
+Drives headless Chromium over the live Streamlit dashboard, screenshots every
+page (Home + each sidebar page), and assembles the captures into a 16:9 .pptx.
+Pages taller than a slide are auto-split into multiple legible slides.
 
 Usage (from the project root):
     python tools/pptx_screenshot_export.py
     python tools/pptx_screenshot_export.py --url http://localhost:8501
-    python tools/pptx_screenshot_export.py --no-split
+    python tools/pptx_screenshot_export.py --page Consumer_Sales
 
 One-time setup:
     pip install playwright Pillow
@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import re
 import sys
 import time
 import urllib.request
@@ -45,6 +46,25 @@ header[data-testid="stHeader"]              { display: none !important; }
 .stAppDeployButton                          { display: none !important; }
 [data-testid="stStatusWidget"]              { display: none !important; }
 """
+
+
+# ── Page discovery ───────────────────────────────────────────────────────────
+def discover_pages() -> list[tuple[str, str]]:
+    """Return [(label, slug), ...] for the Home page plus every pages/*.py file,
+    in sidebar (numeric-prefix) order. Slug "" is the Home page; the Export page
+    is skipped. The slug is the filename with its `<n>_` prefix and `.py` removed,
+    matching Streamlit's multipage URL routing."""
+    items = []
+    for f in (PROJECT_ROOT / "pages").glob("*.py"):
+        m = re.match(r"(\d+)_(.+)\.py$", f.name)
+        if not m:
+            continue
+        num, slug = int(m.group(1)), m.group(2)
+        if slug == "Export":
+            continue
+        items.append((num, slug))
+    items.sort(key=lambda t: t[0])
+    return [("Home", "")] + [(slug.replace("_", " "), slug) for _, slug in items]
 
 
 # ── Streamlit server ─────────────────────────────────────────────────────────
@@ -83,17 +103,59 @@ def _launch_streamlit(port: int):
 
 
 # ── Capture ──────────────────────────────────────────────────────────────────
-def capture_tabs(base_url: str, page_slug: str, viewport_w: int, headed: bool):
-    """Return [(tab_label, png_bytes), ...] for every tab on the page."""
+def _shoot(page) -> bytes:
+    """Settle the page (charts + below-the-fold) and return a full-page PNG."""
+    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+    page.wait_for_timeout(900)
+    page.evaluate("window.scrollTo(0, 0)")
+    page.wait_for_timeout(500)
+    return page.screenshot(full_page=True)
+
+
+def _capture_page(page, base_url: str, label: str, slug: str):
+    """Capture one dashboard page; returns [(caption, png_bytes), ...].
+
+    A page with st.tabs yields one capture per tab; a tab-less page yields one."""
+    root = base_url.rstrip("/")
+    url  = f"{root}/{slug}?embed=true" if slug else f"{root}/?embed=true"
+    print(f"  opening {label}  ->  {url}")
+    page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+    page.add_style_tag(content=HIDE_CSS)            # fresh document each goto
+    try:
+        page.wait_for_selector('div[data-testid="stAppViewContainer"]', timeout=45_000)
+    except Exception:                               # noqa: BLE001
+        pass
+    page.wait_for_timeout(3500)                     # Streamlit websocket render + Plotly
+
+    tabs   = page.locator('button[data-baseweb="tab"]')
+    n_tabs = tabs.count()
+    out: list[tuple[str, bytes]] = []
+
+    if n_tabs == 0:
+        out.append((label, _shoot(page)))
+        print(f"  captured {label}")
+    else:
+        for i in range(n_tabs):
+            tab = tabs.nth(i)
+            tab_label = (tab.inner_text() or f"Tab {i + 1}").strip()
+            tab.click()
+            page.evaluate("window.dispatchEvent(new Event('resize'))")
+            page.wait_for_timeout(2500)             # settle: Plotly animation + layout
+            out.append((f"{label} — {tab_label}", _shoot(page)))
+            print(f"  captured {label} — {tab_label}")
+    return out
+
+
+def capture_all(base_url: str, pages: list[tuple[str, str]], viewport_w: int,
+                headed: bool):
+    """Capture every page in `pages` with a single shared browser session."""
     from playwright.sync_api import sync_playwright
 
-    url = f"{base_url.rstrip('/')}/{page_slug}?embed=true"
     captures: list[tuple[str, bytes]] = []
-
     with sync_playwright() as pw:
         try:
             browser = pw.chromium.launch(headless=not headed)
-        except Exception as exc:               # noqa: BLE001
+        except Exception as exc:                   # noqa: BLE001
             raise RuntimeError(
                 "Could not launch Chromium. Run `playwright install chromium` once. "
                 f"Original error: {exc}"
@@ -101,40 +163,15 @@ def capture_tabs(base_url: str, page_slug: str, viewport_w: int, headed: bool):
 
         context = browser.new_context(
             viewport={"width": viewport_w, "height": round(viewport_w / SLIDE_ASPECT)},
-            device_scale_factor=2,              # 2x density => crisp text
+            device_scale_factor=2,                  # 2x density => crisp text
         )
         page = context.new_page()
 
-        print(f"  opening {url}")
-        page.goto(url, wait_until="domcontentloaded", timeout=60_000)
-        page.add_style_tag(content=HIDE_CSS)
-        page.wait_for_selector('div[data-testid="stAppViewContainer"]', timeout=45_000)
-        page.wait_for_selector('button[data-baseweb="tab"]', timeout=45_000)
-
-        tabs = page.locator('button[data-baseweb="tab"]')
-        n_tabs = tabs.count()
-        print(f"  found {n_tabs} tab(s)")
-
-        for i in range(n_tabs):
-            tab = tabs.nth(i)
-            label = (tab.inner_text() or f"Tab {i + 1}").strip()
-            tab.click()
-            # Let Plotly recompute width for the freshly-revealed panel.
-            page.evaluate("window.dispatchEvent(new Event('resize'))")
+        for label, slug in pages:
             try:
-                page.wait_for_selector("div.js-plotly-plot", timeout=15_000)
-            except Exception:                   # noqa: BLE001 — tab may have no chart
-                pass
-            page.wait_for_timeout(2500)         # settle: Plotly animation + layout
-            # Force any below-the-fold content to render.
-            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            page.wait_for_timeout(900)
-            page.evaluate("window.scrollTo(0, 0)")
-            page.wait_for_timeout(500)
-
-            png = page.screenshot(full_page=True)
-            captures.append((label, png))
-            print(f"  captured tab {i + 1}/{n_tabs}: {label}")
+                captures += _capture_page(page, base_url, label, slug)
+            except Exception as exc:               # noqa: BLE001 — skip, keep going
+                print(f"  WARNING: failed to capture {label}: {exc}", file=sys.stderr)
 
         context.close()
         browser.close()
@@ -154,7 +191,7 @@ def slice_capture(png_bytes: bytes, split: bool):
     # Shorter than a slide, or splitting disabled => single frame.
     if not split or h <= seg_h:
         if h >= seg_h:
-            return [img]                        # caller fits it onto the slide
+            return [img]                            # caller fits it onto the slide
         canvas = Image.new("RGB", (w, seg_h), BG_RGB)
         canvas.paste(img, (0, 0))
         return [canvas]
@@ -163,7 +200,7 @@ def slice_capture(png_bytes: bytes, split: bool):
     step    = seg_h - overlap
     segments, top = [], 0
     while True:
-        if top + seg_h >= h:                    # last slice anchored to the bottom
+        if top + seg_h >= h:                        # last slice anchored to the bottom
             segments.append(img.crop((0, h - seg_h, w, h)))
             break
         segments.append(img.crop((0, top, w, top + seg_h)))
@@ -172,7 +209,7 @@ def slice_capture(png_bytes: bytes, split: bool):
 
 
 # ── PPTX assembly ────────────────────────────────────────────────────────────
-def build_pptx(captures, out_path: Path, split: bool) -> None:
+def build_pptx(captures, out_path: Path, split: bool) -> int:
     from pptx import Presentation
     from pptx.dml.color import RGBColor
     from pptx.util import Inches
@@ -215,24 +252,28 @@ def build_pptx(captures, out_path: Path, split: bool) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     prs.save(str(out_path))
     print(f"\n  wrote {n_slides} slide(s) -> {out_path}")
+    return n_slides
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Screenshot-based PPTX exporter (test run).")
+    ap = argparse.ArgumentParser(description="Screenshot-based all-pages PPTX exporter.")
     ap.add_argument("--url", default=None,
                     help="Reuse a running Streamlit server (e.g. http://localhost:8501). "
                          "If omitted, a dedicated instance is launched.")
     ap.add_argument("--port", type=int, default=8599,
                     help="Port for the auto-launched Streamlit instance (default 8599).")
-    ap.add_argument("--page", default="Consumer",
-                    help="Page slug to capture (default: Consumer).")
-    ap.add_argument("--out", default="exports/TSTT_Consumer_Sales_Export.pptx",
-                    help="Output .pptx path (default: exports/TSTT_Consumer_Sales_Export.pptx).")
+    ap.add_argument("--page", default=None,
+                    help="Optional: capture only this one page slug (default: all pages).")
+    ap.add_argument("--pages", default=None,
+                    help="Optional: comma-separated page labels/slugs to capture "
+                         "(default: all). Takes precedence over --page.")
+    ap.add_argument("--out", default="exports/TSTT_Board_Report.pptx",
+                    help="Output .pptx path (default: exports/TSTT_Board_Report.pptx).")
     ap.add_argument("--viewport-width", type=int, default=1920,
                     help="Browser viewport width in CSS px (default 1920).")
     ap.add_argument("--no-split", action="store_true",
-                    help="One slide per tab, scaled to fit (no auto-split).")
+                    help="One slide per page/tab, scaled to fit (no auto-split).")
     ap.add_argument("--headed", action="store_true",
                     help="Show the browser window (debugging).")
     args = ap.parse_args()
@@ -240,6 +281,20 @@ def main() -> int:
     out_path = Path(args.out)
     if not out_path.is_absolute():
         out_path = PROJECT_ROOT / out_path
+
+    pages = discover_pages()
+    if args.pages:
+        wanted = {p.strip() for p in args.pages.split(",") if p.strip()}
+        pages = [(l, s) for l, s in pages if l in wanted or s in wanted]
+        if not pages:
+            print(f"ERROR: no pages match --pages {args.pages!r}.", file=sys.stderr)
+            return 1
+    elif args.page:
+        pages = [(l, s) for l, s in pages if args.page in (s, l)]
+        if not pages:
+            print(f"ERROR: no page matches --page {args.page!r}.", file=sys.stderr)
+            return 1
+    print(f"Pages to capture: {', '.join(l for l, _ in pages)}")
 
     proc = None
     try:
@@ -253,9 +308,9 @@ def main() -> int:
             _wait_for_server(base_url)
             print("  server ready")
 
-        captures = capture_tabs(base_url, args.page, args.viewport_width, args.headed)
+        captures = capture_all(base_url, pages, args.viewport_width, args.headed)
         if not captures:
-            print("ERROR: no tabs/content captured.", file=sys.stderr)
+            print("ERROR: no pages captured.", file=sys.stderr)
             return 1
 
         build_pptx(captures, out_path, split=not args.no_split)
@@ -268,7 +323,7 @@ def main() -> int:
             proc.terminate()
             try:
                 proc.wait(timeout=10)
-            except Exception:                   # noqa: BLE001
+            except Exception:                       # noqa: BLE001
                 proc.kill()
 
 
