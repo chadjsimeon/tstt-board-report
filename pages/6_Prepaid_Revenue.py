@@ -125,11 +125,12 @@ _pre_gross_adds_raw = pre_latest["Gross_Adds"].values[0] if not pre_latest.empty
 _pre_churn_count_raw = pre_latest["Churn_Count"].values[0] if (not pre_latest.empty and "Churn_Count" in pre_latest.columns) else None
 if _pre_gross_adds_raw and float(_pre_gross_adds_raw) > 0:
     pre_subs_gross = float(_pre_gross_adds_raw)
-    pre_subs_disc  = float(_pre_churn_count_raw) if (_pre_churn_count_raw is not None and pd.notna(_pre_churn_count_raw)) else 0.0
+    # Churn back-calculated so Opening + Gross Adds − Churn reconciles to Closing
+    pre_subs_disc  = max(0.0, pre_subs_open + pre_subs_gross - pre_subs_close)
 else:
     pre_subs_disc  = pre_subs_open * churn_pre / 100 if (churn_pre and pre_subs_open > 0) else 0.0
     pre_subs_gross = max(0.0, pre_subs_close - pre_subs_open + pre_subs_disc)
-churn_derived  = churn_pre if churn_pre else 0.0
+churn_derived  = (pre_subs_disc / pre_subs_open * 100) if pre_subs_open > 0 else 0.0
 
 # ── 4 KPI boxes ──────────────────────────────────────────────────────────
 r_aop_col  = rev_var_rag(rev_aop_pct)
@@ -158,7 +159,7 @@ s_l2         = (f"{subs_py_delta:+.1f}K | {subs_py_pct:+.1f}% vs PY"
 
 _c1     = _pre_kpi("Prepaid Revenue", f"{apr26_rev:.1f}",
                    r_l1, r_aop_col, r_l2, r_py_col, "#a78bfa", rev_spark)
-_c3     = _pre_kpi("ARPU (TT$ -/subscriber)", f"{arpu_lat:.0f}",
+_c3     = _pre_kpi("ARPU (TT$ -/sub)", f"{arpu_lat:.0f}",
                    a_l1, a_l1_col, a_l2, a_l2_col, "#f59e0b", arpu_spark)
 _c_subs = _pre_kpi("Subscribers", _fmt_k(subs_lat),
                    s_l1, s_l1_col, s_l2, s_l2_col, "#22c55e", subs_spark)
@@ -213,19 +214,59 @@ pre_daily["Daily_Rev"] = pre_daily["Revenue"]     / pre_daily["Days"]
 pre_daily["Daily_AOP"] = pre_daily["Revenue_AOP"] / pre_daily["Days"]
 
 # ── ARPU Category ─────────────────────────────────────────────────────────
-if not _arpu_df.empty:
+# Display order: VHV at the top of the chart down to VLV at the bottom.
+# (Plotly draws horizontal-bar categories bottom→top, so the array is reversed.)
+_ARPU_ORDER_BOTTOM_UP = ["VLV <$5", "LV $5-$30", "MV $30-$120",
+                         "HV $120-$300", "VHV $300+"]
+_ARPU_COLORS = {
+    "VHV $300+":    "#22c55e",
+    "HV $120-$300": "#a78bfa",
+    "MV $30-$120":  "#6366f1",
+    "LV $5-$30":    "#f59e0b",
+    "VLV <$5":      "#6b7280",
+}
+
+def _arpu_cat_snapshot(month):
+    if _arpu_df.empty or not month:
+        return {}
     _snap = (
-        _arpu_df[_arpu_df["Month"] == _arpu_latest_month]
+        _arpu_df[_arpu_df["Month"] == month]
         .groupby("Category")["Subscribers"].sum()
     )
-    pre_arpu_cats    = _snap.to_dict() if not _snap.empty else {}
-    _arpu_data_label = _arpu_latest_month
-else:
-    pre_arpu_cats    = {}
-    _arpu_data_label = None
+    return _snap.to_dict() if not _snap.empty else {}
+
+pre_arpu_cats    = _arpu_cat_snapshot(_arpu_latest_month)
+_arpu_data_label = _arpu_latest_month if pre_arpu_cats else None
+_arpu_prev_month = (pd.to_datetime(_arpu_latest_month, format="%b-%y")
+                    - pd.DateOffset(months=1)).strftime("%b-%y")
+pre_arpu_cats_prev = _arpu_cat_snapshot(_arpu_prev_month)
+
+def _arpu_cat_chart(cats, month_label):
+    _cat_names  = ([c for c in cats if c not in _ARPU_ORDER_BOTTOM_UP]
+                   + [c for c in _ARPU_ORDER_BOTTOM_UP if c in cats])
+    _cat_vals   = [cats[c] for c in _cat_names]
+    _cat_colors = [_ARPU_COLORS.get(c, "#6b7280") for c in _cat_names]
+    _cat_total  = sum(_cat_vals)
+    _cat_pcts   = [v / _cat_total * 100 if _cat_total else 0 for v in _cat_vals]
+    fig = go.Figure(go.Bar(
+        y=_cat_names, x=_cat_vals, orientation="h",
+        marker_color=_cat_colors,
+        text=[f"{p:.0f}%" for p in _cat_pcts],
+        textposition="outside", textfont=dict(color="white", size=22),
+        hovertemplate="<b>%{y}</b><br>%{x:,.0f} subs<extra></extra>",
+    ))
+    _base_layout(fig, f"<b>Subs by ARPU — {month_label}</b>", 320)
+    fig.update_layout(
+        showlegend=False,
+        xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=20),
+                   range=[0, max(_cat_vals) * 1.45] if _cat_vals else None),
+        yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=20),
+                   categoryorder="array", categoryarray=_cat_names),
+    )
+    return fig
 
 # ── Charts: Avg Daily Revenue  |  Subscribers by ARPU Category ───────────
-ml, mr = st.columns([55, 45])
+ml, mc, mr = st.columns([40, 30, 30])
 
 with ml:
     dvr     = pre_daily["Daily_Rev"].dropna().values
@@ -242,34 +283,16 @@ with ml:
     fig.update_layout(showlegend=False)
     st.plotly_chart(fig, use_container_width=True)
 
+with mc:
+    if pre_arpu_cats_prev:
+        st.plotly_chart(_arpu_cat_chart(pre_arpu_cats_prev, _arpu_prev_month),
+                        use_container_width=True)
+    else:
+        st.info(f"No ARPU bucket data for {_arpu_prev_month}.")
+
 with mr:
     if pre_arpu_cats:
-        _cat_names  = list(pre_arpu_cats.keys())
-        _cat_vals   = list(pre_arpu_cats.values())
-        _palette    = ["#6b7280", "#6366f1", "#a78bfa", "#f59e0b", "#22c55e"]
-        _cat_colors = (_palette * ((len(_cat_names) // len(_palette)) + 1))[:len(_cat_names)]
-        _cat_total  = sum(_cat_vals)
-        _cat_pcts   = [v / _cat_total * 100 if _cat_total else 0 for v in _cat_vals]
-        fig = go.Figure(go.Bar(
-            y=_cat_names, x=_cat_vals, orientation="h",
-            marker_color=_cat_colors,
-            text=[f"{p:.0f}%"
-                  for p in _cat_pcts],
-            textposition="outside", textfont=dict(color="white", size=25),
-            hovertemplate="<b>%{y}</b><br>%{x:,.0f} subs<extra></extra>",
-        ))
-        _base_layout(
-            fig,
-            "<b>Subscribers by ARPU Category</b>",
-            320,
-        )
-        fig.update_layout(
-            showlegend=False,
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=25),
-                       range=[0, max(_cat_vals) * 1.45] if _cat_vals else None),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="white", size=25),
-                       categoryorder="array", categoryarray=_cat_names),
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(_arpu_cat_chart(pre_arpu_cats, _arpu_latest_month),
+                        use_container_width=True)
     else:
         st.info("No ARPU bucket data available for the selected month.")

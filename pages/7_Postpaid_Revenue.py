@@ -100,11 +100,12 @@ _pp_gross_raw    = float(_pp_latest_row["Gross_Adds"]) if (_pp_latest_row is not
 _pp_churn_cnt    = float(_pp_latest_row["Churn_Count"]) if (_pp_latest_row is not None and "Churn_Count" in _pp_latest_row and pd.notna(_pp_latest_row["Churn_Count"])) else None
 if _pp_gross_raw > 0:
     pp_subs_gross_c = _pp_gross_raw
-    pp_subs_disc_c  = _pp_churn_cnt if _pp_churn_cnt is not None else 0.0
+    # Churn back-calculated so Opening + Gross Adds − Churn reconciles to Closing
+    pp_subs_disc_c  = max(0.0, pp_subs_open + pp_subs_gross_c - pp_subs_close)
 else:
     pp_subs_disc_c  = pp_subs_open * pp_churn / 100 if (pp_churn and pp_subs_open > 0) else 0.0
     pp_subs_gross_c = max(0.0, pp_subs_close - pp_subs_open + pp_subs_disc_c)
-pp_churn_derived = pp_churn if pp_churn else 0.0
+pp_churn_derived = (pp_subs_disc_c / pp_subs_open * 100) if pp_subs_open > 0 else 0.0
 
 # ── 4 KPI boxes ──────────────────────────────────────────────────────────
 pp_r_aop_col = rev_var_rag(pp_aop_pct)
@@ -133,7 +134,7 @@ _pp_s_l2 = (f"{pp_subs_py_delta:+.1f}K | {pp_subs_py_pct:+.1f}% vs PY"
 
 _pp_c1     = _pre_kpi("Postpaid Revenue", f"{pp26_rev:.1f}",
                        pp_r_l1, pp_r_aop_col, pp_r_l2, pp_r_py_col, "#4a9eff", pp_rev_spark)
-_pp_c3     = _pre_kpi("ARPU (TT$ -/subscriber)", f"{pp_arpu_lat:.0f}",
+_pp_c3     = _pre_kpi("ARPU (TT$ -/sub)", f"{pp_arpu_lat:.0f}",
                        pp_a_l1, pp_a_l1_col, pp_a_l2, pp_a_l2_col, "#f59e0b", pp_arpu_spark)
 _pp_c_subs = _pre_kpi("Subscribers", _fmt_k(pp_subs_close),
                        _pp_s_l1, _pp_s_l1_col, _pp_s_l2, _pp_s_l2_col, "#22c55e", pp_subs_spark)
@@ -250,7 +251,7 @@ with ml:
         hovertemplate="<b>%{customdata}</b><br>%{value:,.0f} subs (%{percent})<extra></extra>",
         title=dict(
             text=f"<b>{_pp_total/1_000:.1f}K</b>",
-            font=dict(size=28, color="white"),
+            font=dict(size=32, color="white"),
             position="middle center",
         ),
     ))
@@ -260,9 +261,9 @@ with ml:
         title=dict(
             text="<b>Subscribers by Active Plan</b>"
                  + (" <span style='color:#f87171'> ⚠ no data</span>" if _pp_dummy else ""),
-            font=dict(size=28, color="white"), x=0,
+            font=dict(size=32, color="white"), x=0,
         ),
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=20, color="white"),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=28, color="white"),
                     x=_pp_dw + 0.04, y=0.5, xanchor="left", yanchor="middle"),
         margin=dict(l=10, r=10, t=44, b=6),
     )

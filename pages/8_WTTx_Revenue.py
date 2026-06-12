@@ -100,11 +100,12 @@ _wx_gross_raw   = float(_wx_latest_row["Gross_Adds"]) if (_wx_latest_row is not 
 _wx_churn_cnt   = float(_wx_latest_row["Churn_Count"]) if (_wx_latest_row is not None and "Churn_Count" in _wx_latest_row and pd.notna(_wx_latest_row["Churn_Count"])) else None
 if _wx_gross_raw > 0:
     wx_subs_gross_c = _wx_gross_raw
-    wx_subs_disc_c  = _wx_churn_cnt if _wx_churn_cnt is not None else 0.0
+    # Churn back-calculated so Opening + Gross Adds − Churn reconciles to Closing
+    wx_subs_disc_c  = max(0.0, wx_subs_open + wx_subs_gross_c - wx_subs_close)
 else:
     wx_subs_disc_c  = wx_subs_open * wx_churn / 100 if (wx_churn and wx_subs_open > 0) else 0.0
     wx_subs_gross_c = max(0.0, wx_subs_close - wx_subs_open + wx_subs_disc_c)
-wx_churn_derived = wx_churn if wx_churn else 0.0
+wx_churn_derived = (wx_subs_disc_c / wx_subs_open * 100) if wx_subs_open > 0 else 0.0
 
 # ── 4 KPI boxes ──────────────────────────────────────────────────────────
 wx_r_aop_col = rev_var_rag(wx_aop_pct)
@@ -133,7 +134,7 @@ _wx_s_l2 = (f"{wx_subs_py_delta:+.1f}K | {wx_subs_py_pct:+.1f}% vs PY"
 
 _wx_c1     = _pre_kpi("WTTx Revenue", f"{wx26_rev:.1f}",
                        wx_r_l1, wx_r_aop_col, wx_r_l2, wx_r_py_col, "#00d4a0", wx_rev_spark)
-_wx_c3     = _pre_kpi("ARPU (TT$ -/subscriber)", f"{wx_arpu_lat:.0f}",
+_wx_c3     = _pre_kpi("ARPU (TT$ -/sub)", f"{wx_arpu_lat:.0f}",
                        wx_a_l1, wx_a_l1_col, wx_a_l2, wx_a_l2_col, "#f59e0b", wx_arpu_spark)
 _wx_c_subs = _pre_kpi("Subscribers", _fmt_k(wx_subs_close),
                        _wx_s_l1, _wx_s_l1_col, _wx_s_l2, _wx_s_l2_col, "#22c55e", wx_subs_spark)
@@ -258,7 +259,7 @@ with ml:
                  + (" <span style='color:#f87171'> ⚠ no data</span>" if _wx_dummy else ""),
             font=dict(size=28, color="white"), x=0,
         ),
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=22, color="white"),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=38, color="white"),
                     x=_wx_dw + 0.04, y=0.5, xanchor="left", yanchor="middle"),
         margin=dict(l=10, r=10, t=44, b=6),
     )
