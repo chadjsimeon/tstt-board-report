@@ -5,14 +5,17 @@ st.set_page_config(page_title="TSTT | Amplia Financial", page_icon="📶", layou
 import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data
+from utils.month_selector import focus_month_selector, filter_data_to_month
 from utils.charts import inject_css
 from utils.rag import rev_var_rag
 from utils.consumer_common import _sparkline
 
 inject_css()
+focus_month_selector()
 
 data    = load_all_data()
 amp_raw = data["AMPLIA_Financial"].copy()
+amp_raw = filter_data_to_month(amp_raw)
 
 # Gross Profit = Revenue − Direct Costs (COS); EBITDA = Gross Profit − OPEX.
 # Override the sourced columns so the cards, PY variance, trend chart and driver

@@ -9,10 +9,12 @@ from pathlib import Path
 
 import pandas as pd
 from utils.data_loader import load_all_data
+from utils.month_selector import focus_month_selector
 from utils.charts import inject_css
 from tools.pptx_screenshot_export import discover_pages
 
 inject_css()
+focus_month_selector()
 
 ROOT   = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "tools" / "pptx_screenshot_export.py"

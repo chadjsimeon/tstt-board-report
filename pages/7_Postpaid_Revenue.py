@@ -14,10 +14,13 @@ from utils.charts import (
 )
 from utils.rag import rag, rev_var_rag, churn_prepaid_rag, churn_postpaid_rag, churn_wttx_rag
 from utils.consumer_common import _pre_kpi, _fmt_k, _latest_row_with
+from utils.month_selector import focus_month_selector, filter_data_to_month
 
 inject_css()
+focus_month_selector()
 data     = load_all_data()
 consumer = data["Consumer_Sales"]
+consumer = filter_data_to_month(consumer)
 
 months   = get_month_order(consumer)
 prepaid  = consumer[consumer["Segment"] == "Prepaid"].copy()

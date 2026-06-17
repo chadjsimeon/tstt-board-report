@@ -5,6 +5,7 @@ st.set_page_config(page_title="TSTT | Amplia Commercial", page_icon="📶", layo
 import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data, get_month_order
+from utils.month_selector import focus_month_selector, filter_data_to_month
 from utils.charts import (
     inject_css,
     grouped_bar, line_chart,
@@ -12,9 +13,11 @@ from utils.charts import (
 )
 
 inject_css()
+focus_month_selector()
 
 data    = load_all_data()
 amp_com = data["AMPLIA_Commercial"] if "AMPLIA_Commercial" in data else pd.DataFrame()
+amp_com = filter_data_to_month(amp_com)
 
 if amp_com.empty:
     st.info("Commercial data not yet available.")

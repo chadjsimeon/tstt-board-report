@@ -5,18 +5,22 @@ st.set_page_config(page_title="TSTT | Financial Performance", page_icon="📊", 
 import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data
+from utils.month_selector import focus_month_selector, filter_data_to_month
 from utils.charts import inject_css
 from utils.rag import rev_var_rag
 
 inject_css()
+focus_month_selector()
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 data = load_all_data()
 fin  = data["Financial_Monthly"].copy()
+fin = filter_data_to_month(fin)
 fin["EBITDA_Margin_AOP"] = (fin["EBITDA_AOP"] / fin["Revenue_AOP"] * 100)
 
 # Gross Profit from PnL_Breakdown (Revenue - COS)
 pnl = data["PnL_Breakdown"].copy()
+pnl = filter_data_to_month(pnl)
 pnl["Gross_Profit"]     = pnl["Total_Rev"]     - pnl["Total_COS"]
 pnl["Gross_Profit_AOP"] = pnl["Total_Rev_AOP"] - pnl["Total_COS_AOP"]
 pnl["_dt"] = pd.to_datetime(pnl["Month"], format="%b-%y", errors="coerce")

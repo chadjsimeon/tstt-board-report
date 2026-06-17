@@ -9,6 +9,7 @@ st.set_page_config(
 
 import pandas as pd
 from utils.data_loader import load_all_data
+from utils.month_selector import focus_month_selector
 from utils.charts import (
     inject_css, page_header, kpi_card,
     line_chart, grouped_bar,
@@ -17,6 +18,7 @@ from utils.charts import (
 )
 
 inject_css()
+focus_month_selector()
 
 data = load_all_data()
 kpi = data["KPI_Summary"]

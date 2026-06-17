@@ -5,13 +5,16 @@ st.set_page_config(page_title="TSTT | Revenue Mix & Variance", page_icon="🍩",
 import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data
+from utils.month_selector import focus_month_selector, filter_data_to_month
 from utils.charts import inject_css
 
 inject_css()
+focus_month_selector()
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 data = load_all_data()
 fin  = data["Financial_Monthly"].copy()
+fin = filter_data_to_month(fin)
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 EBI_COLOR = "#4a9eff"

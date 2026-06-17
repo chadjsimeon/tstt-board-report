@@ -4,9 +4,11 @@ st.set_page_config(page_title="TSTT | Enterprise Scorecard", page_icon="🎯", l
 
 import pandas as pd
 from utils.data_loader import load_all_data
+from utils.month_selector import focus_month_selector, filter_data_to_month
 from utils.charts import inject_css
 
 inject_css()
+focus_month_selector()
 
 st.markdown("""
 <style>

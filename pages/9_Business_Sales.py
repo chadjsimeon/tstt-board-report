@@ -5,6 +5,7 @@ st.set_page_config(page_title="TSTT | Business Sales", page_icon="🏢", layout=
 import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data, get_month_order
+from utils.month_selector import focus_month_selector, filter_data_to_month
 from utils.charts import inject_css
 from utils.rag import rev_var_rag
 
@@ -32,9 +33,12 @@ def _sparkline(series, color, height=44):
 
 
 inject_css()
+focus_month_selector()
 data    = load_all_data()
 biz     = data["Business_Sales"]
+biz = filter_data_to_month(biz)
 biz_mrr = data.get("Business_Sales_MRR", pd.DataFrame())
+biz_mrr = filter_data_to_month(biz_mrr)
 
 months    = get_month_order(biz)
 sel_month = st.sidebar.selectbox("Focus Month", months, index=len(months) - 1)

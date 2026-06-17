@@ -5,9 +5,11 @@ st.set_page_config(page_title="TSTT | Cash & CAPEX", page_icon="💵", layout="w
 import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data, load_ar, load_collections_billing
+from utils.month_selector import focus_month_selector, filter_data_to_month
 from utils.charts import inject_css
 
 inject_css()
+focus_month_selector()
 
 st.markdown("""<style>
 .main .block-container {
@@ -21,8 +23,10 @@ st.markdown("""<style>
 # ── Main data ─────────────────────────────────────────────────────────────────
 data = load_all_data()
 cc   = data["Cash_CAPEX"]
+cc = filter_data_to_month(cc)
 ar   = load_ar()
 cb   = load_collections_billing()
+cb = filter_data_to_month(cb)
 
 latest = cc.iloc[-1]
 first  = cc.iloc[0]

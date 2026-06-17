@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from utils.data_loader import (load_all_data, load_prepaid_arpu, load_prepaid_data_usage,
                                load_postpaid_plans, load_wttx_categories,
                                pivot_by_group, get_month_order)
+from utils.month_selector import focus_month_selector, filter_data_to_month
 from utils.charts import (
     inject_css, page_header,
     line_chart, stacked_bar, grouped_bar, donut_chart, dim,
@@ -16,14 +17,17 @@ from utils.rag import rag, rev_var_rag, churn_prepaid_rag, churn_postpaid_rag, c
 from utils.consumer_common import _sparkline
 
 inject_css()
+focus_month_selector()
+
 data     = load_all_data()
 consumer = data["Consumer_Sales"]
+consumer = filter_data_to_month(consumer)
 
 months   = get_month_order(consumer)
 prepaid  = consumer[consumer["Segment"] == "Prepaid"].copy()
 postpaid = consumer[consumer["Segment"] == "Postpaid"].copy()
 wttx     = consumer[consumer["Segment"] == "WTTx"].copy()
-sel_month = st.sidebar.selectbox("Focus Month", months, index=len(months) - 1)
+sel_month = st.session_state.get("focus_month", months[-1] if months else None)
 
 
 # ── Data prep ─────────────────────────────────────────────────────────

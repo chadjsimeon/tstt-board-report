@@ -4,15 +4,18 @@ st.set_page_config(page_title="TSTT | DPDI", page_icon="💻", layout="wide")
 
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data, get_month_order
+from utils.month_selector import focus_month_selector, filter_data_to_month
 from utils.charts import inject_css
 from utils.rag import rag, rev_var_rag, gp_margin_rag
 
 inject_css()
+focus_month_selector()
 data = load_all_data()
 dpdi = data["DPDI"]
+dpdi = filter_data_to_month(dpdi)
 months = get_month_order(dpdi)
 
-sel_month = st.sidebar.selectbox("Month", months, index=len(months) - 1)
+sel_month = st.session_state.get("focus_month", months[-1] if months else None)
 
 # ── Selected month — exclude products with no revenue and no AOP ──────────────
 snap = dpdi[dpdi["Month"] == sel_month].copy()

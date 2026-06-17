@@ -7,10 +7,12 @@ import textwrap
 import pandas as pd
 import plotly.graph_objects as go
 from utils.data_loader import load_all_data
+from utils.month_selector import focus_month_selector, filter_data_to_month
 from utils.charts import inject_css, GREEN, RED
 from utils.rag import rev_var_rag
 
 inject_css()
+focus_month_selector()
 
 # ── Viewport-fill CSS ─────────────────────────────────────────────────────────
 # Strips bottom padding so the two panels reach the foot of the screen.
@@ -27,6 +29,7 @@ st.markdown("""
 
 data = load_all_data()
 opex = data["OPEX"]
+opex = filter_data_to_month(opex)
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 # Only offer months with booked Actual spend — exclude future AOP/Plan-only
@@ -36,7 +39,7 @@ _actual_month = opex.groupby("Month", sort=False)["Actual"].apply(
     lambda s: s.fillna(0).abs().sum() > 0
 )
 months    = [m for m in _all_months if _actual_month.get(m, False)] or _all_months
-sel_month = st.sidebar.selectbox("Focus Month", months, index=len(months) - 1)
+sel_month = st.session_state.get("focus_month", months[-1] if months else None)
 
 latest       = opex[opex["Month"] == sel_month].copy()
 total_actual = latest["Actual"].sum()
