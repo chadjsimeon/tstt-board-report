@@ -689,6 +689,38 @@ def load_wttx_categories():
             os.unlink(_tmp)
 
 
+# ── Porting Trend ──────────────────────────────────────────────────────────────
+@st.cache_data
+def load_porting_trend():
+    """Load 'Porting Trend' sheet (mobile number porting vs Digicel).
+
+    Sheet is transposed (metrics in rows, months in columns).
+    Returns DataFrame: Month ("%b-%y"), Port_In, Port_Out, Net, Ratio.
+    Port_In  = ports into B-Mobile (good); Port_Out = ports to Digicel (bad).
+    """
+    xls, _tmp = None, None
+    try:
+        xls, _tmp = _open_excel(MASTER_PATH)
+        raw = pd.read_excel(xls, "Porting Trend", header=0)
+        raw = raw.rename(columns={raw.columns[0]: "Metric"}).dropna(subset=["Metric"])
+        df = (raw.set_index("Metric").T.reset_index()
+                 .rename(columns={"index": "Month",
+                                  "Port to B-Mobile": "Port_In",
+                                  "Port to Digicel":  "Port_Out"}))
+        df["Month"]    = pd.to_datetime(df["Month"], errors="coerce").dt.strftime("%b-%y")
+        df = df.dropna(subset=["Month"])
+        df["Port_In"]  = pd.to_numeric(df["Port_In"],  errors="coerce").fillna(0)
+        df["Port_Out"] = pd.to_numeric(df["Port_Out"], errors="coerce").fillna(0)
+        df["Net"]      = df["Port_In"] - df["Port_Out"]
+        df["Ratio"]    = df["Port_In"] / df["Port_Out"].replace(0, pd.NA)
+        return df[["Month", "Port_In", "Port_Out", "Net", "Ratio"]].reset_index(drop=True)
+    except Exception:
+        return pd.DataFrame()
+    finally:
+        if _tmp and os.path.exists(_tmp):
+            os.unlink(_tmp)
+
+
 # ── Utilities ──────────────────────────────────────────────────────────────────
 def get_month_order(df, col="Month"):
     """Return unique months in their original DataFrame order."""
