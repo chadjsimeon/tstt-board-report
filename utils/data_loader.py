@@ -3,15 +3,96 @@ import os
 import shutil
 import tempfile
 
+import msal
 import pandas as pd
+import requests
 import streamlit as st
 
 MASTER_PATH = "TSTT_Master_Data_Template.xlsx"
+# Location of the master workbook in the owner's personal OneDrive, relative to the drive root.
+GRAPH_FILE_PATH = "Financial Analysis/TSTT_Board_Report/TSTT_Master_Data_Template.xlsx"
+GRAPH_SCOPE = ["https://graph.microsoft.com/.default"]
 M = 1_000_000  # raw TTD → millions
 
 
+def _graph_config():
+    """Microsoft Graph credentials.
+
+    Reads st.secrets['graph'] first (local dev), then falls back to environment
+    variables (production). Raises with a clear message if any are missing.
+
+        secrets keys : tenant_id, client_id, client_secret, user_upn
+        env vars     : GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET, GRAPH_USER_UPN
+    """
+    keys = ("tenant_id", "client_id", "client_secret", "user_upn")
+    env_names = {
+        "tenant_id":     "GRAPH_TENANT_ID",
+        "client_id":     "GRAPH_CLIENT_ID",
+        "client_secret": "GRAPH_CLIENT_SECRET",
+        "user_upn":      "GRAPH_USER_UPN",
+    }
+    cfg = {}
+    try:
+        sec = st.secrets["graph"]
+        cfg = {k: sec.get(k) for k in keys}
+    except Exception:
+        cfg = {}
+    for k in keys:
+        if not cfg.get(k):
+            cfg[k] = os.environ.get(env_names[k])
+    missing = [k for k in keys if not cfg.get(k)]
+    if missing:
+        raise RuntimeError(
+            "Missing Microsoft Graph credentials: " + ", ".join(missing)
+            + ". Provide them under [graph] in .streamlit/secrets.toml, or as "
+            + "GRAPH_* environment variables."
+        )
+    return cfg
+
+
+def _graph_token(cfg):
+    """Acquire an app-only Graph token via MSAL client-credentials flow."""
+    app = msal.ConfidentialClientApplication(
+        cfg["client_id"],
+        authority=f"https://login.microsoftonline.com/{cfg['tenant_id']}",
+        client_credential=cfg["client_secret"],
+    )
+    result = app.acquire_token_for_client(scopes=GRAPH_SCOPE)
+    if "access_token" not in result:
+        raise RuntimeError(
+            "Microsoft Graph auth failed: "
+            + str(result.get("error_description") or result.get("error") or result)
+        )
+    return result["access_token"]
+
+
+@st.cache_data(ttl=86400)
+def _fetch_master_bytes():
+    """Download the master workbook live from OneDrive via Microsoft Graph.
+
+    Uses the path-by-user-UPN addressing pattern (no driveId needed). Cached for a
+    day (ttl=86400) because the underlying data only changes monthly.
+    """
+    cfg = _graph_config()
+    token = _graph_token(cfg)
+    url = (
+        f"https://graph.microsoft.com/v1.0/users/{cfg['user_upn']}"
+        f"/drive/root:/{GRAPH_FILE_PATH}:/content"
+    )
+    resp = requests.get(url, headers={"Authorization": f"Bearer {token}"}, timeout=60)
+    resp.raise_for_status()
+    return resp.content
+
+
 def _open_excel(path):
-    """Open an Excel file, copying to a temp file first if it is locked by Excel/OneDrive."""
+    """Return (pd.ExcelFile, tmp_path).
+
+    The master workbook is fetched live from OneDrive via Microsoft Graph (no local
+    file needed). Any other path is opened from disk, copying to a temp file first
+    if it is locked by Excel/OneDrive.
+    """
+    if path == MASTER_PATH:
+        return pd.ExcelFile(io.BytesIO(_fetch_master_bytes())), None
     try:
         return pd.ExcelFile(path), None
     except PermissionError:
@@ -64,7 +145,7 @@ def _pct_col(df, cols):
 
 
 # ── Main data loader ───────────────────────────────────────────────────────────
-@st.cache_data
+@st.cache_data(ttl=86400)
 def load_all_data():
     xls, _tmp = _open_excel(MASTER_PATH)
     try:
@@ -466,7 +547,7 @@ def load_all_data():
 
 
 # ── AR Aging loader ────────────────────────────────────────────────────────────
-@st.cache_data
+@st.cache_data(ttl=86400)
 def load_ar():
     """Load AR aging data from AR_Aging sheet.
     Returns {"gov": {...}, "non_gov": {...}, "total": {...}} with values in millions.
@@ -518,7 +599,7 @@ def load_ar():
 
 
 # ── Collections & Billing loader ──────────────────────────────────────────────
-@st.cache_data
+@st.cache_data(ttl=86400)
 def load_collections_billing():
     """Load Collections_Billing sheet.
     Returns long-format DataFrame: Month, Group, Billings, Collections, Collections_Pct.
@@ -561,7 +642,7 @@ def load_collections_billing():
 
 
 # ── Prepaid ARPU Buckets ───────────────────────────────────────────────────────
-@st.cache_data
+@st.cache_data(ttl=86400)
 def load_prepaid_arpu():
     """Load Prepaid_ARPU_Buckets sheet.
     Returns DataFrame: Month, Category, Subscribers, Revenue (millions).
@@ -588,7 +669,7 @@ def load_prepaid_arpu():
 
 
 # ── Prepaid Data Usage ─────────────────────────────────────────────────────────
-@st.cache_data
+@st.cache_data(ttl=86400)
 def load_prepaid_data_usage():
     """Load Prepaid_Data_Usage sheet.
     Returns DataFrame with columns matching the old dd_prepaid_data_usage_mth.xlsx output.
@@ -647,7 +728,7 @@ def load_prepaid_data_usage():
 
 
 # ── Postpaid by Active Plan ────────────────────────────────────────────────────
-@st.cache_data
+@st.cache_data(ttl=86400)
 def load_postpaid_plans():
     """Load 'Postpaid by active Plan' sheet.
     Returns DataFrame with columns: Rank, Type, Plan, Sub_Count.
@@ -669,7 +750,7 @@ def load_postpaid_plans():
 
 
 # ── WTTx by Category ───────────────────────────────────────────────────────────
-@st.cache_data
+@st.cache_data(ttl=86400)
 def load_wttx_categories():
     """Load 'WTTX by Category' sheet.
     Returns DataFrame with columns: Category, Subscribers (summed by category).
@@ -690,7 +771,7 @@ def load_wttx_categories():
 
 
 # ── Porting Trend ──────────────────────────────────────────────────────────────
-@st.cache_data
+@st.cache_data(ttl=86400)
 def load_porting_trend():
     """Load 'Porting Trend' sheet (mobile number porting vs Digicel).
 

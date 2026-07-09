@@ -5,3 +5,10 @@ __pycache__/
 .env
 .claude/
 exports/
+
+# Data workbooks — pulled live from OneDrive via Microsoft Graph, never committed
+*.xlsx
+*.xls
+
+# Secrets
+.streamlit/secrets.toml
