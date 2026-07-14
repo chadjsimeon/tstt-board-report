@@ -46,8 +46,12 @@ def init_focus_month():
         return
 
     if "focus_month" not in st.session_state:
-        # Default to last month with actual data
-        st.session_state.focus_month = months_list[-1]
+        # A ?focus_month=<Mon-YY> query param (used by the PPTX exporter's
+        # headless session) wins; otherwise default to the last month.
+        qp_month = st.query_params.get("focus_month")
+        st.session_state.focus_month = (
+            qp_month if qp_month in months_list else months_list[-1]
+        )
 
 
 def focus_month_selector():

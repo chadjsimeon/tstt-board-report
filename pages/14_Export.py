@@ -26,11 +26,11 @@ ALL_LABELS = [label for label, _ in discover_pages()]
 data = load_all_data()
 
 # ── Period label ────────────────────────────────────────────────────────────────
+focus_month = st.session_state.get("focus_month")
 try:
-    fin = data.get("Financial_Monthly", pd.DataFrame())
     period_label = pd.to_datetime(
-        fin["Month"].iloc[-1], format="%b-%y"
-    ).strftime("%B %Y") if not fin.empty else ""
+        focus_month, format="%b-%y"
+    ).strftime("%B %Y") if focus_month else ""
 except Exception:
     period_label = ""
 
@@ -82,6 +82,8 @@ if generate and n_sel:
     cmd = [sys.executable, str(SCRIPT),
            "--url", f"http://localhost:{port}",
            "--out", str(OUT)]
+    if focus_month:
+        cmd += ["--focus-month", focus_month]
     # Pass an explicit subset unless every page is selected
     if n_sel < len(ALL_LABELS):
         cmd += ["--pages", ",".join(selected_pages)]

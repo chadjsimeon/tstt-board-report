@@ -22,6 +22,7 @@ import io
 import re
 import sys
 import time
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -112,12 +113,15 @@ def _shoot(page) -> bytes:
     return page.screenshot(full_page=True)
 
 
-def _capture_page(page, base_url: str, label: str, slug: str):
+def _capture_page(page, base_url: str, label: str, slug: str,
+                  focus_month: str | None = None):
     """Capture one dashboard page; returns [(caption, png_bytes), ...].
 
     A page with st.tabs yields one capture per tab; a tab-less page yields one."""
     root = base_url.rstrip("/")
     url  = f"{root}/{slug}?embed=true" if slug else f"{root}/?embed=true"
+    if focus_month:
+        url += f"&focus_month={urllib.parse.quote(focus_month)}"
     print(f"  opening {label}  ->  {url}")
     page.goto(url, wait_until="domcontentloaded", timeout=60_000)
     page.add_style_tag(content=HIDE_CSS)            # fresh document each goto
@@ -147,7 +151,7 @@ def _capture_page(page, base_url: str, label: str, slug: str):
 
 
 def capture_all(base_url: str, pages: list[tuple[str, str]], viewport_w: int,
-                headed: bool):
+                headed: bool, focus_month: str | None = None):
     """Capture every page in `pages` with a single shared browser session."""
     from playwright.sync_api import sync_playwright
 
@@ -169,7 +173,7 @@ def capture_all(base_url: str, pages: list[tuple[str, str]], viewport_w: int,
 
         for label, slug in pages:
             try:
-                captures += _capture_page(page, base_url, label, slug)
+                captures += _capture_page(page, base_url, label, slug, focus_month)
             except Exception as exc:               # noqa: BLE001 — skip, keep going
                 print(f"  WARNING: failed to capture {label}: {exc}", file=sys.stderr)
 
@@ -268,6 +272,9 @@ def main() -> int:
     ap.add_argument("--pages", default=None,
                     help="Optional: comma-separated page labels/slugs to capture "
                          "(default: all). Takes precedence over --page.")
+    ap.add_argument("--focus-month", default=None,
+                    help="Focus month to render every page at (e.g. Jun-26). "
+                         "Passed to the app as a query param; default: latest month.")
     ap.add_argument("--out", default="exports/TSTT_Board_Report.pptx",
                     help="Output .pptx path (default: exports/TSTT_Board_Report.pptx).")
     ap.add_argument("--viewport-width", type=int, default=1920,
@@ -308,7 +315,8 @@ def main() -> int:
             _wait_for_server(base_url)
             print("  server ready")
 
-        captures = capture_all(base_url, pages, args.viewport_width, args.headed)
+        captures = capture_all(base_url, pages, args.viewport_width, args.headed,
+                               args.focus_month)
         if not captures:
             print("ERROR: no pages captured.", file=sys.stderr)
             return 1
