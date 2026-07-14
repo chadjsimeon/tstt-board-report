@@ -28,8 +28,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 data = load_all_data()
-opex = data["OPEX"]
-opex = filter_data_to_month(opex)
+opex_full = data["OPEX"]                 # all months, incl. future plan (for annual budget)
+opex = filter_data_to_month(opex_full)
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 # Only offer months with booked Actual spend — exclude future AOP/Plan-only
@@ -42,6 +42,8 @@ months    = [m for m in _all_months if _actual_month.get(m, False)] or _all_mont
 sel_month = st.session_state.get("focus_month", months[-1] if months else None)
 
 latest       = opex[opex["Month"] == sel_month].copy()
+latest["Actual"] = latest["Actual"].round(2)
+latest["Plan"]   = latest["Plan"].round(2)
 total_actual = latest["Actual"].sum()
 total_plan   = latest["Plan"].sum()
 total_var    = total_actual - total_plan
@@ -99,6 +101,14 @@ with col_left:
         hovertemplate="%{y}<br>Actual: %{x:,.2f}<extra></extra>",
     ))
 
+    # Explicit x-range: negative Actuals extend left of zero, and their outside
+    # labels would otherwise overlap the category names — pad the left edge.
+    _vals  = pd.concat([cats["Actual"], cats["Plan"]]).fillna(0)
+    _x_min = min(_vals.min(), 0)
+    _x_max = max(_vals.max(), 0)
+    _span  = (_x_max - _x_min) or 1
+    _x_left = _x_min - _span * 0.22 if _x_min < 0 else 0
+
     fig.update_layout(
         barmode="overlay",
         plot_bgcolor="rgba(0,0,0,0)",
@@ -115,6 +125,7 @@ with col_left:
         xaxis=dict(
             visible=False,
             zeroline=True, zerolinecolor="#3a3a5a",
+            range=[_x_left, _x_max * 1.02],
         ),
         yaxis=dict(
             gridcolor="#1e1e3a",
@@ -178,16 +189,18 @@ with col_right:
     # ── Spend to Date ─────────────────────────────────────────────────────────
     st.markdown('<div style="font-size:26px;font-weight:700;margin:0 0 6px">Spend to Date</div>', unsafe_allow_html=True)
 
-    # Restrict to the financial year that contains sel_month (Apr–Mar)
+    # Restrict to the financial year that contains sel_month (Apr–Mar).
+    # Use the unfiltered data so the annual budget covers the whole FY
+    # (e.g. Apr-26 to Mar-27), not just the months up to the focus month.
     _sel_dt   = pd.to_datetime(sel_month, format="%b-%y")
     _fy_year  = _sel_dt.year if _sel_dt.month >= 4 else _sel_dt.year - 1
     _fy_start = pd.Timestamp(year=_fy_year,     month=4, day=1)
     _fy_end   = pd.Timestamp(year=_fy_year + 1, month=3, day=31)
-    _opex_fy  = opex.copy()
+    _opex_fy  = opex_full.copy()
     _opex_fy["_dt"] = pd.to_datetime(_opex_fy["Month"], format="%b-%y", errors="coerce")
     _opex_fy  = _opex_fy[(_opex_fy["_dt"] >= _fy_start) & (_opex_fy["_dt"] <= _fy_end)]
 
-    ytd_spend    = _opex_fy["Actual"].sum()
+    ytd_spend    = _opex_fy.loc[_opex_fy["_dt"] <= _sel_dt, "Actual"].sum()
     annual_plan  = _opex_fy["Plan"].sum()
     remaining    = annual_plan - ytd_spend
     progress     = min(ytd_spend / annual_plan * 100, 100) if annual_plan else 0
