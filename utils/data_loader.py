@@ -87,12 +87,18 @@ def _fetch_master_bytes():
 def _open_excel(path):
     """Return (pd.ExcelFile, tmp_path).
 
-    The master workbook is fetched live from OneDrive via Microsoft Graph (no local
-    file needed). Any other path is opened from disk, copying to a temp file first
-    if it is locked by Excel/OneDrive.
+    The master workbook is fetched live from OneDrive via Microsoft Graph when
+    credentials are configured. Without them it falls back to the local OneDrive-
+    synced copy, so the app runs in local dev with no secrets. Any other path is
+    opened from disk, copying to a temp file first if it is locked by Excel/OneDrive.
     """
     if path == MASTER_PATH:
-        return pd.ExcelFile(io.BytesIO(_fetch_master_bytes())), None
+        try:
+            _graph_config()
+        except RuntimeError:
+            pass  # no credentials configured; read the synced copy from disk
+        else:
+            return pd.ExcelFile(io.BytesIO(_fetch_master_bytes())), None
     try:
         return pd.ExcelFile(path), None
     except PermissionError:
@@ -408,21 +414,32 @@ def load_all_data():
             bs = _pct_col(bs, ["GP_Margin_Pct"])
         data["Business_Sales"]     = bs
 
-        # ── Business_Sales_MRR (wide → long) ─────────────────────────────────
+        # ── Business_Sales_MRR (long format) ─────────────────────────────────
+        # One row per Month × Classification × Metric:
+        #   Month | Classification (Mobile/MRR/Usage/OCC) | Metric (Actual/AOP) | Amount
+        # Pivoted wide for the page: Actual → MRR/USAGE/OCC/Mobile, AOP → *_AOP.
         try:
             mrr_raw = pd.read_excel(xls, sheet_name="Business_Sales_MRR", header=0).dropna(how="all")
-            mrr_raw = mrr_raw.rename(columns={mrr_raw.columns[0]: "Metric"})
-            mrr_raw = mrr_raw.set_index("Metric").T.reset_index().rename(columns={"index": "Month"})
-            mrr_raw["Month"] = (
-                pd.to_datetime(mrr_raw["Month"], format="%b %Y", errors="coerce")
-                .dt.strftime("%b-%y")
-            )
+            mrr_raw["Month"] = _norm_month(mrr_raw["Month"])
             mrr_raw = mrr_raw.dropna(subset=["Month"])
-            mrr_raw = mrr_raw.rename(columns={"Usage": "USAGE"})
-            for c in ["MRR", "USAGE", "OCC", "Mobile", "Total"]:
-                if c in mrr_raw.columns:
-                    mrr_raw[c] = pd.to_numeric(mrr_raw[c], errors="coerce") / M
-            data["Business_Sales_MRR"] = mrr_raw
+            mrr_raw["Classification"] = (
+                mrr_raw["Classification"].astype(str).str.strip().replace({"Usage": "USAGE"})
+            )
+            mrr_raw["Metric"] = mrr_raw["Metric"].astype(str).str.strip()
+            mrr_raw["Amount"] = pd.to_numeric(mrr_raw["Amount"], errors="coerce") / M
+            month_order = list(dict.fromkeys(mrr_raw["Month"].tolist()))
+            mrr_wide = mrr_raw.pivot_table(
+                index="Month", columns=["Classification", "Metric"],
+                values="Amount", aggfunc="first",
+            )
+            mrr_wide.columns = [
+                cls if met == "Actual" else f"{cls}_{met}" for cls, met in mrr_wide.columns
+            ]
+            mrr_wide = mrr_wide.reindex(month_order).reset_index()
+            # Drop placeholder months where neither Actual nor AOP is filled yet
+            _val_cols = [c for c in mrr_wide.columns if c != "Month"]
+            mrr_wide = mrr_wide.dropna(subset=_val_cols, how="all").reset_index(drop=True)
+            data["Business_Sales_MRR"] = mrr_wide
         except Exception:
             data["Business_Sales_MRR"] = pd.DataFrame()
         data["PP_Plans"]           = pd.DataFrame()  # not in master template

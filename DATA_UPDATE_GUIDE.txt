@@ -1,12 +1,12 @@
 ================================================================================
   TSTT BOARD REPORT — DATA UPDATE GUIDE
-  Last updated: May 2026 (v2 — ETL source, billing/collections, load_fy2027_opex)
+  Last updated: May 2026 (v3 — page reorder, Amplia split, AR loader refactor)
 ================================================================================
 
 HOW TO RUN THE DASHBOARD
 ────────────────────────
 1. Open a terminal / PowerShell in this folder:
-     C:\Users\chadj\OneDrive - tstt.co.tt\Financial Analysis\TSTT_Board_Report\
+     C:\Users\CSIMEON\OneDrive - tstt.co.tt\Financial Analysis\TSTT_Board_Report\
 
 2. Run:
      streamlit run app.py
@@ -20,22 +20,23 @@ HOW TO RUN THE DASHBOARD
   PAGES IN THE DASHBOARD
 ================================================================================
 
-  File                            Page title
-  ─────────────────────────────── ──────────────────────────────────────────────
-  app.py                          Home / Executive Summary (KPI tiles)
-  pages/0_Enterprise_Scorecard.py Enterprise Scorecard
-  pages/2_OPEX_Cost.py            OPEX & Cost Management
-  pages/3_Cash_CAPEX.py           Cash, Working Capital & CAPEX
-  pages/4_Consumer_Sales.py       Consumer Sales (overview)
-  pages/5_Prepaid_Revenue.py      Prepaid Revenue
-  pages/6_Postpaid_Revenue.py     Postpaid Revenue
-  pages/7_WTTx_Revenue.py         WTTx Revenue
-  pages/8_Business_Sales.py       Business Sales
-  pages/9_DPDI.py                 DPDI
-  pages/10_Amplia.py              Amplia
-  pages/11_Financial_Performance_V2.py  Financial Performance v2 (KPI cards + GP)
-  pages/12_Revenue_Mix_Variance.py Revenue Mix & Variance Drivers
-  pages/13_Export.py              PowerPoint Export
+  File                              Page title
+  ────────────────────────────────  ──────────────────────────────────────────────
+  app.py                            Home / Executive Summary (KPI tiles)
+  pages/0_Financial_Performance.py  Financial Performance (KPI cards + GP + waterfall)
+  pages/1_Revenue_Mix_Variance.py   Revenue Mix & Variance Drivers
+  pages/2_Enterprise_Scorecard.py   Enterprise Scorecard
+  pages/3_OPEX_Cost.py              OPEX & Cost Management
+  pages/4_Cash_CAPEX.py             Cash, Working Capital & CAPEX
+  pages/5_Consumer_Sales.py         Consumer Sales (overview)
+  pages/6_Prepaid_Revenue.py        Prepaid Revenue
+  pages/7_Postpaid_Revenue.py       Postpaid Revenue
+  pages/8_WTTx_Revenue.py           WTTx Revenue
+  pages/9_Business_Sales.py         Business Sales
+  pages/10_DPDI.py                  DPDI
+  pages/11_Amplia_Financial.py      Amplia — Financial Performance
+  pages/12_Amplia_Commercial.py     Amplia — Commercial / Subscriber Metrics
+  pages/13_Export.py                PowerPoint Export
 
 
 ================================================================================
@@ -52,17 +53,18 @@ as shown — they are case-sensitive.
 
   Sheet Name          Page it feeds
   ─────────────────── ──────────────────────────────────────────────────────
-  Financial_Monthly   Home + Financial Performance (v1 & v2) + Rev Mix
+  Financial_Monthly   Home + Financial Performance + Revenue Mix
   Cash_CAPEX          Cash, Working Capital & CAPEX
-  Consumer_Sales      Consumer (Prepaid · Postpaid · WTTx)
+  Consumer_Sales      Consumer (Prepaid / Postpaid / WTTx)
   Business_Sales      Business Sales (Financial Performance tab)
   Pipeline            Business Sales (Pipeline tab)
   Renewals            Business Sales (Renewals at Risk tab)
   DPDI                DPDI
-  AMPLIA_Financial    Amplia
+  AMPLIA_Financial    Amplia — Financial Performance
+  Amplia_Commercial   Amplia — Commercial / Subscriber Metrics  ← NEW
   OPEX                OPEX & Cost Management
-  EBITDA_Bridge       Financial Performance v1 (waterfall chart)
-  PnL_Breakdown       Financial Performance v2 (P&L table / GP derivation)
+  EBITDA_Bridge       Financial Performance (waterfall chart)
+  PnL_Breakdown       Financial Performance (P&L table / GP derivation)
   KPI_Summary         Home + Enterprise Scorecard
   PP_Plans            Consumer → Postpaid tab (Active Plans donut) ← OPTIONAL
   WTTx_Plans          Consumer → WTTx tab (Subscribers by Plan Type donut) ← OPTIONAL
@@ -142,12 +144,15 @@ C. AR AGING / RECEIVABLES
 ────────────────────────────────────────────────────────────────────────────────
 Sheet: "Exec. Summary Receivables"
 
-This file uses hardcoded row positions (confirmed for April 2026, column 74).
-When a new reporting month is available, the column index in the code may need
-updating. To change the month column, edit this line in pages/3_Cash_CAPEX.py:
+The AR aging data is loaded by utils/ar_loader.py. It uses a hardcoded
+column index to select the reporting month. When a new reporting month is
+available, update this constant in utils/ar_loader.py:
 
-    APR = 74   ← change this to the correct column index for the new month
-               (0-based: column A = 0, column B = 1, etc.)
+    APR_COL = 74   ← change this to the correct column index for the new month
+                    (0-based: column A = 0, column B = 1, etc.)
+
+If the file cannot be read, the dashboard falls back to hardcoded Apr-26
+fallback values defined in the same file.
 
 Row positions used (0-based):
   Rows 22–28  →  Fixed Enterprise Government aging buckets
@@ -252,12 +257,26 @@ Requirements:
 
 
 ================================================================================
+  UTILITY MODULES
+================================================================================
+
+  File                     Purpose
+  ──────────────────────── ──────────────────────────────────────────────────────
+  utils/data_loader.py     Loads all sheets from TSTT_Board_Data.xlsx (cached)
+  utils/charts.py          Shared chart helpers, CSS injection, colour constants
+  utils/ar_loader.py       Loads AR aging data from Receivables spreadsheet
+  utils/consumer_common.py Shared helpers for Consumer Sales sub-pages
+  utils/rag.py             Revenue-at-a-Glance helper used by Amplia Financial
+  tools/pptx_screenshot_export.py  PowerPoint export using page screenshots
+
+
+================================================================================
   SHEET-BY-SHEET UPDATE INSTRUCTIONS (TSTT_Board_Data.xlsx)
 ================================================================================
 
 ────────────────────────────────────────────────────────────────────────────────
 1. FINANCIAL_MONTHLY
-   Pages: Home / Financial Performance v1 & v2 / Revenue Mix & Variance
+   Pages: Home / Financial Performance / Revenue Mix & Variance
 ────────────────────────────────────────────────────────────────────────────────
 Add one new row per month. All monetary values enter in RAW TT$ (the dashboard
 divides by 1,000,000 automatically).
@@ -294,13 +313,13 @@ Add one new row per month. Monetary values in RAW TT$.
   Collections_Pct_Gov   Decimal   Government collections rate
   Collections_Pct_NonGov Decimal  Non-government collections rate
 
-  NOTE: FCF Yield (FCF ÷ Revenue) is derived automatically.
-  All three Collections_Pct columns are optional — if absent the collections
-  widget will display zero.
+  NOTE: FCF Yield (FCF / Revenue) is derived automatically.
+  All three Collections_Pct columns are optional — the collections widget
+  now reads billing (M).xlsx and collections (FULL).xlsx directly.
 
 ────────────────────────────────────────────────────────────────────────────────
 3. CONSUMER_SALES
-   Page: Consumer (Prepaid · Postpaid · WTTx)
+   Page: Consumer (Prepaid / Postpaid / WTTx)
 ────────────────────────────────────────────────────────────────────────────────
 One row per Segment per Month. Monetary values in RAW TT$ EXCEPT ARPU columns
 which are entered as actual TT$ per subscriber (e.g. 350 for TT$350/month).
@@ -362,7 +381,7 @@ One row per Segment per Month. Monetary values in RAW TT$.
   Mobile_Subs       Count     Mobile subscriber count (raw number, NOT in M)
   Subs_AOP          Count     Mobile subscriber AOP target (raw number)
 
-  NOTE: ARPU is auto-calculated as Mobile (TT$) ÷ Mobile_Subs.
+  NOTE: ARPU is auto-calculated as Mobile (TT$) / Mobile_Subs.
   PY comparisons are derived from the row 12 months prior.
   If Mobile/USAGE/OCC columns are absent, those cards show "—" gracefully.
 
@@ -419,7 +438,7 @@ One row per Product per Month. Monetary values in RAW TT$.
 
 ────────────────────────────────────────────────────────────────────────────────
 8. AMPLIA_FINANCIAL
-   Page: Amplia
+   Page: Amplia — Financial Performance
 ────────────────────────────────────────────────────────────────────────────────
 One row per Month. Monetary values in RAW TT$.
 
@@ -436,8 +455,31 @@ One row per Month. Monetary values in RAW TT$.
   Direct_Costs    Raw TT$
 
 ────────────────────────────────────────────────────────────────────────────────
-9. OPEX
-   Page: OPEX & Cost Management
+9. AMPLIA_COMMERCIAL  ← NEW SHEET
+   Page: Amplia — Commercial / Subscriber Metrics
+────────────────────────────────────────────────────────────────────────────────
+One row per Month (or per Channel per Month if channel-level data exists).
+This sheet was added when the Amplia page was split into Financial and
+Commercial sub-pages.
+
+  Column                Format    Description
+  ───────────────────── ───────── ────────────────────────────────────────────
+  Month                 Mon-YY
+  ARPU                  TT$/sub   Average Revenue Per User
+  Gross_Adds            Count     Gross additions (renamed to Gross_Additions
+                                  by the loader)
+  Gross_Additions_AOP   Count     Gross additions AOP target
+  Monthly_Churn_AOP     Count     Churn AOP target (renamed to Churn_AOP
+                                  by the loader)
+  Monthly_Churn         Count     Actual monthly churn
+  Net_Port              Count     Net port-in/port-out (positive = net gain)
+
+  Additional channel-level columns may be present for the channel breakdown
+  charts. Add new months as new rows.
+
+────────────────────────────────────────────────────────────────────────────────
+10. OPEX
+    Page: OPEX & Cost Management
 ────────────────────────────────────────────────────────────────────────────────
 One row per cost Category per Month. Monetary values in RAW TT$.
 
@@ -455,8 +497,8 @@ One row per cost Category per Month. Monetary values in RAW TT$.
   NOTE: Variance and Variance_Pct are auto-calculated. Do NOT add them.
 
 ────────────────────────────────────────────────────────────────────────────────
-10. EBITDA_BRIDGE
-    Page: Financial Performance v1 (waterfall chart)
+11. EBITDA_BRIDGE
+    Page: Financial Performance (waterfall chart)
 ────────────────────────────────────────────────────────────────────────────────
 Static or monthly waterfall bridge data.
 
@@ -471,8 +513,8 @@ Static or monthly waterfall bridge data.
   Keep a placeholder value there — it will be overwritten.
 
 ────────────────────────────────────────────────────────────────────────────────
-11. PNL_BREAKDOWN
-    Page: Financial Performance v2 (Gross Profit derivation)
+12. PNL_BREAKDOWN
+    Page: Financial Performance (Gross Profit derivation)
 ────────────────────────────────────────────────────────────────────────────────
 Each row is a P&L line item; each column (except "Month") is a month.
 All values in RAW TT$.
@@ -489,12 +531,12 @@ All values in RAW TT$.
   To add a new month: add a new column with the month label (Mon-YY format)
   and fill in all row values in RAW TT$.
 
-  NOTE: Gross Profit and Gross Profit AOP are derived as Total_Rev − Total_COS
-  and Total_Rev_AOP − Total_COS_AOP respectively. The Financial Performance v2
+  NOTE: Gross Profit and Gross Profit AOP are derived as Total_Rev - Total_COS
+  and Total_Rev_AOP - Total_COS_AOP respectively. The Financial Performance
   page uses this to power the KPI card and 13-month trend chart.
 
 ────────────────────────────────────────────────────────────────────────────────
-12. KPI_SUMMARY
+13. KPI_SUMMARY
     Page: Home (app.py) + Enterprise Scorecard
 ────────────────────────────────────────────────────────────────────────────────
 One row per KPI per Month.
@@ -514,7 +556,7 @@ One row per KPI per Month.
   from the Actual of the same KPI_Name 12 months earlier.
 
 ────────────────────────────────────────────────────────────────────────────────
-13. PP_PLANS  (OPTIONAL — if absent, Active Plans donut shows stub data)
+14. PP_PLANS  (OPTIONAL — if absent, Active Plans donut shows stub data)
     Page: Consumer → Postpaid tab
 ────────────────────────────────────────────────────────────────────────────────
 One row per active plan type. NO Month column — this is a snapshot (latest month).
@@ -529,7 +571,7 @@ If this sheet is absent or empty, the donut chart falls back to hardcoded
 stub values and shows a "⚠ dummy data" warning.
 
 ────────────────────────────────────────────────────────────────────────────────
-14. WTTX_PLANS  (OPTIONAL — if absent, Plan Type donut shows stub data)
+15. WTTX_PLANS  (OPTIONAL — if absent, Plan Type donut shows stub data)
     Page: Consumer → WTTx tab
 ────────────────────────────────────────────────────────────────────────────────
 Same structure as PP_Plans. One row per service type.
@@ -552,19 +594,19 @@ or update the hardcoded values directly in the page file.
 
   Chart                               File / Location          How to fix
   ─────────────────────────────────── ──────────────────────── ──────────────
-  Postpaid Active Plans donut         pages/6_Postpaid_Revenue.py   Add PP_Plans sheet
+  Postpaid Active Plans donut         pages/7_Postpaid_Revenue.py   Add PP_Plans sheet
   (falls back to Basic Voice 35K,     (plan-type donut)             in TSTT_Board_Data
   Basic Data 38K, Standard 22K, etc.)
 
-  WTTx Subscribers by Plan Type donut pages/7_WTTx_Revenue.py       Add WTTx_Plans sheet
+  WTTx Subscribers by Plan Type donut pages/8_WTTx_Revenue.py       Add WTTx_Plans sheet
   (falls back to Voice Only 8K,       (plan-type donut)             in TSTT_Board_Data
   Bundles 35K, Data Only 62K)
 
-  Postpaid Revenue by Bundle Type     pages/6_Postpaid_Revenue.py   Update pp_splits list
+  Postpaid Revenue by Bundle Type     pages/7_Postpaid_Revenue.py   Update pp_splits list
   (hardcoded: Voice+Data 52%,         (bundle-type chart)           (or add a data source)
   Data Only 31%, Enterprise 17%)
 
-  WTTx Revenue by Service Type        pages/7_WTTx_Revenue.py       Update wx_splits list
+  WTTx Revenue by Service Type        pages/8_WTTx_Revenue.py       Update wx_splits list
   (hardcoded: Broadband 72%,          (service-type chart)          (or add a data source)
   Voice Bundle 20%, Equipment 8%)
 
@@ -577,7 +619,7 @@ only the split proportions are estimated.
   DATA RULES & COMMON MISTAKES
 ================================================================================
 
-  ✓ DO:
+  DO:
     - Use Mon-YY format for ALL Month columns (e.g. Apr-26, May-26)
     - Enter all monetary values in RAW TT$ — the dashboard converts to TT$M
     - Enter percentages as DECIMALS in most sheets (0.28 not 28)
@@ -587,9 +629,9 @@ only the split proportions are estimated.
     - Add new months as new ROWS (not new columns), except PnL_Breakdown
       which uses months as columns
 
-  ✗ DO NOT:
+  DO NOT:
     - Enter monetary values already in millions — the dashboard will
-      divide again and show values 1,000,000× too small
+      divide again and show values 1,000,000x too small
     - Add PY columns (Revenue_PY, EBITDA_PY, etc.) — they are auto-derived
     - Add Variance or Variance_Pct to OPEX — auto-calculated
     - Add Churn_Pct to Consumer_Sales — auto-calculated
@@ -627,40 +669,43 @@ For each new reporting month (e.g. adding May-26):
 
   [ ] 8. AMPLIA_Financial     — add 1 row with all financial metrics
 
-  [ ] 9. OPEX                 — add rows (one per Category) with Actual + Plan
+  [ ] 9. Amplia_Commercial    — add 1 row (or per-channel rows) with ARPU,
+                                Gross_Adds, Monthly_Churn, Net_Port + AOP values
 
-  [ ] 10. EBITDA_Bridge       — update values for the new month's waterfall
+  [ ] 10. OPEX                — add rows (one per Category) with Actual + Plan
 
-  [ ] 11. PnL_Breakdown       — add a new column for the new month
+  [ ] 11. EBITDA_Bridge       — update values for the new month's waterfall
 
-  [ ] 12. KPI_Summary         — add rows for each KPI with Actual, AOP, Status
+  [ ] 12. PnL_Breakdown       — add a new column for the new month
 
-  [ ] 13. Renewals            — update statuses / add or remove contracts as needed
+  [ ] 13. KPI_Summary         — add rows for each KPI with Actual, AOP, Status
 
-  [ ] 14. PP_Plans            — (if available) update with latest subscriber
+  [ ] 14. Renewals            — update statuses / add or remove contracts as needed
+
+  [ ] 15. PP_Plans            — (if available) update with latest subscriber
                                 counts by postpaid plan type
 
-  [ ] 15. WTTx_Plans          — (if available) update with latest subscriber
+  [ ] 16. WTTx_Plans          — (if available) update with latest subscriber
                                 counts by WTTx service type
 
-  [ ] 16. Save TSTT_Board_Data.xlsx
+  [ ] 17. Save TSTT_Board_Data.xlsx
 
-  [ ] 17. Update Prepaid ARPU buckets file with new month column pair
+  [ ] 18. Update Prepaid ARPU buckets file with new month column pair
               Prepaid Subs and REV by ARPU buckets.xlsx  (sheet: Export)
 
-  [ ] 18. Update Prepaid data usage file with new month row
+  [ ] 19. Update Prepaid data usage file with new month row
               dd_prepaid_data_usage_mth.xlsx  (sheet: Result 1)
 
-  [ ] 19. Add a new column (Mon-YY) to billing (M).xlsx  (sheet: Sheet 1)
+  [ ] 20. Add a new column (Mon-YY) to billing (M).xlsx  (sheet: Sheet 1)
               with billing amounts for each LOB/Grouping row
 
-  [ ] 20. Add a new column (Mon-YY) to collections (FULL).xlsx  (sheet: Sheet 1)
+  [ ] 21. Add a new column (Mon-YY) to collections (FULL).xlsx  (sheet: Sheet 1)
               with collection amounts for each LOB/Grouping row
 
-  [ ] 21. If AR Aging column has moved, update APR = XX in pages/3_Cash_CAPEX.py
+  [ ] 22. If AR Aging column has moved, update APR_COL in utils/ar_loader.py
 
-  [ ] 22. Run:  streamlit run app.py
+  [ ] 23. Run:  streamlit run app.py
                Then clear the cache if data looks stale:
-               Click the ⋮ menu (top-right of browser) → Clear cache
+               Click the ... menu (top-right of browser) → Clear cache
 
 ================================================================================
