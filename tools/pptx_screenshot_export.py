@@ -30,7 +30,7 @@ from pathlib import Path
 SLIDE_W_IN   = 13.333
 SLIDE_H_IN   = 7.5
 SLIDE_ASPECT = SLIDE_W_IN / SLIDE_H_IN          # 1.7778
-BG_RGB       = (0, 0, 0)                        # app background (#000000)
+BG_RGB       = (255, 255, 255)                  # app background (#FFFFFF)
 OVERLAP_FRAC = 0.06                             # slice overlap so cards aren't cut
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -184,13 +184,16 @@ def capture_all(base_url: str, pages: list[tuple[str, str]], viewport_w: int,
 
 
 # ── Slicing ──────────────────────────────────────────────────────────────────
-def slice_capture(png_bytes: bytes, split: bool):
-    """Slice one full-page screenshot into 16:9 segments (PIL Images)."""
+def slice_capture(png_bytes: bytes, split: bool, aspect: float = SLIDE_ASPECT):
+    """Slice one full-page screenshot into segments of the given aspect ratio.
+
+    Defaults to the 16:9 slide aspect; the Word exporter passes its own page
+    aspect so each segment fills one printed page."""
     from PIL import Image
 
     img = Image.open(io.BytesIO(png_bytes)).convert("RGB")
     w, h = img.size
-    seg_h = round(w / SLIDE_ASPECT)
+    seg_h = round(w / aspect)
 
     # Shorter than a slide, or splitting disabled => single frame.
     if not split or h <= seg_h:
