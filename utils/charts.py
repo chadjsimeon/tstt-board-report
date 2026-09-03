@@ -2,13 +2,13 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # ── Palette ──────────────────────────────────────────────────────────────────
-GREEN  = "#00ff88"
-RED    = "#FF4444"
-BLUE   = "#4488ff"
-YELLOW = "#FFD700"
-PURPLE = "#aa44ff"
-ORANGE = "#FF8844"
-CYAN   = "#44EEFF"
+GREEN  = "#00875A"
+RED    = "#B91C1C"
+BLUE   = "#1D4ED8"
+YELLOW = "#A16207"
+PURPLE = "#7C2BD9"
+ORANGE = "#C2410C"
+CYAN   = "#0E7490"
 
 def dim(hex_color, alpha=0.33):
     """Convert #rrggbb + alpha to rgba() — Plotly rejects 8-char hex."""
@@ -20,8 +20,10 @@ def dim(hex_color, alpha=0.33):
 BLUE_DIM    = dim(BLUE,   0.40)
 GREEN_DIM   = dim(GREEN,  0.40)
 PURPLE_DIM  = dim(PURPLE, 0.40)
-WHITE_DIM   = "rgba(255,255,255,0.27)"
-WHITE_FAINT = "rgba(255,255,255,0.20)"
+# WHITE_* keep their names for import compatibility; on the light
+# theme they are dark ink at low alpha, used for PY/reference lines.
+WHITE_DIM   = "rgba(31,35,40,0.42)"
+WHITE_FAINT = "rgba(31,35,40,0.34)"
 BLUE_FAINT  = dim(BLUE,   0.33)
 GREEN_FAINT = dim(GREEN,  0.33)
 BLUE_MED    = dim(BLUE,   0.67)
@@ -29,10 +31,10 @@ GREEN_MED   = dim(GREEN,  0.67)
 
 ACCENT = [BLUE, GREEN, PURPLE, ORANGE, CYAN, YELLOW, RED]
 BG      = "rgba(0,0,0,0)"
-CARD_BG = "#161B22"
-GRID    = "#1e1e3a"
-TEXT    = "white"
-MUTED   = "#8888aa"
+CARD_BG = "#F6F8FA"
+GRID    = "#E6EAF0"
+TEXT    = "#1F2328"
+MUTED   = "#5B6675"
 
 # ── Base layout ──────────────────────────────────────────────────────────────
 _BASE = dict(
@@ -46,7 +48,7 @@ _BASE = dict(
     margin=dict(l=10, r=10, t=44, b=10),
     legend=dict(bgcolor=BG, font=dict(color=TEXT, size=12),
                 orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    hoverlabel=dict(bgcolor="#111128", font_color=TEXT, bordercolor="#333366"),
+    hoverlabel=dict(bgcolor="#F6F8FA", font_color=TEXT, bordercolor="#D0D7DE"),
 )
 
 
@@ -136,7 +138,7 @@ def waterfall_chart(df, x_col, y_col, type_col, title="", height=440):
         text=texts,
         textposition="outside",
         textfont=dict(color=TEXT, size=12),
-        connector=dict(line=dict(color="#2a2a5a", width=1, dash="dot")),
+        connector=dict(line=dict(color="#D0D7DE", width=1, dash="dot")),
         increasing=dict(marker=dict(color=GREEN)),
         decreasing=dict(marker=dict(color=RED)),
         totals=dict(marker=dict(color=BLUE)),
@@ -176,7 +178,7 @@ def variance_heatmap(df, index_col, columns_col, value_col, title="", height=320
         z=pivot.values,
         x=[str(c) for c in pivot.columns],
         y=pivot.index.tolist(),
-        colorscale=[[0, RED], [0.5, "#161B22"], [1, GREEN]],
+        colorscale=[[0, RED], [0.5, "#F6F8FA"], [1, GREEN]],
         zmid=0,
         text=[[f"{v:.1f}%" if v == v else "" for v in row] for row in pivot.values],
         texttemplate="%{text}",
@@ -214,26 +216,26 @@ def page_header(title, subtitle="", period="Apr-26"):
     </div>""", unsafe_allow_html=True)
 
 
-def styled_metric(title, value_str, delta_str="", delta_positive=None, accent="#4488ff"):
+def styled_metric(title, value_str, delta_str="", delta_positive=None, accent="#1D4ED8"):
     """Drop-in st.metric() replacement with a unique top-border accent colour."""
     if delta_str:
         if delta_positive is True:
-            dc = "#00ff88"
+            dc = "#00875A"
         elif delta_positive is False:
-            dc = "#FF4444"
+            dc = "#B91C1C"
         else:
-            dc = "#7788aa"
+            dc = "#5B6675"
         dh = (f'<div style="font-size:0.875rem;color:{dc};font-weight:600;'
               f'margin-top:4px">{delta_str}</div>')
     else:
         dh = ""
     st.markdown(f"""
-<div style="background:#161B22;border-radius:10px;padding:14px 16px;
-            border:1px solid #2a2a4a;border-top:3px solid {accent};
+<div style="background:#F6F8FA;border-radius:10px;padding:14px 16px;
+            border:1px solid #D0D7DE;border-top:3px solid {accent};
             margin-bottom:0.5rem">
-    <div style="font-size:0.82rem;font-weight:600;color:#7788aa;text-transform:uppercase;
+    <div style="font-size:0.82rem;font-weight:600;color:#5B6675;text-transform:uppercase;
                 letter-spacing:0.9px;margin-bottom:4px">{title}</div>
-    <div style="font-size:1.4rem;font-weight:700;color:white;line-height:1.2">{value_str}</div>
+    <div style="font-size:1.4rem;font-weight:700;color:#1F2328;line-height:1.2">{value_str}</div>
     {dh}
 </div>""", unsafe_allow_html=True)
 
@@ -241,7 +243,7 @@ def styled_metric(title, value_str, delta_str="", delta_positive=None, accent="#
 def kpi_card(name, actual, unit, vs_aop_pct, vs_py_pct, status_emoji="", accent_color=None):
     """Renders a styled KPI card using st.markdown.
 
-    accent_color: hex string (e.g. '#00d4a0') — overrides status-based border colour
+    accent_color: hex string (e.g. '#00786C') — overrides status-based border colour
                   so each metric can have a unique visual identity.
     """
     if accent_color:

@@ -1,10 +1,10 @@
 """RAG color helpers — thresholds from TSTT Key Risk Indicator Risk Levels May 2026."""
 import pandas as pd
 
-GREEN = "#22c55e"
-AMBER = "#f59e0b"
-RED   = "#ef4444"
-GREY  = "#8899bb"
+GREEN = "#15803D"
+AMBER = "#B45309"
+RED   = "#B91C1C"
+GREY  = "#5B6675"
 
 
 def _v(val):

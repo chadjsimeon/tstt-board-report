@@ -141,24 +141,25 @@ if not v2_pnl_py.empty:
     dc_py       = dc_py_v
     gp_py       = cs_rev_py_v - dc_py_v
 
-dc_aop_pct  = (dc_act - dc_aop) / abs(dc_aop) * 100 if dc_aop else None
+# Direct Costs use the cost convention: variance = AOP/PY − Actual (underspend positive)
+dc_aop_pct  = (dc_aop - dc_act) / abs(dc_aop) * 100 if dc_aop else None
 gp_aop_pct  = (gp_act - gp_aop) / abs(gp_aop) * 100 if gp_aop else None
-dc_aop_str  = f"{dc_act - dc_aop:+.1f} | {dc_aop_pct:+.1f}% vs AOP" if dc_aop_pct is not None else "— vs AOP"
+dc_aop_str  = f"{dc_aop - dc_act:+.1f} | {dc_aop_pct:+.1f}% vs AOP" if dc_aop_pct is not None else "— vs AOP"
 gp_aop_str  = f"{gp_act - gp_aop:+.1f} | {gp_aop_pct:+.1f}% vs AOP" if gp_aop_pct is not None else "— vs AOP"
-dc_aop_col  = rag(dc_aop_pct, 0, 10, higher=False) if dc_aop_pct is not None else "#7788aa"
+dc_aop_col  = rev_var_rag(dc_aop_pct) if dc_aop_pct is not None else "#5B6675"
 gp_aop_col  = rev_var_rag(gp_aop_pct)
 
-dc_delta = dc_act - dc_py if dc_py is not None else None
+dc_delta = dc_py - dc_act if dc_py is not None else None
 dc_pct   = dc_delta / abs(dc_py) * 100 if (dc_delta is not None and dc_py) else None
 dc_trend = (f"{dc_delta:+.1f} | {dc_pct:+.1f}% vs PY"
             if dc_pct is not None else "—")
-dc_col   = rev_var_rag(-dc_pct) if dc_pct is not None else "#7788aa"
+dc_col   = rev_var_rag(dc_pct) if dc_pct is not None else "#5B6675"
 
 gp_delta = gp_act - gp_py if gp_py is not None else None
 gp_pct   = gp_delta / abs(gp_py) * 100 if (gp_delta is not None and gp_py) else None
 gp_trend = (f"{gp_delta:+.1f} | {gp_pct:+.1f}% vs PY"
             if gp_pct is not None else "—")
-gp_col   = rev_var_rag(gp_pct) if gp_pct is not None else "#8899bb"
+gp_col   = rev_var_rag(gp_pct) if gp_pct is not None else "#5B6675"
 
 # Usage metrics — MoU from no available source yet; GB/Sub from Prepaid_Data_Usage
 _du = load_prepaid_data_usage()
@@ -176,9 +177,9 @@ pp_mou, pp_mou_ph   = None, True
 pre_mou, pre_mou_ph = _du_val("mou_per_user")
 pre_gb, pre_gb_ph   = _du_val("gb_per_user")
 
-pp_mou_trend, pp_mou_col   = "", "#8899bb"
-pre_mou_trend, pre_mou_col = "", "#8899bb"
-pre_gb_trend,  pre_gb_col  = "", "#8899bb"
+pp_mou_trend, pp_mou_col   = "", "#5B6675"
+pre_mou_trend, pre_mou_col = "", "#5B6675"
+pre_gb_trend,  pre_gb_col  = "", "#5B6675"
 
 pp_mou_str  = f"{pp_mou:.0f} mins" if pp_mou else "Data Pending"
 pre_mou_str = f"{pre_mou:.0f} mins" if pre_mou else "Data Pending"
@@ -198,30 +199,30 @@ wx_prev_rev  = wttx[wttx["Month"] == v2_wttx_mons[-2]]["Revenue"].sum() if len(v
 wx_mom       = wx_rev - wx_prev_rev
 
 # ── Card builders ─────────────────────────────────────────────────────
-def r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None, yoy_val=None, yoy_neg_col="#f59e0b", yoy_force_col=None):
+def r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=None, yoy_val=None, yoy_neg_col="#B45309", yoy_force_col=None):
     col = rev_var_rag(aop_pct)
     aop_html = (
         f'<span style="color:{col}">{aop_m_str}&nbsp;|&nbsp;{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP</span>'
         if aop_pct is not None
-        else '<span style="color:#445566">— vs AOP</span>'
+        else '<span style="color:#7A8494">— vs AOP</span>'
     )
     yoy_col = yoy_force_col if yoy_force_col else (
-        ("#22c55e" if (yoy_val or 0) >= 0 else yoy_neg_col) if yoy_val is not None else "#f59e0b"
+        ("#15803D" if (yoy_val or 0) >= 0 else yoy_neg_col) if yoy_val is not None else "#B45309"
     )
     yoy_html = (
         f'<span style="color:{yoy_col};font-weight:700">{yoy_str}</span>'
-        if yoy_str else '<span style="color:#445566">— vs PY</span>'
+        if yoy_str else '<span style="color:#7A8494">— vs PY</span>'
     )
     spark_html = (
         f'<div style="margin-top:8px;opacity:0.85">{_sparkline(spark_series, accent)}</div>'
         if spark_series else ""
     )
     return (
-        f'<div style="background:#161B22;border-radius:10px;padding:7px 12px;'
-        f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
-        f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+        f'<div style="background:#F6F8FA;border-radius:10px;padding:7px 12px;'
+        f'border:1px solid #D0D7DE;border-top:3px solid {accent};height:100%">'
+        f'<div style="font-size:28px;color:#5B6675;font-weight:700;text-transform:uppercase;'
         f'letter-spacing:1.5px;margin-bottom:2px">{label}</div>'
-        f'<div style="font-size:62px;font-weight:800;color:white;margin-bottom:2px;'
+        f'<div style="font-size:62px;font-weight:800;color:#1F2328;margin-bottom:2px;'
         f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
         f'<div style="font-size:29px;font-weight:600;margin-bottom:0px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{aop_html}</div>'
         f'<div style="font-size:29px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{yoy_html}</div>'
@@ -230,15 +231,15 @@ def r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series=No
     )
 
 _AMBER_DOT = (
-    '<span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;'
+    '<span style="width:7px;height:7px;border-radius:50%;background:#B45309;'
     'display:inline-block;margin-left:6px;flex-shrink:0;vertical-align:middle" '
     'title="Estimated — not sourced from live data"></span>'
 )
 
-def r2_card(label, val_str, line1, line1_col, line2="", line2_col="#7788aa",
-           is_ph=False, accent="#4a9eff", note="", val_size="52px", min_height=""):
+def r2_card(label, val_str, line1, line1_col, line2="", line2_col="#5B6675",
+           is_ph=False, accent="#0B6BCB", note="", val_size="52px", min_height=""):
     dot = _AMBER_DOT if is_ph else ""
-    note_h = (f'<div style="font-size:13px;color:#f59e0b;margin-top:4px;font-style:italic">'
+    note_h = (f'<div style="font-size:13px;color:#B45309;margin-top:4px;font-style:italic">'
               f'{note}</div>') if note else ""
     l2_h = (f'<div style="font-size:27px;color:{line2_col};font-weight:600;margin-top:1px;'
             f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{line2}</div>') if line2 else ""
@@ -246,11 +247,11 @@ def r2_card(label, val_str, line1, line1_col, line2="", line2_col="#7788aa",
             f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{line1}</div>') if line1 else ""
     mh = f"min-height:{min_height};" if min_height else ""
     return (
-        f'<div style="background:#161B22;border-radius:10px;padding:7px 14px;'
-        f'border:1px solid #252545;border-top:3px solid {accent};height:100%;{mh}">'
-        f'<div style="font-size:26px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+        f'<div style="background:#F6F8FA;border-radius:10px;padding:7px 14px;'
+        f'border:1px solid #D0D7DE;border-top:3px solid {accent};height:100%;{mh}">'
+        f'<div style="font-size:26px;color:#5B6675;font-weight:700;text-transform:uppercase;'
         f'letter-spacing:1.5px;margin-bottom:3px;display:flex;align-items:center">{label}{dot}</div>'
-        f'<div style="font-size:58px;font-weight:800;color:white;margin-bottom:3px;'
+        f'<div style="font-size:58px;font-weight:800;color:#1F2328;margin-bottom:3px;'
         f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
         f'{l1_h}{l2_h}{note_h}</div>'
     )
@@ -265,7 +266,7 @@ c1.markdown(r1_card(
     v2_tv_pct, f"{v2_tv_m:+.1f}",
     (f"{v2_t_rev - v2_t_py:+.1f} | {(v2_t_rev - v2_t_py) / v2_t_py * 100:+.1f}% vs PY"
      if v2_t_py else None),
-    "#00d4a0", spark_series=v2_total_trend,
+    "#00786C", spark_series=v2_total_trend,
     yoy_force_col=rev_var_rag((v2_t_rev - v2_t_py) / v2_t_py * 100) if v2_t_py else None,
 ), unsafe_allow_html=True)
 
@@ -275,7 +276,7 @@ c2.markdown(r1_card(
     f"{_v2vm(pr_rev, pr_aop):+.1f}" if _v2vm(pr_rev, pr_aop) is not None else "—",
     (f"{pr_rev - pr_py_v:+.1f} | {(pr_rev - pr_py_v) / pr_py_v * 100:+.1f}% vs PY"
      if pr_py_v else None),
-    "#a78bfa", spark_series=v2_pre_trend,
+    "#6D28D9", spark_series=v2_pre_trend,
     yoy_force_col=rev_var_rag((pr_rev - pr_py_v) / pr_py_v * 100) if pr_py_v else None,
 ), unsafe_allow_html=True)
 
@@ -285,7 +286,7 @@ c3.markdown(r1_card(
     f"{_v2vm(pp_rev, pp_aop):+.1f}" if _v2vm(pp_rev, pp_aop) is not None else "—",
     (f"{pp_rev - pp_py_v:+.1f} | {(pp_rev - pp_py_v) / pp_py_v * 100:+.1f}% vs PY"
      if pp_py_v else None),
-    "#4a9eff", spark_series=v2_post_trend,
+    "#0B6BCB", spark_series=v2_post_trend,
     yoy_force_col=rev_var_rag((pp_rev - pp_py_v) / pp_py_v * 100) if pp_py_v else None,
 ), unsafe_allow_html=True)
 
@@ -295,7 +296,7 @@ c4.markdown(r1_card(
     f"{_v2vm(wx_rev, wx_aop):+.1f}" if _v2vm(wx_rev, wx_aop) is not None else "—",
     (f"{wx_rev - wx_py_v:+.1f} | {(wx_rev - wx_py_v) / wx_py_v * 100:+.1f}% vs PY"
      if wx_py_v else None),
-    "#f59e0b", spark_series=v2_wx_trend,
+    "#B45309", spark_series=v2_wx_trend,
     yoy_force_col=rev_var_rag((wx_rev - wx_py_v) / wx_py_v * 100) if wx_py_v else None,
 ), unsafe_allow_html=True)
 
@@ -305,7 +306,7 @@ c5.markdown(r1_card(
     f"{v2_other_rev - v2_other_aop:+.1f}" if v2_other_aop else "—",
     (f"{v2_other_rev - v2_other_py:+.1f} | {(v2_other_rev - v2_other_py) / v2_other_py * 100:+.1f}% vs PY"
      if v2_other_py else None),
-    "#ff6b6b", spark_series=v2_other_trend,
+    "#C53030", spark_series=v2_other_trend,
     yoy_force_col=rev_var_rag((v2_other_rev - v2_other_py) / v2_other_py * 100) if v2_other_py else None,
 ), unsafe_allow_html=True)
 
@@ -320,14 +321,14 @@ with col_AB:
         "Direct Costs", f"{dc_act:.1f}",
         dc_aop_str, dc_aop_col,
         dc_trend, dc_col,
-        is_ph=dc_is_ph, accent="#ef4444",
+        is_ph=dc_is_ph, accent="#B91C1C",
         note="est. (58% proxy)" if dc_is_ph else "",
     )
     _gp_html  = r2_card(
         "Gross Profit", f"{gp_act:.1f}",
         gp_aop_str, gp_aop_col,
         gp_trend, gp_col,
-        is_ph=gp_is_ph, accent="#22c55e",
+        is_ph=gp_is_ph, accent="#15803D",
         note="est. (42% proxy)" if gp_is_ph else "",
     )
     st.markdown(
@@ -341,7 +342,7 @@ with col_AB:
 with col_C:
     # Revenue Mix donut — 4 consolidated segments
     d_segs  = ["Prepaid", "Postpaid", "WTTx", "Other"]
-    d_clrs  = ["#a78bfa", "#4a9eff", "#f59e0b", "#6b7280"]
+    d_clrs  = ["#6D28D9", "#0B6BCB", "#B45309", "#5B6675"]
     d_vals  = [max(pr_rev, 0), max(pp_rev, 0), max(wx_rev, 0), max(v2_other_rev, 0)]
     d_total = sum(d_vals)
     d_pcts  = [v / d_total * 100 if d_total else 0 for v in d_vals]
@@ -352,27 +353,27 @@ with col_C:
         sort=False,
         marker=dict(
             colors=d_clrs,
-            line=dict(color="rgba(255,255,255,0.35)", width=2),
+            line=dict(color="#F6F8FA", width=2),
         ),
         textinfo="percent",
-        textfont=dict(size=22, color="white"),
+        textfont=dict(size=22, color="#1F2328"),
         insidetextorientation="radial",
         customdata=d_segs,
         hovertemplate="<b>%{customdata}</b><br>%{value:.1f} (%{percent})<extra></extra>",
         title=dict(
             text=f"<b>{d_total:.1f}</b>",
-            font=dict(size=36, color="white"),
+            font=dict(size=36, color="#1F2328"),
             position="middle center",
         ),
     ))
     fig_d.update_layout(
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"), height=427,
+        font=dict(color="#1F2328"), height=427,
         title=dict(text=f"<b>{sel_month} Revenue Mix</b>",
-                   font=dict(size=26, color="white"), x=0),
+                   font=dict(size=26, color="#1F2328"), x=0),
         legend=dict(
             bgcolor="rgba(0,0,0,0)",
-            font=dict(size=22, color="white"),
+            font=dict(size=22, color="#1F2328"),
             orientation="h",
             x=0.5, y=-0.12,
             xanchor="center",

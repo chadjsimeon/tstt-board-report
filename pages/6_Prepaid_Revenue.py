@@ -142,12 +142,12 @@ r_l1       = (f"{rev_aop_m:+.1f} | {rev_aop_pct:+.1f}% vs AOP"
 rev_py_pct = (rev_py_m / apr25_rev * 100) if (rev_py_m is not None and apr25_rev) else None
 r_l2       = (f"{rev_py_m:+.1f} | {rev_py_pct:+.1f}% vs PY"
               if rev_py_pct is not None else "— vs PY")
-r_py_col   = rev_var_rag(rev_py_pct) if rev_py_pct is not None else "#7788aa"
+r_py_col   = rev_var_rag(rev_py_pct) if rev_py_pct is not None else "#5B6675"
 
 a_l1_col     = rev_var_rag(arpu_aop_pct)
 a_l1         = (f"${arpu_aop_m:+.0f} | {arpu_aop_pct:+.1f}% vs AOP"
                 if arpu_aop_pct is not None else "— vs AOP")
-a_l2_col     = rev_var_rag(arpu_py_pct) if arpu_py_pct is not None else "#7788aa"
+a_l2_col     = rev_var_rag(arpu_py_pct) if arpu_py_pct is not None else "#5B6675"
 arpu_py_delta = arpu_lat - arpu_25 if arpu_25 else None
 a_l2         = (f"${arpu_py_delta:+.0f} | {arpu_py_pct:+.1f}% vs PY"
                 if arpu_py_pct is not None else "— vs PY")
@@ -155,38 +155,38 @@ a_l2         = (f"${arpu_py_delta:+.0f} | {arpu_py_pct:+.1f}% vs PY"
 s_l1_col     = rev_var_rag(subs_aop_pct)
 s_l1         = (f"{subs_aop_m/1000:+.1f}K | {subs_aop_pct:+.1f}% vs AOP"
                 if subs_aop_pct is not None else "— vs AOP")
-s_l2_col     = rev_var_rag(subs_py_pct) if subs_py_pct is not None else "#7788aa"
+s_l2_col     = rev_var_rag(subs_py_pct) if subs_py_pct is not None else "#5B6675"
 subs_py_delta = (subs_lat - subs_25) / 1000 if subs_25 else None
 s_l2         = (f"{subs_py_delta:+.1f}K | {subs_py_pct:+.1f}% vs PY"
                 if subs_py_pct is not None else "— vs PY")
 
 _c1     = _pre_kpi("Prepaid Revenue", f"{apr26_rev:.1f}",
-                   r_l1, r_aop_col, r_l2, r_py_col, "#a78bfa", rev_spark)
+                   r_l1, r_aop_col, r_l2, r_py_col, "#6D28D9", rev_spark)
 _c3     = _pre_kpi("ARPU (TT$ -/sub)", f"{arpu_lat:.0f}",
-                   a_l1, a_l1_col, a_l2, a_l2_col, "#f59e0b", arpu_spark)
+                   a_l1, a_l1_col, a_l2, a_l2_col, "#B45309", arpu_spark)
 _c_subs = _pre_kpi("Subscribers", _fmt_k(subs_lat),
-                   s_l1, s_l1_col, s_l2, s_l2_col, "#22c55e", subs_spark)
+                   s_l1, s_l1_col, s_l2, s_l2_col, "#15803D", subs_spark)
 
 # Subscriber movements card
 _churn_lbl = f"Churn ({churn_derived:.1f}%)"
 _mov_rows  = [
-    ("Opening",    f"{pre_subs_open/1000:.1f}K",   "#aabbcc"),
-    ("Gross Adds", f"+{pre_subs_gross/1000:.1f}K", "#22c55e"),
-    (_churn_lbl,   f"−{pre_subs_disc/1000:.1f}K",  "#ef4444"),
-    ("Closing",    f"{pre_subs_close/1000:.1f}K",  "white"),
+    ("Opening",    f"{pre_subs_open/1000:.1f}K",   "#3B4351"),
+    ("Gross Adds", f"+{pre_subs_gross/1000:.1f}K", "#15803D"),
+    (_churn_lbl,   f"−{pre_subs_disc/1000:.1f}K",  "#B91C1C"),
+    ("Closing",    f"{pre_subs_close/1000:.1f}K",  "#1F2328"),
 ]
 _mov_html = "".join(
     f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
-    f'border-bottom:1px solid #1e2a4a;">'
-    f'<span style="font-size:29px;color:#7788aa">{lbl}</span>'
+    f'border-bottom:1px solid #EEF3FA;">'
+    f'<span style="font-size:29px;color:#5B6675">{lbl}</span>'
     f'<span style="font-size:29px;font-weight:700;color:{col}">{val}</span>'
     f'</div>'
     for lbl, val, col in _mov_rows
 )
 _c2 = (
-    f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
-    f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
-    f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+    f'<div style="background:#F6F8FA;border-radius:10px;padding:16px 16px;'
+    f'border:1px solid #D0D7DE;border-top:3px solid #15803D;height:100%">'
+    f'<div style="font-size:28px;color:#5B6675;font-weight:700;text-transform:uppercase;'
     f'letter-spacing:1.5px;margin-bottom:10px">Subscriber Movements</div>'
     f'{_mov_html}'
     f'</div>'
@@ -222,11 +222,11 @@ pre_daily["Daily_AOP"] = pre_daily["Revenue_AOP"] / pre_daily["Days"]
 _ARPU_ORDER_BOTTOM_UP = ["VLV <$5", "LV $5-$30", "MV $30-$120",
                          "HV $120-$300", "VHV $300+"]
 _ARPU_COLORS = {
-    "VHV $300+":    "#22c55e",
-    "HV $120-$300": "#a78bfa",
-    "MV $30-$120":  "#6366f1",
-    "LV $5-$30":    "#f59e0b",
-    "VLV <$5":      "#6b7280",
+    "VHV $300+":    "#15803D",
+    "HV $120-$300": "#6D28D9",
+    "MV $30-$120":  "#4338CA",
+    "LV $5-$30":    "#B45309",
+    "VLV <$5":      "#5B6675",
 }
 
 def _arpu_cat_snapshot(month):
@@ -252,7 +252,7 @@ def _arpu_cat_chart(cats, prev_cats, month_label, prev_label):
     _x_lbls     = [c.replace(" ", "<br>", 1) for c in _cat_names]   # "VHV<br>$300+"
     _cat_vals   = [cats[c] for c in _cat_names]
     _prev_vals  = [prev_cats.get(c, 0) for c in _cat_names]
-    _cat_colors = [_ARPU_COLORS.get(c, "#6b7280") for c in _cat_names]
+    _cat_colors = [_ARPU_COLORS.get(c, "#5B6675") for c in _cat_names]
     _cat_total  = sum(_cat_vals)
     _cat_pcts   = [v / _cat_total * 100 if _cat_total else 0 for v in _cat_vals]
     _prev_total = sum(_prev_vals)
@@ -266,7 +266,7 @@ def _arpu_cat_chart(cats, prev_cats, month_label, prev_label):
             marker_color=[dim(c, 0.35) for c in _cat_colors],
             marker_line=dict(color=[dim(c, 0.70) for c in _cat_colors], width=1),
             text=[f"{p:.0f}%" for p in _prev_pcts],
-            textposition="outside", textfont=dict(color="#8899aa", size=20),
+            textposition="outside", textfont=dict(color="#5B6675", size=20),
             cliponaxis=False,
             customdata=_cat_names,
             hovertemplate=f"<b>%{{customdata}}</b> — {prev_label}<br>%{{y:,.0f}} subs<extra></extra>",
@@ -276,7 +276,7 @@ def _arpu_cat_chart(cats, prev_cats, month_label, prev_label):
         name=month_label,
         marker_color=_cat_colors,
         text=[f"{p:.0f}%" for p in _cat_pcts],
-        textposition="outside", textfont=dict(color="white", size=20),
+        textposition="outside", textfont=dict(color="#1F2328", size=20),
         cliponaxis=False,
         customdata=_cat_names,
         hovertemplate=f"<b>%{{customdata}}</b> — {month_label}<br>%{{y:,.0f}} subs<extra></extra>",
@@ -284,7 +284,7 @@ def _arpu_cat_chart(cats, prev_cats, month_label, prev_label):
     _base_layout(
         fig,
         f"<b>Subs by ARPU — {month_label}</b>"
-        f" <span style='font-size:18px;color:#8888aa'>(shaded: {prev_label})</span>",
+        f" <span style='font-size:18px;color:#5B6675'>(shaded: {prev_label})</span>",
         320,
     )
     _max_v = max(_cat_vals + _prev_vals) if (_cat_vals or _prev_vals) else None
@@ -292,9 +292,9 @@ def _arpu_cat_chart(cats, prev_cats, month_label, prev_label):
         barmode="group",
         bargap=0.28, bargroupgap=0.06,
         showlegend=False,
-        xaxis=dict(tickfont=dict(color="white", size=16),
+        xaxis=dict(tickfont=dict(color="#1F2328", size=16),
                    categoryorder="array", categoryarray=_x_lbls),
-        yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=16),
+        yaxis=dict(gridcolor="#E6EAF0", tickfont=dict(color="#5B6675", size=16),
                    range=[0, _max_v * 1.22] if _max_v else None),
     )
     return fig
@@ -308,7 +308,7 @@ with ml:
     fig = go.Figure()
     fig.add_trace(go.Bar(
         x=pre_daily["Month"], y=pre_daily["Daily_Rev"],
-        name="Actual", marker_color="#a78bfa",
+        name="Actual", marker_color="#6D28D9",
         hovertemplate="%{x}<br>%{y:.3f} / day<extra></extra>",
     ))
     _base_layout(fig, "Avg Daily Prepaid Revenue", 320,

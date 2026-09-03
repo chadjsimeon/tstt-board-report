@@ -37,7 +37,7 @@ st.markdown("### Key Performance Indicators")
 
 # Unique accent palette for KPI cards — visually distinct per metric,
 # independent of RAG status (green/red text still signals good/bad variance)
-KPI_ACCENTS = ["#00d4a0", "#4a9eff", "#aa44ff", "#FF8844", "#44EEFF", "#FFD700", "#ff6b6b"]
+KPI_ACCENTS = ["#00786C", "#0B6BCB", "#7C2BD9", "#C2410C", "#0E7490", "#A16207", "#C53030"]
 
 sections = [s for s in dict.fromkeys(kpi["Section"].dropna().tolist()) if str(s).strip()]
 for section in sections:
@@ -110,7 +110,7 @@ with col4:
     )
     fig.add_hline(
         y=30, line_dash="dot", line_color=WHITE_FAINT,
-        annotation_text="30% AOP", annotation_font_color="#7788aa",
+        annotation_text="30% AOP", annotation_font_color="#5B6675",
         annotation_position="bottom right",
     )
     st.plotly_chart(fig, use_container_width=True)

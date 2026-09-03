@@ -80,8 +80,8 @@ with col_left:
         x=cats["Plan"],
         orientation="h",
         name="Plan (AOP)",
-        marker_color="rgba(90,90,130,0.28)",
-        marker_line=dict(color="rgba(140,140,180,0.55)", width=1),
+        marker_color="rgba(120,130,150,0.35)",
+        marker_line=dict(color="rgba(110,120,140,0.55)", width=1),
         width=0.70,
         hovertemplate="%{y}<br>Plan: %{x:,.2f}<extra></extra>",
     ))
@@ -96,7 +96,7 @@ with col_left:
         width=0.42,
         text=[f"{v:,.2f}" for v in cats["Actual"]],
         textposition="outside",
-        textfont=dict(color="white", size=24),
+        textfont=dict(color="#1F2328", size=24),
         cliponaxis=False,
         hovertemplate="%{y}<br>Actual: %{x:,.2f}<extra></extra>",
     ))
@@ -113,23 +113,23 @@ with col_left:
         barmode="overlay",
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"),
+        font=dict(color="#1F2328"),
         height=fig_height,
         legend=dict(
-            bgcolor="rgba(10,10,30,0.75)",
-            bordercolor="#2a2a4a", borderwidth=1,
+            bgcolor="rgba(246,248,250,0.90)",
+            bordercolor="#D0D7DE", borderwidth=1,
             orientation="v",
             x=0.99, y=0.01, xanchor="right", yanchor="bottom",
             font=dict(size=16),
         ),
         xaxis=dict(
             visible=False,
-            zeroline=True, zerolinecolor="#3a3a5a",
+            zeroline=True, zerolinecolor="#D0D7DE",
             range=[_x_left, _x_max * 1.02],
         ),
         yaxis=dict(
-            gridcolor="#1e1e3a",
-            tickfont=dict(color="white", size=30),
+            gridcolor="#E6EAF0",
+            tickfont=dict(color="#1F2328", size=30),
         ),
         margin=dict(l=10, r=200, t=10, b=10),
     )
@@ -140,7 +140,7 @@ with col_left:
     sign    = "+" if var_pct > 0 else ""
     var_col = rev_var_rag(-var_pct)
     st.markdown(
-        f'<p style="font-size:19px;font-weight:700;color:#f59e0b;margin-top:2px">'
+        f'<p style="font-size:19px;font-weight:700;color:#B45309;margin-top:2px">'
         f'Total OPEX: {total_actual:,.2f} &nbsp;vs Plan&nbsp; {total_plan:,.2f}'
         f'&nbsp;(<span style="color:{var_col}">{sign}{var_pct:.1f}%</span>)'
         f'</p>',
@@ -160,21 +160,21 @@ with col_right:
         var      = row["Variance"]
         vpct     = row["Variance_Pct"]
         color    = rev_var_rag(-(var / row["Plan"] * 100) if row["Plan"] else None)
-        badge_bg = "#3a1212" if var > 0 else "#0f2e1a"
+        badge_bg = "#FBE0E0" if var > 0 else "#DFF3E7"
         label    = "above plan" if var > 0 else "below plan"
         sign     = "+" if var < 0 else "-"
 
         st.markdown(f"""
 <div style="display:flex;align-items:center;margin-bottom:6px;padding:8px 14px;
-            background:rgba(255,255,255,0.04);border-radius:10px;
+            background:rgba(31,35,40,0.04);border-radius:10px;
             border-left:4px solid {color}">
     <div style="background:{badge_bg};color:{color};font-weight:800;font-size:22px;
                 width:44px;height:44px;line-height:44px;border-radius:50%;text-align:center;
                 margin-right:14px;border:1px solid {color};flex-shrink:0">{rank}</div>
     <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:28px;color:white;
+        <div style="font-weight:700;font-size:28px;color:#1F2328;
                     margin-bottom:2px">{row['Category']}</div>
-        <div style="font-size:18px;color:#8888aa;line-height:1.4">
+        <div style="font-size:18px;color:#5B6675;line-height:1.4">
             {abs(vpct):.1f}% {label} — {abs(row['Plan']):,.2f} planned
         </div>
     </div>
@@ -184,7 +184,7 @@ with col_right:
     </div>
 </div>""", unsafe_allow_html=True)
 
-    st.markdown("<hr style='border:none;border-top:1px solid #2a2a4a;margin:6px 0 6px 0'>", unsafe_allow_html=True)
+    st.markdown("<hr style='border:none;border-top:1px solid #D0D7DE;margin:6px 0 6px 0'>", unsafe_allow_html=True)
 
     # ── Spend to Date ─────────────────────────────────────────────────────────
     st.markdown('<div style="font-size:26px;font-weight:700;margin:0 0 6px">Spend to Date</div>', unsafe_allow_html=True)
@@ -206,34 +206,34 @@ with col_right:
     progress     = min(ytd_spend / annual_plan * 100, 100) if annual_plan else 0
     over_budget  = ytd_spend > annual_plan
 
-    bar_color    = "linear-gradient(90deg,#ef4444,#ff6b6b)" if over_budget else "linear-gradient(90deg,#1d4ed8,#4a9eff)"
-    pct_color    = "#ef4444" if over_budget else "#4a9eff"
-    rem_color    = "#ef4444" if remaining < 0 else "#6688aa"
+    bar_color    = "linear-gradient(90deg,#B91C1C,#C53030)" if over_budget else "linear-gradient(90deg,#1D4ED8,#0B6BCB)"
+    pct_color    = "#B91C1C" if over_budget else "#0B6BCB"
+    rem_color    = "#B91C1C" if remaining < 0 else "#5B6675"
     rem_label    = "over budget" if remaining < 0 else "remaining"
     rem_sign     = "+" if remaining < 0 else ""
 
     st.markdown(f"""
-<div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:12px 18px">
+<div style="background:rgba(31,35,40,0.04);border-radius:12px;padding:12px 18px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="color:#aaaacc;font-size:22px;font-weight:500">YTD Spend vs Annual Budget</span>
+        <span style="color:#3B4351;font-size:22px;font-weight:500">YTD Spend vs Annual Budget</span>
         <span style="color:{pct_color};font-weight:800;font-size:36px">{progress:.1f}%</span>
     </div>
-    <div style="background:#1e1e3a;border-radius:8px;height:18px;overflow:hidden;margin-bottom:10px">
+    <div style="background:#E6EAF0;border-radius:8px;height:18px;overflow:hidden;margin-bottom:10px">
         <div style="background:{bar_color};
                     width:{progress:.1f}%;height:100%;border-radius:8px"></div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:baseline">
         <div>
             <div style="color:{pct_color};font-size:20px;font-weight:700">{ytd_spend:,.2f}</div>
-            <div style="color:#6688aa;font-size:15px;margin-top:2px">spent YTD</div>
+            <div style="color:#5B6675;font-size:15px;margin-top:2px">spent YTD</div>
         </div>
         <div style="text-align:center">
             <div style="color:{rem_color};font-size:20px;font-weight:700">{rem_sign}{abs(remaining):,.2f}</div>
-            <div style="color:#6688aa;font-size:15px;margin-top:2px">{rem_label}</div>
+            <div style="color:#5B6675;font-size:15px;margin-top:2px">{rem_label}</div>
         </div>
         <div style="text-align:right">
-            <div style="color:#aaaacc;font-size:20px;font-weight:700">{annual_plan:,.2f}</div>
-            <div style="color:#6688aa;font-size:15px;margin-top:2px">annual budget</div>
+            <div style="color:#3B4351;font-size:20px;font-weight:700">{annual_plan:,.2f}</div>
+            <div style="color:#5B6675;font-size:15px;margin-top:2px">annual budget</div>
         </div>
     </div>
 </div>""", unsafe_allow_html=True)

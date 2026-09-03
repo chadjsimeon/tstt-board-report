@@ -45,7 +45,7 @@ else:
             monthly_com, x="Month",
             y_cols=["Gross_Additions", "Gross_Additions_AOP"],
             title="Gross Additions vs AOP",
-            colors=[GREEN, "#224422"],
+            colors=[GREEN, "#E9F7EF"],
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -54,7 +54,7 @@ else:
             monthly_com, x="Month",
             y_cols=["Monthly_Churn", "Churn_AOP"],
             title="Monthly Churn vs AOP",
-            colors=[RED, "#442222"],
+            colors=[RED, "#FDECEC"],
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -69,16 +69,16 @@ else:
             x=monthly_com_copy["Month"], y=monthly_com_copy["Net_Additions"],
             marker_color=colors_list,
             text=[f"{v:+,.0f}" for v in monthly_com_copy["Net_Additions"]],
-            textposition="outside", textfont=dict(color="white", size=10),
+            textposition="outside", textfont=dict(color="#1F2328", size=10),
         ))
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white"), height=360,
+            font=dict(color="#1F2328"), height=360,
             title=dict(text="<b>Net Subscriber Additions</b>",
-                       font=dict(size=13, color="white"), x=0),
-            xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-            yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
-                       zeroline=True, zerolinecolor="#3a3a5a"),
+                       font=dict(size=13, color="#1F2328"), x=0),
+            xaxis=dict(gridcolor="#E6EAF0", tickfont=dict(color="#5B6675")),
+            yaxis=dict(gridcolor="#E6EAF0", tickfont=dict(color="#5B6675"),
+                       zeroline=True, zerolinecolor="#D0D7DE"),
             margin=dict(l=10, r=10, t=44, b=10), showlegend=False,
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -104,7 +104,7 @@ else:
                 y=channel_sel["Sales_Count"],
                 marker_color=[BLUE, GREEN, PURPLE][:len(channel_sel)],
                 text=[f"{v:,.0f}" for v in channel_sel["Sales_Count"]],
-                textposition="outside", textfont=dict(color="white", size=11),
+                textposition="outside", textfont=dict(color="#1F2328", size=11),
                 customdata=channel_sel["Sales_Target"],
                 hovertemplate="<b>%{x}</b><br>Sales: %{y:,.0f}<br>Target: %{customdata:,.0f}<extra></extra>",
             ))
@@ -116,11 +116,11 @@ else:
                               line=dict(color=YELLOW, width=3))
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="white"), height=360,
+                font=dict(color="#1F2328"), height=360,
                 title=dict(text=f"<b>{sel_com_month} Sales by Channel (yellow = target)</b>",
-                           font=dict(size=13, color="white"), x=0),
-                xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-                yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
+                           font=dict(size=13, color="#1F2328"), x=0),
+                xaxis=dict(gridcolor="#E6EAF0", tickfont=dict(color="#5B6675")),
+                yaxis=dict(gridcolor="#E6EAF0", tickfont=dict(color="#5B6675")),
                 margin=dict(l=10, r=10, t=44, b=10), showlegend=False,
             )
             st.plotly_chart(fig, use_container_width=True)
@@ -135,16 +135,16 @@ else:
                 x=channel_sel["Channel"], y=channel_sel["vs_target_pct"],
                 marker_color=colors_t,
                 text=[f"{v:+.1f}%" for v in channel_sel["vs_target_pct"]],
-                textposition="outside", textfont=dict(color="white", size=11),
+                textposition="outside", textfont=dict(color="#1F2328", size=11),
             ))
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="white"), height=360,
+                font=dict(color="#1F2328"), height=360,
                 title=dict(text=f"<b>{sel_com_month} Sales vs Target (%)</b>",
-                           font=dict(size=13, color="white"), x=0),
-                xaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa")),
-                yaxis=dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa"),
-                           zeroline=True, zerolinecolor="#3a3a5a"),
+                           font=dict(size=13, color="#1F2328"), x=0),
+                xaxis=dict(gridcolor="#E6EAF0", tickfont=dict(color="#5B6675")),
+                yaxis=dict(gridcolor="#E6EAF0", tickfont=dict(color="#5B6675"),
+                           zeroline=True, zerolinecolor="#D0D7DE"),
                 margin=dict(l=10, r=10, t=44, b=10), showlegend=False,
             )
             st.plotly_chart(fig, use_container_width=True)

@@ -85,23 +85,23 @@ def _pct_color(pct, group="gov"):
     gov/nongov: Green >=95%, Amber >=90%, Red <90%.
     consumer/amplia: Green >=80%, Amber >=75%, Red <75%."""
     if pct is None:
-        return "#4488ff"
+        return "#1D4ED8"
     if group in ("consumer", "amplia"):
-        if pct >= 80: return "#00e676"
-        if pct >= 75: return "#f59e0b"
-        return "#ef4444"
+        if pct >= 80: return "#00875A"
+        if pct >= 75: return "#B45309"
+        return "#B91C1C"
     else:
-        if pct >= 95: return "#00e676"
-        if pct >= 90: return "#f59e0b"
-        return "#ef4444"
+        if pct >= 95: return "#00875A"
+        if pct >= 90: return "#B45309"
+        return "#B91C1C"
 
 # ── AR aging ──────────────────────────────────────────────────────────────────
 AR_BUCKETS = [
-    ("0–30d",   "0_30",   "#00e676"),
-    ("30–60d",  "31_60",  "#4488ff"),
-    ("60–90d",  "61_90",  "#FFD700"),
-    ("90–360d", "90_360", "#FF8844"),
-    ("360+d",   "360p",   "#ef4444"),
+    ("0–30d",   "0_30",   "#00875A"),
+    ("30–60d",  "31_60",  "#1D4ED8"),
+    ("60–90d",  "61_90",  "#A16207"),
+    ("90–360d", "90_360", "#C2410C"),
+    ("360+d",   "360p",   "#B91C1C"),
 ]
 if ar:
     gov, non_gov, total = ar["gov"], ar["non_gov"], ar["total"]
@@ -143,7 +143,7 @@ def _pill_row(label, d):
         show_lbl = pv > 2 or (key == "360p" and capped)
         lbl = (
             f'<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);'
-            f'font-size:1.35rem;font-weight:700;color:rgba(0,0,0,0.85);white-space:nowrap">'
+            f'font-size:1.35rem;font-weight:700;color:rgba(255,255,255,0.90);white-space:nowrap">'
             f'{pa:.0f}%</span>'
         ) if show_lbl else ""
 
@@ -154,10 +154,10 @@ def _pill_row(label, d):
                 f'<div style="position:absolute;left:0;top:0;bottom:0;width:22px;'
                 f'background:repeating-linear-gradient(-55deg,'
                 f'rgba(0,0,0,0) 0px,rgba(0,0,0,0) 3px,'
-                f'rgba(22,27,34,0.82) 3px,rgba(22,27,34,0.82) 5px);'
+                f'rgba(246,248,250,0.92) 3px,rgba(246,248,250,0.92) 5px);'
                 f'z-index:1;pointer-events:none"></div>'
                 f'<span style="position:absolute;left:3px;top:50%;transform:translateY(-50%);'
-                f'font-size:0.55rem;font-weight:900;color:rgba(255,255,255,0.78);'
+                f'font-size:0.55rem;font-weight:900;color:rgba(31,35,40,0.82);'
                 f'letter-spacing:-2px;z-index:2">//</span>'
             )
 
@@ -172,8 +172,8 @@ def _pill_row(label, d):
     return (
         f'<div style="margin-bottom:8px">'
         f'<div style="display:flex;justify-content:space-between;margin-bottom:4px">'
-        f'<span style="font-size:1.4rem;color:white;font-weight:600">{label}</span>'
-        f'<span style="font-size:1.4rem;color:#aaaacc;font-weight:700">{d["total"]:,.1f}</span>'
+        f'<span style="font-size:1.4rem;color:#1F2328;font-weight:600">{label}</span>'
+        f'<span style="font-size:1.4rem;color:#3B4351;font-weight:700">{d["total"]:,.1f}</span>'
         f'</div>'
         f'<div style="display:flex;gap:2px;height:38px;width:{pct_w:.1f}%">{"".join(parts)}</div>'
         f'</div>'
@@ -182,30 +182,30 @@ def _pill_row(label, d):
 ar_legend = "".join(
     f'<div style="display:flex;align-items:center;gap:5px">'
     f'<span style="width:10px;height:10px;border-radius:2px;background:{c};display:inline-block"></span>'
-    f'<span style="font-size:1.35rem;color:#8899aa;white-space:nowrap">{bl}</span></div>'
+    f'<span style="font-size:1.35rem;color:#5B6675;white-space:nowrap">{bl}</span></div>'
     for bl, _, c in AR_BUCKETS
 )
 
 # ── Derived display values ────────────────────────────────────────────────────
-cash_dc   = "#00e676" if cash_delta >= 0 else "#ef4444"
-debt_dc   = "#ef4444" if debt_delta >= 0 else "#00e676"
-fcf_color = "#00e676" if fcf_month  >= 0 else "#ef4444"
+cash_dc   = "#00875A" if cash_delta >= 0 else "#B91C1C"
+debt_dc   = "#B91C1C" if debt_delta >= 0 else "#00875A"
+fcf_color = "#00875A" if fcf_month  >= 0 else "#B91C1C"
 
 capex_over    = capex_act > capex_plan
-cap_bar_color = "linear-gradient(90deg,#ef4444,#ff6b6b)" if capex_over else "linear-gradient(90deg,#1d4ed8,#4a9eff)"
-cap_pct_color = "#ef4444" if capex_over else "#4a9eff"
-cap_rem_color = "#ef4444" if capex_remaining < 0 else "#6688aa"
+cap_bar_color = "linear-gradient(90deg,#B91C1C,#C53030)" if capex_over else "linear-gradient(90deg,#1D4ED8,#0B6BCB)"
+cap_pct_color = "#B91C1C" if capex_over else "#0B6BCB"
+cap_rem_color = "#B91C1C" if capex_remaining < 0 else "#5B6675"
 cap_rem_label = "over budget" if capex_remaining < 0 else "remaining"
 cap_rem_sign  = "+" if capex_remaining < 0 else ""
 
 # ── KPI row ───────────────────────────────────────────────────────────────────
 def _kpi(label, value, sub, color):
     return (
-        f'<div style="flex:1;background:#161B22;padding:12px 16px;border:1px solid #21262d;'
+        f'<div style="flex:1;background:#F6F8FA;padding:12px 16px;border:1px solid #D0D7DE;'
         f'border-left:3px solid {color};border-radius:10px">'
-        f'<div style="font-size:1.35rem;font-weight:700;color:#556677;text-transform:uppercase;'
+        f'<div style="font-size:1.35rem;font-weight:700;color:#7A8494;text-transform:uppercase;'
         f'letter-spacing:1.2px;margin-bottom:8px">{label}</div>'
-        f'<div style="font-size:3.0rem;font-weight:800;color:white;line-height:1">{value}</div>'
+        f'<div style="font-size:3.0rem;font-weight:800;color:#1F2328;line-height:1">{value}</div>'
         f'<div style="font-size:1.35rem;color:{color};font-weight:600;margin-top:6px">{sub}</div>'
         f'</div>'
     )
@@ -220,19 +220,19 @@ with c_chart:
 
     fig = go.Figure(go.Scatter(
         x=cc["Month"], y=y, mode="lines+markers",
-        line=dict(color="#00e676", width=2.5),
-        marker=dict(size=6, color="#00e676"),
-        fill="tozeroy", fillcolor="rgba(0,230,118,0.07)",
+        line=dict(color="#00875A", width=2.5),
+        marker=dict(size=6, color="#00875A"),
+        fill="tozeroy", fillcolor="rgba(0,135,90,0.08)",
         showlegend=False,
         hovertemplate="%{x}: %{y:,.0f}<extra></extra>",
     ))
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"), height=310, showlegend=False,
+        font=dict(color="#1F2328"), height=310, showlegend=False,
         margin=dict(l=8, r=8, t=32, b=8),
-        title=dict(text="<b>Cash Balance Trend</b>", font=dict(size=22, color="white"), x=0),
-        xaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=18), showline=False),
-        yaxis=dict(gridcolor="#21262d", tickfont=dict(color="#556677", size=18),
+        title=dict(text="<b>Cash Balance Trend</b>", font=dict(size=22, color="#1F2328"), x=0),
+        xaxis=dict(gridcolor="#D0D7DE", tickfont=dict(color="#7A8494", size=18), showline=False),
+        yaxis=dict(gridcolor="#D0D7DE", tickfont=dict(color="#7A8494", size=18),
                    range=[y_min - pad, y_max + pad], zeroline=False),
     )
     st.plotly_chart(fig, use_container_width=True)
@@ -249,14 +249,14 @@ with c_chart:
 with c_ar:
     # AR Aging
     st.markdown(f"""
-<div style="background:#161B22;border-radius:8px;padding:12px 18px;
-            border:1px solid #21262d;margin-top:8px">
-  <div style="font-size:1.35rem;font-weight:700;color:#00e676;text-transform:uppercase;
+<div style="background:#F6F8FA;border-radius:8px;padding:12px 18px;
+            border:1px solid #D0D7DE;margin-top:8px">
+  <div style="font-size:1.35rem;font-weight:700;color:#00875A;text-transform:uppercase;
               letter-spacing:2px;margin-bottom:8px">AR Aging</div>
-  <div style="font-size:1.4rem;color:#556677;margin-bottom:12px">
-    Total <strong style="color:#aaaacc">{AR_TOTAL:,.1f}</strong>
-    &nbsp;·&nbsp; Gov <strong style="color:#aaaacc">{gov['total']:,.1f}</strong>
-    &nbsp;·&nbsp; Non-Gov <strong style="color:#aaaacc">{non_gov['total']:,.1f}</strong>
+  <div style="font-size:1.4rem;color:#7A8494;margin-bottom:12px">
+    Total <strong style="color:#3B4351">{AR_TOTAL:,.1f}</strong>
+    &nbsp;·&nbsp; Gov <strong style="color:#3B4351">{gov['total']:,.1f}</strong>
+    &nbsp;·&nbsp; Non-Gov <strong style="color:#3B4351">{non_gov['total']:,.1f}</strong>
   </div>
   {_pill_row("Government", gov)}
   {_pill_row("Non-Government", non_gov)}
@@ -269,11 +269,11 @@ with c_ar:
         if pct_val is not None:
             main = f'<div style="font-size:3.0rem;font-weight:800;color:{color};line-height:1">{pct_val:.1f}%</div>'
         elif coll_val is not None:
-            main = '<div style="font-size:1.4rem;font-weight:600;color:#556677;margin-top:4px">Billings pending</div>'
+            main = '<div style="font-size:1.4rem;font-weight:600;color:#7A8494;margin-top:4px">Billings pending</div>'
         else:
-            main = '<div style="font-size:1.4rem;font-weight:600;color:#3a4455;line-height:1.3">Data pending</div>'
+            main = '<div style="font-size:1.4rem;font-weight:600;color:#D0D7DE;line-height:1.3">Data pending</div>'
         return (
-            f'<div style="flex:1;background:#161B22;border:1px solid #21262d;'
+            f'<div style="flex:1;background:#F6F8FA;border:1px solid #D0D7DE;'
             f'border-top:2px solid {accent};border-radius:8px;padding:14px 16px">'
             f'<div style="font-size:1.35rem;font-weight:700;color:{accent};text-transform:uppercase;'
             f'letter-spacing:1px;margin-bottom:8px">{label}</div>'
@@ -281,45 +281,45 @@ with c_ar:
         )
 
     st.markdown(
-        f'<div style="font-size:1.35rem;font-weight:700;color:#556677;text-transform:uppercase;'
+        f'<div style="font-size:1.35rem;font-weight:700;color:#7A8494;text-transform:uppercase;'
         f'letter-spacing:1.5px;margin-top:10px;margin-bottom:8px">'
         f'Collections — {latest_month}</div>'
         f'<div style="display:flex;gap:8px;margin-bottom:8px">'
-        f'{_coll_box("Government",     govt_coll,     govt_pct,     "#4488ff", "gov")}'
-        f'{_coll_box("Non-Government", nongov_coll,   nongov_pct,   "#a78bfa", "nongov")}'
+        f'{_coll_box("Government",     govt_coll,     govt_pct,     "#1D4ED8", "gov")}'
+        f'{_coll_box("Non-Government", nongov_coll,   nongov_pct,   "#6D28D9", "nongov")}'
         f'</div>'
         f'<div style="display:flex;gap:8px">'
-        f'{_coll_box("Consumer Sales", consumer_coll, consumer_pct, "#00e676", "consumer")}'
-        f'{_coll_box("Amplia",         amplia_coll,   amplia_pct,   "#FF8844", "amplia")}'
+        f'{_coll_box("Consumer Sales", consumer_coll, consumer_pct, "#00875A", "consumer")}'
+        f'{_coll_box("Amplia",         amplia_coll,   amplia_pct,   "#C2410C", "amplia")}'
         f'</div>',
         unsafe_allow_html=True,
     )
 
     # CAPEX
     st.markdown(f"""
-<div style="background:#161B22;border-radius:8px;padding:12px 18px;
-            border:1px solid #21262d;margin-top:10px">
-  <div style="font-size:1.35rem;font-weight:700;color:#00e676;text-transform:uppercase;
+<div style="background:#F6F8FA;border-radius:8px;padding:12px 18px;
+            border:1px solid #D0D7DE;margin-top:10px">
+  <div style="font-size:1.35rem;font-weight:700;color:#00875A;text-transform:uppercase;
               letter-spacing:2px;margin-bottom:12px">CAPEX Spend to Date</div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-    <span style="color:#aaaacc;font-size:20px">YTD vs Annual Budget</span>
+    <span style="color:#3B4351;font-size:20px">YTD vs Annual Budget</span>
     <span style="color:{cap_pct_color};font-weight:800;font-size:44px">{capex_progress:.1f}%</span>
   </div>
-  <div style="background:#1e1e3a;border-radius:6px;height:16px;overflow:hidden;margin-bottom:16px">
+  <div style="background:#E6EAF0;border-radius:6px;height:16px;overflow:hidden;margin-bottom:16px">
     <div style="background:{cap_bar_color};width:{capex_progress:.1f}%;height:100%;border-radius:6px"></div>
   </div>
   <div style="display:flex;justify-content:space-between">
     <div>
       <div style="color:{cap_pct_color};font-size:27px;font-weight:700">{capex_act:,.0f}</div>
-      <div style="color:#6688aa;font-size:20px;margin-top:4px">spent YTD</div>
+      <div style="color:#5B6675;font-size:20px;margin-top:4px">spent YTD</div>
     </div>
     <div style="text-align:center">
       <div style="color:{cap_rem_color};font-size:27px;font-weight:700">{cap_rem_sign}{abs(capex_remaining):,.0f}</div>
-      <div style="color:#6688aa;font-size:20px;margin-top:4px">{cap_rem_label}</div>
+      <div style="color:#5B6675;font-size:20px;margin-top:4px">{cap_rem_label}</div>
     </div>
     <div style="text-align:right">
-      <div style="color:#aaaacc;font-size:27px;font-weight:700">{capex_plan:,.0f}</div>
-      <div style="color:#6688aa;font-size:20px;margin-top:4px">annual budget</div>
+      <div style="color:#3B4351;font-size:27px;font-weight:700">{capex_plan:,.0f}</div>
+      <div style="color:#5B6675;font-size:20px;margin-top:4px">annual budget</div>
     </div>
   </div>
 </div>""", unsafe_allow_html=True)

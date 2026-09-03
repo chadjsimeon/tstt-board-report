@@ -33,7 +33,12 @@ fin = fin.merge(pnl[["Month", "Gross_Profit", "Gross_Profit_AOP", "Gross_Profit_
                      "Total_OPEX", "Total_OPEX_AOP"]],
                 on="Month", how="left")
 
-# EBITDA = Gross Profit − OPEX (override booked EBITDA so OPEX data drives the figure)
+# EBITDA = Gross Profit − OPEX (override booked EBITDA so OPEX data drives the figure).
+# The booked P&L_Segments EBITDA column is only filled in for AMPLIA and OTHER, and
+# only in a handful of months — CONSUMER SALES, BUSINESS SALES and DPDI have never
+# carried a value. Summing it yields part-company figures (e.g. May-26 = Amplia alone,
+# 13.1M against 171.3M revenue), and the blank prior-year months suppress the "vs PY"
+# row on the KPI card. Switch to the booked column once every segment is populated.
 fin["EBITDA"]     = fin["Gross_Profit"]     - fin["Total_OPEX"]
 fin["EBITDA_AOP"] = fin["Gross_Profit_AOP"] - fin["Total_OPEX_AOP"]
 fin["EBITDA_Margin_AOP"] = (fin["EBITDA_AOP"] / fin["Revenue_AOP"] * 100)
@@ -51,12 +56,12 @@ latest  = fin.iloc[-1]
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 REV_COLOR = "#0101D3"
-GP_COLOR  = "#FF8844"
-EBI_COLOR = "#4a9eff"
-PAT_COLOR = "#aa44ff"
-CARD_BG   = "#161B22"
-MUTED     = "#8888aa"
-GRID      = "#1e2a3a"
+GP_COLOR  = "#C2410C"
+EBI_COLOR = "#0B6BCB"
+PAT_COLOR = "#7C2BD9"
+CARD_BG   = "#F6F8FA"
+MUTED     = "#5B6675"
+GRID      = "#EEF3FA"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -121,9 +126,9 @@ def kpi_card(label, col, aop_col, ly_col, color, is_margin=False):
 
     return f"""
 <div style="background:{CARD_BG};border-radius:12px;padding:20px 14px;
-            border:1px solid rgba(74,158,255,0.08);border-top:3px solid {color};height:100%;min-height:300px;">
+            border:1px solid rgba(11,107,203,0.08);border-top:3px solid {color};height:100%;min-height:300px;">
     <div style="color:{MUTED};font-size:20px;font-weight:500;margin-bottom:4px;">{label}</div>
-    <div style="color:white;font-size:64px;font-weight:800;line-height:1;margin:4px 0 12px 0;">{val_str}</div>
+    <div style="color:#1F2328;font-size:64px;font-weight:800;line-height:1;margin:4px 0 12px 0;">{val_str}</div>
     <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px;">{variances_html}</div>
     {sparkline}
 </div>"""
@@ -150,12 +155,12 @@ def driver_block(label, color, col, aop_col, ly_col, is_margin=False, last_entry
         ly_str = f"{ly:.1f}%" if is_margin else f"{ly:,.0f}"
         line2 = f"{'↑' if d >= 0 else '↓'} {abs(d):.1f}{unit} vs prior year ({ly_str})"
 
-    divider = "" if last_entry else "border-bottom:1px solid #1e3050;"
+    divider = "" if last_entry else "border-bottom:1px solid #EEF3FA;"
     return f"""
 <div style="margin-bottom:18px;padding-bottom:16px;{divider}">
     <div style="font-size:27px;font-weight:700;color:{color};margin-bottom:6px;">{label}</div>
-    <div style="color:#c0c8d8;font-size:27px;line-height:1.6;">{line1}</div>
-    {"<div style='color:#8888aa;font-size:13px;line-height:1.6;'>" + line2 + "</div>" if line2 else ""}
+    <div style="color:#3B4351;font-size:27px;line-height:1.6;">{line1}</div>
+    {"<div style='color:#5B6675;font-size:13px;line-height:1.6;'>" + line2 + "</div>" if line2 else ""}
 </div>"""
 
 
@@ -182,29 +187,29 @@ with chart_col:
         x=last12["Month"], y=last12["Revenue"],
         mode="lines", name="Revenue",
         line=dict(color=REV_COLOR, width=2.5),
-        fill="tozeroy", fillcolor="rgba(0,212,160,0.07)",
+        fill="tozeroy", fillcolor="rgba(0,135,122,0.08)",
     ))
     fig.add_trace(go.Scatter(
         x=last12["Month"], y=last12["Gross_Profit"],
         mode="lines", name="Gross Profit",
         line=dict(color=GP_COLOR, width=2),
-        fill="tozeroy", fillcolor="rgba(255,136,68,0.07)",
+        fill="tozeroy", fillcolor="rgba(194,65,12,0.08)",
     ))
     fig.add_trace(go.Scatter(
         x=last12["Month"], y=last12["EBITDA"],
         mode="lines", name="EBITDA",
         line=dict(color=EBI_COLOR, width=2.5),
-        fill="tozeroy", fillcolor="rgba(74,158,255,0.07)",
+        fill="tozeroy", fillcolor="rgba(11,107,203,0.07)",
     ))
     fig.update_layout(
         height=380,
         paper_bgcolor=CARD_BG, plot_bgcolor=CARD_BG,
-        font=dict(color="white"),
+        font=dict(color="#1F2328"),
         title=dict(text="<b>Revenue, Gross Profit & EBITDA — 13-Month Trend</b>",
-                   font=dict(size=24, color="white"), x=0),
+                   font=dict(size=24, color="#1F2328"), x=0),
         xaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=13), showline=False, tickangle=-30),
         yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=13), showline=False, zeroline=False),
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="white"),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#1F2328"),
                     orientation="h", y=1.02, x=1, xanchor="right"),
         margin=dict(l=10, r=10, t=44, b=30),
     )

@@ -53,7 +53,7 @@ def _pct(cur, ref):
 
 
 # ── KPI tiles ────────────────────────────────────────────────────────────────
-GREEN, RED, GREY, BLUE = "#22c55e", "#ef4444", "#7788aa", "#4a9eff"
+GREEN, RED, GREY, BLUE = "#15803D", "#B91C1C", "#5B6675", "#0B6BCB"
 
 
 def _var_line(delta, pct, tag):
@@ -104,16 +104,16 @@ _score_rows = [
 ]
 _score_html = "".join(
     f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
-    f'border-bottom:1px solid #1e2a4a;">'
-    f'<span style="font-size:29px;color:#7788aa">{lbl}</span>'
+    f'border-bottom:1px solid #EEF3FA;">'
+    f'<span style="font-size:29px;color:#5B6675">{lbl}</span>'
     f'<span style="font-size:29px;font-weight:700;color:{col}">{val}</span>'
     f'</div>'
     for lbl, val, col in _score_rows
 )
 c_score = (
-    f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
-    f'border:1px solid #2a2a4a;border-top:3px solid {BLUE};height:100%">'
-    f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+    f'<div style="background:#F6F8FA;border-radius:10px;padding:16px 16px;'
+    f'border:1px solid #D0D7DE;border-top:3px solid {BLUE};height:100%">'
+    f'<div style="font-size:28px;color:#5B6675;font-weight:700;text-transform:uppercase;'
     f'letter-spacing:1.5px;margin-bottom:10px">Porting Scorecard — {latest["Month"]}</div>'
     f'{_score_html}'
     f'</div>'
@@ -153,15 +153,15 @@ with cr:
     fig.add_trace(go.Scatter(
         x=pt["Month"], y=pt["Ratio"], mode="lines+markers+text",
         name="In:Out ratio",
-        line=dict(color="#44EEFF", width=3),
-        marker=dict(size=9, color=_ratio_marker,
-                    line=dict(color="#0d1117", width=1)),
+        line=dict(color="#0E7490", width=3),
+        marker=dict(size=15, color=_ratio_marker,
+                    line=dict(color="#FFFFFF", width=1)),
         text=[f"{r:.2f}×" if r == r else "" for r in pt["Ratio"]],
-        textposition="top center", textfont=dict(color="#aabbcc", size=12),
+        textposition="top center", textfont=dict(color="#3B4351", size=15),
     ))
     fig.add_hline(
-        y=1.0, line_dash="dot", line_color="rgba(255,255,255,0.4)",
-        annotation_text="1.0× break-even", annotation_font_color="#7788aa",
+        y=1.0, line_dash="dot", line_color="rgba(31,35,40,0.48)",
+        annotation_text="1.0× break-even", annotation_font_color="#5B6675",
         annotation_position="bottom right",
     )
     _base_layout(fig, "Port-In : Port-Out Ratio", 400)

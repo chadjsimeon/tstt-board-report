@@ -17,17 +17,17 @@ fin  = data["Financial_Monthly"].copy()
 fin = filter_data_to_month(fin)
 
 # ── Colors ────────────────────────────────────────────────────────────────────
-EBI_COLOR = "#4a9eff"
-CARD_BG   = "#1a2234"
-MUTED     = "#8888aa"
-GRID      = "#1e2a3a"
+EBI_COLOR = "#0B6BCB"
+CARD_BG   = "#EEF3FA"
+MUTED     = "#5B6675"
+GRID      = "#EEF3FA"
 
 SEG_COLORS = {
-    "Consumer": "#22C55E",
-    "Business": "#60A5FA",
-    "AMPLIA":   "#A78BFA",
-    "DPDI":     "#FB923C",
-    "Other":    "#6B7280",
+    "Consumer": "#15803D",
+    "Business": "#2563EB",
+    "AMPLIA":   "#6D28D9",
+    "DPDI":     "#C2410C",
+    "Other":    "#5B6675",
 }
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -149,13 +149,13 @@ fig_bar.update_layout(
     barmode="stack",
     height=420,
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="white"),
+    font=dict(color="#1F2328"),
     title=dict(text="<b>Revenue by Segment</b>",
-               font=dict(size=16, color="white"), x=0),
-    xaxis=dict(gridcolor=GRID, tickfont=dict(color="white", size=16)),
+               font=dict(size=16, color="#1F2328"), x=0),
+    xaxis=dict(gridcolor=GRID, tickfont=dict(color="#1F2328", size=16)),
     yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=15),
                tickprefix="$", zeroline=False),
-    legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="white", size=15),
+    legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#1F2328", size=15),
                 orientation="h", x=0, y=-0.14),
     margin=dict(l=10, r=10, t=44, b=80),
 )
@@ -171,22 +171,22 @@ with donut_col:
 
     fig_donut = go.Figure(go.Pie(
         labels=d_names, values=d_vals, hole=0.55,
-        marker=dict(colors=d_colors, line=dict(color="#0d1117", width=2)),
+        marker=dict(colors=d_colors, line=dict(color="#FFFFFF", width=2)),
         textinfo="label+percent",
-        textfont=dict(color="white", size=14),
+        textfont=dict(color="#1F2328", size=14),
         hovertemplate="<b>%{label}</b>: %{value:,.1f} (%{percent})<extra></extra>",
         title=dict(
             text=f"<b>Total<br>{ytd_tot:,.0f}</b>",
-            font=dict(size=16, color="white"),
+            font=dict(size=16, color="#1F2328"),
             position="middle center",
         ),
     ))
     fig_donut.update_layout(
         height=380,
         paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"),
+        font=dict(color="#1F2328"),
         title=dict(text=f"<b>{_ytd_lbl} Revenue Mix</b>",
-                   font=dict(size=16, color="white"), x=0),
+                   font=dict(size=16, color="#1F2328"), x=0),
         showlegend=False,
         margin=dict(l=10, r=10, t=44, b=10),
     )
@@ -205,20 +205,20 @@ with wf_col:
         x=wf_x, y=wf_y, measure=wf_m,
         text=wf_text,
         textposition="outside",
-        textfont=dict(color="white", size=14),
-        increasing=dict(marker=dict(color="#00d4a0")),
-        decreasing=dict(marker=dict(color="#FF4444")),
+        textfont=dict(color="#1F2328", size=14),
+        increasing=dict(marker=dict(color="#00786C")),
+        decreasing=dict(marker=dict(color="#B91C1C")),
         totals=dict(marker=dict(color=EBI_COLOR)),
-        connector=dict(line=dict(color="rgba(255,255,255,0.15)", width=1, dash="dot")),
+        connector=dict(line=dict(color="rgba(31,35,40,0.15)", width=1, dash="dot")),
         hovertemplate="<b>%{x}</b>: %{y:,.1f}<extra></extra>",
     ))
     fig_wf.update_layout(
         height=380,
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"),
+        font=dict(color="#1F2328"),
         title=dict(text=f"<b>YoY Revenue Bridge — {_mon_lbl} vs {_ly_lbl}</b>",
-                   font=dict(size=16, color="white"), x=0),
-        xaxis=dict(gridcolor=GRID, tickfont=dict(color="white", size=14)),
+                   font=dict(size=16, color="#1F2328"), x=0),
+        xaxis=dict(gridcolor=GRID, tickfont=dict(color="#1F2328", size=14)),
         yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=14), zeroline=False),
         showlegend=False,
         margin=dict(l=10, r=10, t=44, b=30),
@@ -227,8 +227,8 @@ with wf_col:
 
 # ── Confidential Footer ───────────────────────────────────────────────────────
 st.markdown("""
-<div style="margin-top:24px;padding:12px 16px;border-top:1px solid #1e3050;
-            color:#445566;font-size:11px;text-align:center;">
+<div style="margin-top:24px;padding:12px 16px;border-top:1px solid #EEF3FA;
+            color:#7A8494;font-size:11px;text-align:center;">
     CONFIDENTIAL — This document is intended for board members only and should not be
     distributed without authorisation.
 </div>""", unsafe_allow_html=True)

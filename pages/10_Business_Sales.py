@@ -66,12 +66,14 @@ fp_t_py   = _col(biz_py_snap, "Revenue")
 fp_tv_pct = _vp(fp_t_rev, fp_t_aop)
 fp_tv_m   = fp_t_rev - fp_t_aop
 
-mob_rev = _col(biz_latest, "Mobile");  mob_aop = _col(biz_latest, "Mobile_AOP");  mob_py  = _col(biz_py_snap, "Mobile")
 dc_rev  = _col(biz_latest, "Direct_Costs") or 0.0
 dc_aop  = _col(biz_latest, "Direct_Costs_AOP")
 dc_py   = _col(biz_py_snap, "Direct_Costs")
 
-# MRR / USAGE / OCC sourced from Business_Sales_MRR sheet (no AOP)
+# MOBILE / MRR / USAGE / OCC sourced from Business_Sales_MRR sheet (AOP from Jun-26 onward).
+# Mobile deliberately comes from here rather than the MOBILE row of Business_Products —
+# the two agree to within ~0.03M on most months but diverge where the MRR sheet is the
+# maintained source (e.g. Jul-26: 10.15 here vs 9.91 in Business_Products).
 def _mrr_col(df, col):
     if df.empty or col not in df.columns: return None
     v = df[col].sum()
@@ -82,9 +84,15 @@ mrr_py_snap = biz_mrr[biz_mrr["Month"] == biz_py_mon] if not biz_mrr.empty else 
 mrr_rev = _mrr_col(mrr_sel, "MRR")
 usg_rev = _mrr_col(mrr_sel, "USAGE")
 occ_rev = _mrr_col(mrr_sel, "OCC")
+mrr_aop = _mrr_col(mrr_sel, "MRR_AOP")
+usg_aop = _mrr_col(mrr_sel, "USAGE_AOP")
+occ_aop = _mrr_col(mrr_sel, "OCC_AOP")
 mrr_py  = _mrr_col(mrr_py_snap, "MRR")
 usg_py  = _mrr_col(mrr_py_snap, "USAGE")
 occ_py  = _mrr_col(mrr_py_snap, "OCC")
+mob_rev = _mrr_col(mrr_sel, "Mobile")
+mob_aop = _mrr_col(mrr_sel, "Mobile_AOP")
+mob_py  = _mrr_col(mrr_py_snap, "Mobile")
 
 # Gross Profit = Revenue − Direct Costs, derived from the summed totals.
 # The per-row Gross_Profit/GP_AOP columns drift from Rev − COS when summed
@@ -110,12 +118,12 @@ def _trend(col, df=None):
     return src.groupby("Month", sort=False)[col].sum().reindex(months_ref).fillna(0).tolist()
 
 fp_total_trend = _trend("Revenue")
-mob_trend      = _trend("Mobile")
+mob_trend      = _trend("Mobile", biz_mrr) if not biz_mrr.empty else None
 mrr_trend      = _trend("MRR",   biz_mrr) if not biz_mrr.empty else None
 usg_trend      = _trend("USAGE", biz_mrr) if not biz_mrr.empty else None
 occ_trend      = _trend("OCC",   biz_mrr) if not biz_mrr.empty else None
 
-FP_ACCENTS = ["#00d4a0", "#4a9eff", "#a78bfa", "#f59e0b", "#ff6b6b"]
+FP_ACCENTS = ["#00786C", "#0B6BCB", "#6D28D9", "#B45309", "#C53030"]
 
 # ── Card builders ─────────────────────────────────────────────────────
 def _parse_pct(s):
@@ -130,37 +138,37 @@ def fp_r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series
     else:
         aop_html = (
             f'<span style="color:{col}">{aop_m_str}&nbsp;|&nbsp;{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP</span>'
-            if aop_pct is not None else '<span style="color:#445566">— vs AOP</span>'
+            if aop_pct is not None else '<span style="color:#7A8494">— vs AOP</span>'
         )
     _yoy_col = py_col if py_col else rev_var_rag(_parse_pct(yoy_str))
     yoy_html = (
         f'<span style="color:{_yoy_col};font-weight:700">{yoy_str}</span>'
-        if yoy_str else '<span style="color:#445566">— vs PY</span>'
+        if yoy_str else '<span style="color:#7A8494">— vs PY</span>'
     )
     spark_html = (
         f'<div style="margin-top:8px;opacity:0.85">{_sparkline(spark_series, accent)}</div>'
         if spark_series else '<div style="margin-top:8px;height:44px"></div>'
     )
     return (
-        f'<div style="background:#161B22;border-radius:10px;padding:7px 12px;'
-        f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
-        f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+        f'<div style="background:#F6F8FA;border-radius:10px;padding:7px 12px;'
+        f'border:1px solid #D0D7DE;border-top:3px solid {accent};height:100%">'
+        f'<div style="font-size:28px;color:#5B6675;font-weight:700;text-transform:uppercase;'
         f'letter-spacing:1.5px;margin-bottom:2px">{label}</div>'
-        f'<div style="font-size:62px;font-weight:800;color:white;margin-bottom:2px;'
+        f'<div style="font-size:62px;font-weight:800;color:#1F2328;margin-bottom:2px;'
         f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
         f'<div style="font-size:29px;font-weight:600;margin-bottom:0px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{aop_html}</div>'
         f'<div style="font-size:29px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{yoy_html}</div>'
         f'{spark_html}</div>'
     )
 
-def fp_r2_card(label, val_str, aop_str, aop_col, py_str, accent="#4a9eff", py_col=None):
+def fp_r2_card(label, val_str, aop_str, aop_col, py_str, accent="#0B6BCB", py_col=None):
     _py_col = py_col if py_col else rev_var_rag(_parse_pct(py_str))
     return (
-        f'<div style="background:#161B22;border-radius:10px;padding:7px 12px;'
-        f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
-        f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+        f'<div style="background:#F6F8FA;border-radius:10px;padding:7px 12px;'
+        f'border:1px solid #D0D7DE;border-top:3px solid {accent};height:100%">'
+        f'<div style="font-size:28px;color:#5B6675;font-weight:700;text-transform:uppercase;'
         f'letter-spacing:1.5px;margin-bottom:2px">{label}</div>'
-        f'<div style="font-size:62px;font-weight:800;color:white;margin-bottom:2px;'
+        f'<div style="font-size:62px;font-weight:800;color:#1F2328;margin-bottom:2px;'
         f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
         f'<div style="font-size:29px;color:{aop_col};font-weight:600;margin-bottom:0px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{aop_str}</div>'
         f'<div style="font-size:29px;color:{_py_col};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{py_str}</div>'
@@ -168,15 +176,16 @@ def fp_r2_card(label, val_str, aop_str, aop_col, py_str, accent="#4a9eff", py_co
     )
 
 # ── Pre-compute strings ────────────────────────────────────────────────
-dc_vp = _vp(dc_rev, dc_aop)
-dc_vm = _vm(dc_rev, dc_aop)
-dc_aop_color = rev_var_rag(-(dc_vp or 0))
+# Direct Costs use the cost convention: variance = AOP/PY − Actual (underspend positive)
+dc_vp = (dc_aop - dc_rev) / abs(dc_aop) * 100 if dc_aop else None
+dc_vm = dc_aop - dc_rev if dc_aop is not None else None
+dc_aop_color = rev_var_rag(dc_vp or 0)
 dc_aop_str   = f"{dc_vm:+.1f} | {dc_vp:+.1f}% vs AOP" if dc_vp is not None else "— vs AOP"
-_dc_py_delta = dc_rev - dc_py if dc_py is not None else None
+_dc_py_delta = dc_py - dc_rev if dc_py is not None else None
 _dc_py_pct   = _dc_py_delta / abs(dc_py) * 100 if (_dc_py_delta is not None and dc_py) else None
 dc_py_str    = (f"{_dc_py_delta:+.1f} | {_dc_py_pct:+.1f}% vs PY"
                if _dc_py_pct is not None else "— vs PY")
-dc_py_col    = rev_var_rag(-_dc_py_pct) if _dc_py_pct is not None else "#7788aa"
+dc_py_col    = rev_var_rag(_dc_py_pct) if _dc_py_pct is not None else "#5B6675"
 
 gp_vp = _vp(gp_rev, gp_aop_v)
 gp_vm = _vm(gp_rev, gp_aop_v)
@@ -194,7 +203,7 @@ if s_vp is not None:
     subs_aop_str = f"{(s_vm)/1000:+,.1f} | {s_vp:+.1f}% vs AOP"
     subs_aop_col = rev_var_rag(s_vp)
 else:
-    subs_aop_str, subs_aop_col = "— vs AOP", "#445566"
+    subs_aop_str, subs_aop_col = "— vs AOP", "#7A8494"
 s_py_pct = _vp(mob_subs, subs_py) if (mob_subs and subs_py) else None
 subs_py_str = f"{(int(mob_subs) - int(subs_py))/1000:+,.1f} | {s_py_pct:+.1f}% vs PY" if s_py_pct is not None else "— vs PY"
 
@@ -207,19 +216,17 @@ arpu_aop_str = (f"{arpu_val - arpu_aop:+,.0f} | {arpu_aop_pct:+.1f}% vs AOP"
                 if arpu_aop_pct is not None else "— vs AOP")
 arpu_aop_col = rev_var_rag(arpu_aop_pct)
 
-def _r1_col_card(col_name, label, accent, trend):
-    rv  = _col(biz_latest, col_name)
-    aop = _col(biz_latest, f"{col_name}_AOP")
-    py  = _col(biz_py_snap, col_name)
+def _mrr_card(label, rv, aop, py, accent, trend, py_col=None):
     rv_f = rv if rv is not None else 0.0
-    vp = _vp(rv_f, aop); vm = _vm(rv_f, aop)
+    vp = _vp(rv_f, aop)
+    vm = _vm(rv_f, aop)
     return fp_r1_card(
         label,
         f"{rv_f:.1f}" if rv is not None else "—",
         vp,
         f"{vm:+.1f}" if vm is not None else "—",
         (f"{rv_f - py:+.1f} | {(rv_f - py)/py*100:+.1f}% vs PY" if py else None),
-        accent, spark_series=trend,
+        accent, spark_series=trend, hide_aop=aop is None, py_col=py_col,
     )
 
 # ── Layout ────────────────────────────────────────────────────────────
@@ -239,15 +246,15 @@ with left_area:
         ), unsafe_allow_html=True)
         st.markdown(_sp, unsafe_allow_html=True)
         st.markdown(fp_r2_card("Direct Costs", f"{dc_rev:.1f}",
-                               dc_aop_str, dc_aop_color, dc_py_str, accent="#ff6b6b", py_col=dc_py_col),
+                               dc_aop_str, dc_aop_color, dc_py_str, accent="#C53030", py_col=dc_py_col),
                     unsafe_allow_html=True)
         st.markdown(_sp, unsafe_allow_html=True)
         st.markdown(fp_r2_card("Gross Profit", f"{gp_rev:.1f}",
-                               gp_aop_str, gp_aop_color, gp_py_str, accent="#22c55e"),
+                               gp_aop_str, gp_aop_color, gp_py_str, accent="#15803D"),
                     unsafe_allow_html=True)
 
     with c2:
-        st.markdown(_r1_col_card("Mobile", "Mobile", FP_ACCENTS[1], mob_trend),
+        st.markdown(_mrr_card("Mobile", mob_rev, mob_aop, mob_py, FP_ACCENTS[1], mob_trend),
                     unsafe_allow_html=True)
         st.markdown(_sp, unsafe_allow_html=True)
         st.markdown(fp_r2_card("Mobile Subs", subs_str,
@@ -261,22 +268,12 @@ with left_area:
 with right_area:
     c3, c4, c5 = st.columns(3)
 
-    def _mrr_card(label, rv, py, accent, trend, py_col=None):
-        rv_f = rv if rv is not None else 0.0
-        return fp_r1_card(
-            label,
-            f"{rv_f:.1f}" if rv is not None else "—",
-            None, "—",
-            (f"{rv_f - py:+.1f} | {(rv_f - py)/py*100:+.1f}% vs PY" if py else None),
-            accent, spark_series=trend, hide_aop=True, py_col=py_col,
-        )
-
     with c3:
-        st.markdown(_mrr_card("MRR",   mrr_rev, mrr_py, FP_ACCENTS[2], mrr_trend), unsafe_allow_html=True)
+        st.markdown(_mrr_card("MRR",   mrr_rev, mrr_aop, mrr_py, FP_ACCENTS[2], mrr_trend), unsafe_allow_html=True)
     with c4:
-        st.markdown(_mrr_card("USAGE", usg_rev, usg_py, FP_ACCENTS[3], usg_trend), unsafe_allow_html=True)
+        st.markdown(_mrr_card("USAGE", usg_rev, usg_aop, usg_py, FP_ACCENTS[3], usg_trend), unsafe_allow_html=True)
     with c5:
-        st.markdown(_mrr_card("OCC", occ_rev, occ_py, FP_ACCENTS[4], occ_trend), unsafe_allow_html=True)
+        st.markdown(_mrr_card("OCC", occ_rev, occ_aop, occ_py, FP_ACCENTS[4], occ_trend), unsafe_allow_html=True)
 
     st.markdown(_sp, unsafe_allow_html=True)
     _trend_months = (get_month_order(biz_mrr)[-13:] if not biz_mrr.empty else biz_months_all[-13:])
@@ -294,13 +291,13 @@ with right_area:
         ))
     fig_lines.update_layout(
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"), height=420,
+        font=dict(color="#1F2328"), height=420,
         title=dict(text="<b>MRR / OCC / USAGE Trend</b>",
-                   font=dict(size=30, color="white"), x=0),
+                   font=dict(size=30, color="#1F2328"), x=0),
         xaxis=dict(showgrid=False, tickfont=dict(size=15), tickangle=-30),
-        yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)",
+        yaxis=dict(showgrid=True, gridcolor="rgba(31,35,40,0.06)",
                    tickfont=dict(size=15), tickprefix="$"),
-        legend=dict(bgcolor="rgba(20,20,40,0.8)", font=dict(size=14, color="white"),
+        legend=dict(bgcolor="rgba(246,248,250,0.92)", font=dict(size=14, color="#1F2328"),
                     orientation="v", x=1.01, y=1, xanchor="left", yanchor="top"),
         margin=dict(l=10, r=100, t=44, b=10),
     )

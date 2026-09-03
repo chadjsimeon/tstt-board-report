@@ -117,13 +117,13 @@ pp_r_l1 = (f"{pp_aop_m:+.1f} | {pp_aop_pct:+.1f}% vs AOP"
 pp_py_pct   = pp_py_m / pp25_rev * 100 if (pp_py_m is not None and pp25_rev) else None
 pp_r_l2    = (f"{pp_py_m:+.1f} | {pp_py_pct:+.1f}% vs PY"
               if pp_py_pct is not None else "— vs PY")
-pp_r_py_col = rev_var_rag(pp_py_pct) if pp_py_pct is not None else "#7788aa"
+pp_r_py_col = rev_var_rag(pp_py_pct) if pp_py_pct is not None else "#5B6675"
 
 pp_a_l1_col = rev_var_rag(pp_arpu_aop_pct)
 pp_a_l1 = (f"${pp_arpu_lat - pp_arpu_aop:+.0f} | {pp_arpu_aop_pct:+.1f}% vs AOP"
            if pp_arpu_aop_pct is not None else "— vs AOP")
 pp_arpu_py_delta = pp_arpu_lat - pp_arpu_25 if pp_arpu_25 else None
-pp_a_l2_col = rev_var_rag(pp_arpu_py_pct) if pp_arpu_py_pct is not None else "#7788aa"
+pp_a_l2_col = rev_var_rag(pp_arpu_py_pct) if pp_arpu_py_pct is not None else "#5B6675"
 pp_a_l2 = (f"${pp_arpu_py_delta:+.0f} | {pp_arpu_py_pct:+.1f}% vs PY"
            if pp_arpu_py_pct is not None else "— vs PY")
 
@@ -131,36 +131,36 @@ _pp_s_l1_col = rev_var_rag(pp_subs_aop_pct)
 _pp_s_l1 = (f"{(pp_subs_close - pp_subs_aop)/1000:+.1f}K | {pp_subs_aop_pct:+.1f}% vs AOP"
             if pp_subs_aop_pct is not None else "— vs AOP")
 pp_subs_py_delta = (pp_subs_close - pp_subs_25) / 1000 if pp_subs_25 else None
-_pp_s_l2_col = rev_var_rag(pp_subs_py_pct) if pp_subs_py_pct is not None else "#7788aa"
+_pp_s_l2_col = rev_var_rag(pp_subs_py_pct) if pp_subs_py_pct is not None else "#5B6675"
 _pp_s_l2 = (f"{pp_subs_py_delta:+.1f}K | {pp_subs_py_pct:+.1f}% vs PY"
             if pp_subs_py_pct is not None else "— vs PY")
 
 _pp_c1     = _pre_kpi("Postpaid Revenue", f"{pp26_rev:.1f}",
-                       pp_r_l1, pp_r_aop_col, pp_r_l2, pp_r_py_col, "#4a9eff", pp_rev_spark)
+                       pp_r_l1, pp_r_aop_col, pp_r_l2, pp_r_py_col, "#0B6BCB", pp_rev_spark)
 _pp_c3     = _pre_kpi("ARPU (TT$ -/sub)", f"{pp_arpu_lat:.0f}",
-                       pp_a_l1, pp_a_l1_col, pp_a_l2, pp_a_l2_col, "#f59e0b", pp_arpu_spark)
+                       pp_a_l1, pp_a_l1_col, pp_a_l2, pp_a_l2_col, "#B45309", pp_arpu_spark)
 _pp_c_subs = _pre_kpi("Subscribers", _fmt_k(pp_subs_close),
-                       _pp_s_l1, _pp_s_l1_col, _pp_s_l2, _pp_s_l2_col, "#22c55e", pp_subs_spark)
+                       _pp_s_l1, _pp_s_l1_col, _pp_s_l2, _pp_s_l2_col, "#15803D", pp_subs_spark)
 
 _pp_churn_lbl  = f"Churn ({pp_churn_derived:.1f}%)"
 _pp_mov_rows   = [
-    ("Opening",     f"{pp_subs_open/1000:.1f}K",     "#aabbcc"),
-    ("Gross Adds",  f"+{pp_subs_gross_c/1000:.1f}K", "#22c55e"),
-    (_pp_churn_lbl, f"−{pp_subs_disc_c/1000:.1f}K",  "#ef4444"),
-    ("Closing",     f"{pp_subs_close/1000:.1f}K",    "white"),
+    ("Opening",     f"{pp_subs_open/1000:.1f}K",     "#3B4351"),
+    ("Gross Adds",  f"+{pp_subs_gross_c/1000:.1f}K", "#15803D"),
+    (_pp_churn_lbl, f"−{pp_subs_disc_c/1000:.1f}K",  "#B91C1C"),
+    ("Closing",     f"{pp_subs_close/1000:.1f}K",    "#1F2328"),
 ]
 _pp_mov_html = "".join(
     f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
-    f'border-bottom:1px solid #1e2a4a;">'
-    f'<span style="font-size:29px;color:#7788aa">{lbl}</span>'
+    f'border-bottom:1px solid #EEF3FA;">'
+    f'<span style="font-size:29px;color:#5B6675">{lbl}</span>'
     f'<span style="font-size:29px;font-weight:700;color:{col}">{val}</span>'
     f'</div>'
     for lbl, val, col in _pp_mov_rows
 )
 _pp_c2 = (
-    f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
-    f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
-    f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+    f'<div style="background:#F6F8FA;border-radius:10px;padding:16px 16px;'
+    f'border:1px solid #D0D7DE;border-top:3px solid #15803D;height:100%">'
+    f'<div style="font-size:28px;color:#5B6675;font-weight:700;text-transform:uppercase;'
     f'letter-spacing:1.5px;margin-bottom:10px">Subscriber Movements</div>'
     f'{_pp_mov_html}'
     f'</div>'
@@ -243,30 +243,30 @@ with ml:
     _pp_total = sum(pp_plan_vals)
     _pp_pcts  = [v / _pp_total * 100 if _pp_total else 0 for v in pp_plan_vals]
     _pp_lbls  = [f"{n}  {p:.1f}%" for n, p in zip(pp_plan_names, _pp_pcts)]
-    _pp_clrs  = ["#0101D3", "#1e40af", "#3b82f6", "#60a5fa", "#93c5fd", "#94a3b8", "#4b5563"]
+    _pp_clrs  = ["#0101D3", "#1E40AF", "#1D4ED8", "#2563EB", "#3B82F6", "#5B6675", "#3B4351"]
     _pp_dw    = 0.48
     fig = go.Figure(go.Pie(
         labels=_pp_lbls, values=pp_plan_vals, hole=0.48, sort=False,
         domain=dict(x=[0, _pp_dw]),
-        marker=dict(colors=_pp_clrs, line=dict(color="rgba(255,255,255,0.3)", width=2)),
+        marker=dict(colors=_pp_clrs, line=dict(color="#F6F8FA", width=2)),
         textinfo="none",
         customdata=pp_plan_names,
         hovertemplate="<b>%{customdata}</b><br>%{value:,.0f} subs (%{percent})<extra></extra>",
         title=dict(
             text=f"<b>{_pp_total/1_000:.1f}K</b>",
-            font=dict(size=32, color="white"),
+            font=dict(size=32, color="#1F2328"),
             position="middle center",
         ),
     ))
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"), height=427,
+        font=dict(color="#1F2328"), height=427,
         title=dict(
             text="<b>Subscribers by Active Plan</b>"
-                 + (" <span style='color:#f87171'> ⚠ no data</span>" if _pp_dummy else ""),
-            font=dict(size=32, color="white"), x=0,
+                 + (" <span style='color:#D14343'> ⚠ no data</span>" if _pp_dummy else ""),
+            font=dict(size=32, color="#1F2328"), x=0,
         ),
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=28, color="white"),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=28, color="#1F2328"),
                     x=_pp_dw + 0.04, y=0.5, xanchor="left", yanchor="middle"),
         margin=dict(l=10, r=10, t=44, b=6),
     )

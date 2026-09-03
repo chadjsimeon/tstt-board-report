@@ -43,13 +43,13 @@ last12  = amp_raw.tail(13).reset_index(drop=True)
 latest  = amp_raw.iloc[-1]
 
 # ── Colors ────────────────────────────────────────────────────────────────────
-REV_COLOR = "#00d4a0"
-GP_COLOR  = "#FF8844"
-EBI_COLOR = "#4a9eff"
-PAT_COLOR = "#aa44ff"
-CARD_BG   = "#161B22"
-MUTED     = "#8888aa"
-GRID      = "#1e2a3a"
+REV_COLOR = "#00786C"
+GP_COLOR  = "#C2410C"
+EBI_COLOR = "#0B6BCB"
+PAT_COLOR = "#7C2BD9"
+CARD_BG   = "#F6F8FA"
+MUTED     = "#5B6675"
+GRID      = "#EEF3FA"
 
 
 # ── Helpers — KPI card mirrors Consumer Sales r1_card (size/font/sparkline) ────
@@ -57,16 +57,16 @@ def kpi_card(label, col, aop_col, ly_col, color, is_margin=False):
     actual = latest[col] if col in latest.index else None
     if actual is None or pd.isna(actual):
         return (f'<div style="background:{CARD_BG};border-radius:10px;padding:7px 12px;'
-                f'border:1px solid #252545;border-top:3px solid {color};height:100%">—</div>')
+                f'border:1px solid #D0D7DE;border-top:3px solid {color};height:100%">—</div>')
 
     val_str = f"{actual:.1f}%" if is_margin else f"{actual:,.0f}"
 
     def _var_line(ref_col, tag):
         if not ref_col or ref_col not in latest.index:
-            return f'<div style="font-size:29px;color:#445566;font-weight:600">— vs {tag}</div>'
+            return f'<div style="font-size:29px;color:#7A8494;font-weight:600">— vs {tag}</div>'
         ref = latest[ref_col]
         if pd.isna(ref) or ref == 0:
-            return f'<div style="font-size:29px;color:#445566;font-weight:600">— vs {tag}</div>'
+            return f'<div style="font-size:29px;color:#7A8494;font-weight:600">— vs {tag}</div>'
         d_pct = (actual - ref) if is_margin else (actual - ref) / abs(ref) * 100
         clr   = rev_var_rag(d_pct)
         txt   = (f"{d_pct:+.1f}pp vs {tag}" if is_margin
@@ -84,10 +84,10 @@ def kpi_card(label, col, aop_col, ly_col, color, is_margin=False):
 
     return (
         f'<div style="background:{CARD_BG};border-radius:10px;padding:7px 12px;'
-        f'border:1px solid #252545;border-top:3px solid {color};height:100%">'
-        f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+        f'border:1px solid #D0D7DE;border-top:3px solid {color};height:100%">'
+        f'<div style="font-size:28px;color:#5B6675;font-weight:700;text-transform:uppercase;'
         f'letter-spacing:1.5px;margin-bottom:2px">{label}</div>'
-        f'<div style="font-size:62px;font-weight:800;color:white;margin-bottom:2px;'
+        f'<div style="font-size:62px;font-weight:800;color:#1F2328;margin-bottom:2px;'
         f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
         f'{aop_line}{py_line}{spark_html}'
         f'</div>'
@@ -117,12 +117,12 @@ def driver_block(label, color, col, aop_col, ly_col, is_margin=False, last_entry
             ly_str = f"{ly:.1f}%" if is_margin else f"{ly:,.0f}"
             line2 = f"{'↑' if d >= 0 else '↓'} {abs(d):.1f}{unit} vs prior year ({ly_str})"
 
-    divider = "" if last_entry else "border-bottom:1px solid #1e3050;"
+    divider = "" if last_entry else "border-bottom:1px solid #EEF3FA;"
     return f"""
 <div style="margin-bottom:18px;padding-bottom:16px;{divider}">
     <div style="font-size:14px;font-weight:700;color:{color};margin-bottom:6px;">{label}</div>
-    <div style="color:#c0c8d8;font-size:14px;line-height:1.6;">{line1}</div>
-    {"<div style='color:#8888aa;font-size:13px;line-height:1.6;'>" + line2 + "</div>" if line2 else ""}
+    <div style="color:#3B4351;font-size:14px;line-height:1.6;">{line1}</div>
+    {"<div style='color:#5B6675;font-size:13px;line-height:1.6;'>" + line2 + "</div>" if line2 else ""}
 </div>"""
 
 
@@ -149,30 +149,30 @@ with chart_col:
         x=last12["Month"], y=last12["Revenue"],
         mode="lines", name="Revenue",
         line=dict(color=REV_COLOR, width=2.5),
-        fill="tozeroy", fillcolor="rgba(0,212,160,0.07)",
+        fill="tozeroy", fillcolor="rgba(0,135,122,0.08)",
     ))
     if "Gross_Profit" in last12.columns:
         fig.add_trace(go.Scatter(
             x=last12["Month"], y=last12["Gross_Profit"],
             mode="lines", name="Gross Profit",
             line=dict(color=GP_COLOR, width=2),
-            fill="tozeroy", fillcolor="rgba(255,136,68,0.07)",
+            fill="tozeroy", fillcolor="rgba(194,65,12,0.08)",
         ))
     fig.add_trace(go.Scatter(
         x=last12["Month"], y=last12["EBITDA"],
         mode="lines", name="EBITDA",
         line=dict(color=EBI_COLOR, width=2.5),
-        fill="tozeroy", fillcolor="rgba(74,158,255,0.07)",
+        fill="tozeroy", fillcolor="rgba(11,107,203,0.07)",
     ))
     fig.update_layout(
         height=560,
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"),
+        font=dict(color="#1F2328"),
         title=dict(text="<b>Revenue, Gross Profit & EBITDA — 13-Month Trend</b>",
-                   font=dict(size=28, color="white"), x=0),
+                   font=dict(size=28, color="#1F2328"), x=0),
         xaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=13), showline=False, tickangle=-30),
         yaxis=dict(gridcolor=GRID, tickfont=dict(color=MUTED, size=13), showline=False, zeroline=False),
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="white"),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#1F2328"),
                     orientation="h", y=1.02, x=1, xanchor="right"),
         margin=dict(l=10, r=10, t=44, b=30),
     )
@@ -187,8 +187,8 @@ with driver_col:
     ])
     st.markdown(f"""
 <div style="background:{CARD_BG};border-radius:12px;padding:24px;
-            border:1px solid rgba(74,158,255,0.08);">
-    <div style="color:white;font-size:28px;font-weight:700;margin-bottom:20px;">
+            border:1px solid rgba(11,107,203,0.08);">
+    <div style="color:#1F2328;font-size:28px;font-weight:700;margin-bottom:20px;">
         Key Drivers — {latest['Month']}</div>
     {blocks}
 </div>""", unsafe_allow_html=True)

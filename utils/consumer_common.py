@@ -43,11 +43,11 @@ def _latest_row_with(df, col):
 
 
 def _base_layout(fig, title, height, y_range=None):
-    kw = dict(gridcolor="#1e1e3a", tickfont=dict(color="#8888aa", size=14))
+    kw = dict(gridcolor="#E6EAF0", tickfont=dict(color="#5B6675", size=14))
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"), height=height,
-        title=dict(text=f"<b>{title}</b>", font=dict(size=28, color="white"), x=0),
+        font=dict(color="#1F2328"), height=height,
+        title=dict(text=f"<b>{title}</b>", font=dict(size=28, color="#1F2328"), x=0),
         xaxis=kw,
         yaxis=dict(**kw, range=y_range),
         legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h",
@@ -59,20 +59,20 @@ def _base_layout(fig, title, height, y_range=None):
 
 def _pre_kpi(label, value, line1, l1_col, line2, l2_col, accent, spark, badge=None):
     b_html = (
-        f'<span style="display:inline-block;background:rgba(239,68,68,0.12);'
-        f'border:1px solid rgba(239,68,68,0.35);border-radius:20px;padding:2px 10px;'
-        f'font-size:10px;color:#f87171;font-weight:600;margin-top:6px">{badge}</span>'
+        f'<span style="display:inline-block;background:rgba(185,28,28,0.12);'
+        f'border:1px solid rgba(185,28,28,0.35);border-radius:20px;padding:2px 10px;'
+        f'font-size:10px;color:#D14343;font-weight:600;margin-top:6px">{badge}</span>'
     ) if badge else ""
     sp_html = (
         f'<div style="margin-top:6px;opacity:0.9">{_sparkline(spark, accent, 44)}</div>'
     ) if spark else ""
     return (
-        f'<div style="background:#161B22;border-radius:10px;padding:7px 12px;'
-        f'border:1px solid #252545;border-top:3px solid {accent};'
+        f'<div style="background:#F6F8FA;border-radius:10px;padding:7px 12px;'
+        f'border:1px solid #D0D7DE;border-top:3px solid {accent};'
         f'height:100%;box-sizing:border-box">'
-        f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+        f'<div style="font-size:28px;color:#5B6675;font-weight:700;text-transform:uppercase;'
         f'letter-spacing:1.5px;margin-bottom:2px">{label}</div>'
-        f'<div style="font-size:62px;font-weight:800;color:white;line-height:1.05;'
+        f'<div style="font-size:62px;font-weight:800;color:#1F2328;line-height:1.05;'
         f'margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
         f'{value}</div>'
         f'<div style="font-size:29px;color:{l1_col};font-weight:600;margin-bottom:0px;'

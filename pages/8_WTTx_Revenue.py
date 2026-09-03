@@ -117,13 +117,13 @@ wx_r_l1 = (f"{wx_aop_m:+.1f} | {wx_aop_pct:+.1f}% vs AOP"
 wx_py_pct   = wx_py_m / wx25_rev * 100 if (wx_py_m is not None and wx25_rev) else None
 wx_r_l2    = (f"{wx_py_m:+.1f} | {wx_py_pct:+.1f}% vs PY"
               if wx_py_pct is not None else "— vs PY")
-wx_r_py_col = rev_var_rag(wx_py_pct) if wx_py_pct is not None else "#7788aa"
+wx_r_py_col = rev_var_rag(wx_py_pct) if wx_py_pct is not None else "#5B6675"
 
 wx_a_l1_col = rev_var_rag(wx_arpu_aop_pct)
 wx_a_l1 = (f"${wx_arpu_lat - wx_arpu_aop:+.0f} | {wx_arpu_aop_pct:+.1f}% vs AOP"
            if wx_arpu_aop_pct is not None else "— vs AOP")
 wx_arpu_py_delta = wx_arpu_lat - wx_arpu_25 if wx_arpu_25 else None
-wx_a_l2_col = rev_var_rag(wx_arpu_py_pct) if wx_arpu_py_pct is not None else "#7788aa"
+wx_a_l2_col = rev_var_rag(wx_arpu_py_pct) if wx_arpu_py_pct is not None else "#5B6675"
 wx_a_l2 = (f"${wx_arpu_py_delta:+.0f} | {wx_arpu_py_pct:+.1f}% vs PY"
            if wx_arpu_py_pct is not None else "— vs PY")
 
@@ -131,36 +131,36 @@ _wx_s_l1_col = rev_var_rag(wx_subs_aop_pct)
 _wx_s_l1 = (f"{(wx_subs_close - wx_subs_aop)/1000:+.1f}K | {wx_subs_aop_pct:+.1f}% vs AOP"
             if wx_subs_aop_pct is not None else "— vs AOP")
 wx_subs_py_delta = (wx_subs_close - wx_subs_25) / 1000 if wx_subs_25 else None
-_wx_s_l2_col = rev_var_rag(wx_subs_py_pct) if wx_subs_py_pct is not None else "#7788aa"
+_wx_s_l2_col = rev_var_rag(wx_subs_py_pct) if wx_subs_py_pct is not None else "#5B6675"
 _wx_s_l2 = (f"{wx_subs_py_delta:+.1f}K | {wx_subs_py_pct:+.1f}% vs PY"
             if wx_subs_py_pct is not None else "— vs PY")
 
 _wx_c1     = _pre_kpi("WTTx Revenue", f"{wx26_rev:.1f}",
-                       wx_r_l1, wx_r_aop_col, wx_r_l2, wx_r_py_col, "#00d4a0", wx_rev_spark)
+                       wx_r_l1, wx_r_aop_col, wx_r_l2, wx_r_py_col, "#00786C", wx_rev_spark)
 _wx_c3     = _pre_kpi("ARPU (TT$ -/sub)", f"{wx_arpu_lat:.0f}",
-                       wx_a_l1, wx_a_l1_col, wx_a_l2, wx_a_l2_col, "#f59e0b", wx_arpu_spark)
+                       wx_a_l1, wx_a_l1_col, wx_a_l2, wx_a_l2_col, "#B45309", wx_arpu_spark)
 _wx_c_subs = _pre_kpi("Subscribers", _fmt_k(wx_subs_close),
-                       _wx_s_l1, _wx_s_l1_col, _wx_s_l2, _wx_s_l2_col, "#22c55e", wx_subs_spark)
+                       _wx_s_l1, _wx_s_l1_col, _wx_s_l2, _wx_s_l2_col, "#15803D", wx_subs_spark)
 
 _wx_churn_lbl  = f"Churn ({wx_churn_derived:.1f}%)"
 _wx_mov_rows   = [
-    ("Opening",     f"{wx_subs_open/1000:.1f}K",     "#aabbcc"),
-    ("Gross Adds",  f"+{wx_subs_gross_c/1000:.1f}K", "#22c55e"),
-    (_wx_churn_lbl, f"−{wx_subs_disc_c/1000:.1f}K",  "#ef4444"),
-    ("Closing",     f"{wx_subs_close/1000:.1f}K",    "white"),
+    ("Opening",     f"{wx_subs_open/1000:.1f}K",     "#3B4351"),
+    ("Gross Adds",  f"+{wx_subs_gross_c/1000:.1f}K", "#15803D"),
+    (_wx_churn_lbl, f"−{wx_subs_disc_c/1000:.1f}K",  "#B91C1C"),
+    ("Closing",     f"{wx_subs_close/1000:.1f}K",    "#1F2328"),
 ]
 _wx_mov_html = "".join(
     f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
-    f'border-bottom:1px solid #1e2a4a;">'
-    f'<span style="font-size:29px;color:#7788aa">{lbl}</span>'
+    f'border-bottom:1px solid #EEF3FA;">'
+    f'<span style="font-size:29px;color:#5B6675">{lbl}</span>'
     f'<span style="font-size:29px;font-weight:700;color:{col}">{val}</span>'
     f'</div>'
     for lbl, val, col in _wx_mov_rows
 )
 _wx_c2 = (
-    f'<div style="background:#161B22;border-radius:10px;padding:16px 16px;'
-    f'border:1px solid #2a2a4a;border-top:3px solid #22c55e;height:100%">'
-    f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
+    f'<div style="background:#F6F8FA;border-radius:10px;padding:16px 16px;'
+    f'border:1px solid #D0D7DE;border-top:3px solid #15803D;height:100%">'
+    f'<div style="font-size:28px;color:#5B6675;font-weight:700;text-transform:uppercase;'
     f'letter-spacing:1.5px;margin-bottom:10px">Subscriber Movements</div>'
     f'{_wx_mov_html}'
     f'</div>'
@@ -235,8 +235,8 @@ else:
 ml, mr = st.columns([55, 45])
 
 with ml:
-    _CAT_COLORS = {"Data": "#00d4a0", "Bundle": "#4a9eff", "Voice Only": "#a78bfa"}
-    _wx_clrs    = [_CAT_COLORS.get(n, "#6b7280") for n in wx_plan_names]
+    _CAT_COLORS = {"Data": "#00786C", "Bundle": "#0B6BCB", "Voice Only": "#6D28D9"}
+    _wx_clrs    = [_CAT_COLORS.get(n, "#5B6675") for n in wx_plan_names]
     _wx_total   = sum(wx_plan_vals)
     _wx_pcts    = [v / _wx_total * 100 if _wx_total else 0 for v in wx_plan_vals]
     _wx_lbls    = [f"{n}  {p:.1f}%" for n, p in zip(wx_plan_names, _wx_pcts)]
@@ -244,25 +244,25 @@ with ml:
     fig = go.Figure(go.Pie(
         labels=_wx_lbls, values=wx_plan_vals, hole=0.48, sort=False,
         domain=dict(x=[0, _wx_dw]),
-        marker=dict(colors=_wx_clrs, line=dict(color="rgba(255,255,255,0.3)", width=2)),
+        marker=dict(colors=_wx_clrs, line=dict(color="#F6F8FA", width=2)),
         textinfo="none",
         customdata=wx_plan_names,
         hovertemplate="<b>%{customdata}</b><br>%{value:,.0f} subs (%{percent})<extra></extra>",
         title=dict(
             text=f"<b>{_wx_total/1_000:.1f}K</b>",
-            font=dict(size=28, color="white"),
+            font=dict(size=28, color="#1F2328"),
             position="middle center",
         ),
     ))
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"), height=427,
+        font=dict(color="#1F2328"), height=427,
         title=dict(
             text="<b>Subscribers by Plan Type</b>"
-                 + (" <span style='color:#f87171'> ⚠ no data</span>" if _wx_dummy else ""),
-            font=dict(size=28, color="white"), x=0,
+                 + (" <span style='color:#D14343'> ⚠ no data</span>" if _wx_dummy else ""),
+            font=dict(size=28, color="#1F2328"), x=0,
         ),
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=38, color="white"),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=38, color="#1F2328"),
                     x=_wx_dw + 0.04, y=0.5, xanchor="left", yanchor="middle"),
         margin=dict(l=10, r=10, t=44, b=6),
     )
