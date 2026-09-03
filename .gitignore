@@ -8,9 +8,12 @@ venv/
 .claude/
 exports/
 
-# Data workbooks — pulled live from OneDrive via Microsoft Graph, never committed
+# Data workbooks and extracts — pulled live from OneDrive via Microsoft Graph,
+# never committed
 *.xlsx
 *.xls
+*.tsv
+*.docx
 
 # Secrets
 .streamlit/secrets.toml
