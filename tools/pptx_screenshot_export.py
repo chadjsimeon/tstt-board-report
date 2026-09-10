@@ -30,10 +30,21 @@ from pathlib import Path
 SLIDE_W_IN   = 13.333
 SLIDE_H_IN   = 7.5
 SLIDE_ASPECT = SLIDE_W_IN / SLIDE_H_IN          # 1.7778
-BG_RGB       = (0, 0, 0)                        # app background (#000000)
+THEME        = "dark"                           # set by --theme
+BG_RGB       = (0, 0, 0)                        # app background for THEME
 OVERLAP_FRAC = 0.06                             # slice overlap so cards aren't cut
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def set_theme(name: str) -> None:
+    """Select the report style to capture. Also used by the Word exporter,
+    which shares this module's capture and slicing code."""
+    global THEME, BG_RGB
+    sys.path.insert(0, str(PROJECT_ROOT))
+    from utils.theme import BACKGROUND_RGB, DARK, THEMES
+    THEME  = name if name in THEMES else DARK
+    BG_RGB = BACKGROUND_RGB[THEME]
 
 # CSS injected to strip Streamlit chrome from the screenshot.
 HIDE_CSS = """
@@ -114,7 +125,7 @@ def _shoot(page) -> bytes:
 
 
 def _capture_page(page, base_url: str, label: str, slug: str,
-                  focus_month: str | None = None):
+                  focus_month: str | None = None, theme: str | None = None):
     """Capture one dashboard page; returns [(caption, png_bytes), ...].
 
     A page with st.tabs yields one capture per tab; a tab-less page yields one."""
@@ -122,6 +133,8 @@ def _capture_page(page, base_url: str, label: str, slug: str,
     url  = f"{root}/{slug}?embed=true" if slug else f"{root}/?embed=true"
     if focus_month:
         url += f"&focus_month={urllib.parse.quote(focus_month)}"
+    if theme:
+        url += f"&theme={urllib.parse.quote(theme)}"
     print(f"  opening {label}  ->  {url}")
     page.goto(url, wait_until="domcontentloaded", timeout=60_000)
     page.add_style_tag(content=HIDE_CSS)            # fresh document each goto
@@ -151,7 +164,8 @@ def _capture_page(page, base_url: str, label: str, slug: str,
 
 
 def capture_all(base_url: str, pages: list[tuple[str, str]], viewport_w: int,
-                headed: bool, focus_month: str | None = None):
+                headed: bool, focus_month: str | None = None,
+                theme: str | None = None):
     """Capture every page in `pages` with a single shared browser session."""
     from playwright.sync_api import sync_playwright
 
@@ -173,7 +187,8 @@ def capture_all(base_url: str, pages: list[tuple[str, str]], viewport_w: int,
 
         for label, slug in pages:
             try:
-                captures += _capture_page(page, base_url, label, slug, focus_month)
+                captures += _capture_page(page, base_url, label, slug,
+                                          focus_month, theme)
             except Exception as exc:               # noqa: BLE001 — skip, keep going
                 print(f"  WARNING: failed to capture {label}: {exc}", file=sys.stderr)
 
@@ -278,6 +293,9 @@ def main() -> int:
     ap.add_argument("--focus-month", default=None,
                     help="Focus month to render every page at (e.g. Jun-26). "
                          "Passed to the app as a query param; default: latest month.")
+    ap.add_argument("--theme", default="dark", choices=("dark", "light"),
+                    help="Report style to capture: dark (the PowerPoint "
+                         "board pack) or light (the Word one).")
     ap.add_argument("--out", default="exports/TSTT_Board_Report.pptx",
                     help="Output .pptx path (default: exports/TSTT_Board_Report.pptx).")
     ap.add_argument("--viewport-width", type=int, default=1920,
@@ -288,6 +306,7 @@ def main() -> int:
                     help="Show the browser window (debugging).")
     args = ap.parse_args()
 
+    set_theme(args.theme)
     out_path = Path(args.out)
     if not out_path.is_absolute():
         out_path = PROJECT_ROOT / out_path
@@ -319,7 +338,7 @@ def main() -> int:
             print("  server ready")
 
         captures = capture_all(base_url, pages, args.viewport_width, args.headed,
-                               args.focus_month)
+                               args.focus_month, args.theme)
         if not captures:
             print("ERROR: no pages captured.", file=sys.stderr)
             return 1

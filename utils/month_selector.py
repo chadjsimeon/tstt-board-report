@@ -1,5 +1,7 @@
 import pandas as pd
 import streamlit as st
+
+from utils import theme
 from utils.data_loader import load_all_data
 
 
@@ -76,6 +78,8 @@ def focus_month_selector():
         )
         if selected_month != st.session_state.focus_month:
             st.session_state.focus_month = selected_month
+
+    theme.theme_selector()
 
     return selected_month
 

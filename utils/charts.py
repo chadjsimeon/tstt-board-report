@@ -1,6 +1,8 @@
 import plotly.graph_objects as go
 import streamlit as st
 
+from utils import theme
+
 # ── Palette ──────────────────────────────────────────────────────────────────
 GREEN  = "#00ff88"
 RED    = "#FF4444"
@@ -193,6 +195,8 @@ def variance_heatmap(df, index_col, columns_col, value_col, title="", height=320
 # ── CSS injection helper ──────────────────────────────────────────────────────
 
 def inject_css():
+    # Before any markdown goes out, so the stylesheet itself is themed too.
+    theme.install()
     with open("assets/style.css", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 

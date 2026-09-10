@@ -10,6 +10,7 @@ from pathlib import Path
 import pandas as pd
 from utils.data_loader import load_all_data
 from utils.month_selector import focus_month_selector
+from utils import theme
 from utils.charts import inject_css
 from tools.pptx_screenshot_export import discover_pages
 
@@ -66,6 +67,7 @@ _is_word = FMT["ext"] == "docx"
 _target  = ("one landscape Word page per dashboard page, under a heading"
             if _is_word else "full-bleed on a 16:9 slide")
 _unit    = "page" if _is_word else "slide"
+_style   = theme.LABELS[theme.active()]
 
 # ── About ────────────────────────────────────────────────────────────────────────
 st.markdown(f"""
@@ -79,6 +81,8 @@ st.markdown(f"""
   By default every page is exported, in sidebar order, starting with the Executive
   Summary. Use the selector below to export a single page or any subset.
   Pages taller than one {_unit} are split automatically.
+  <div style="margin-top:10px">Captured in the report style selected in the
+  sidebar — currently <strong>{_style}</strong>.</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -116,7 +120,8 @@ if generate and n_sel:
     port = st.get_option("server.port") or 8501
     cmd = [sys.executable, str(SCRIPT),
            "--url", f"http://localhost:{port}",
-           "--out", str(OUT)]
+           "--out", str(OUT),
+           "--theme", theme.active()]
     if focus_month:
         cmd += ["--focus-month", focus_month]
     # The Word cover page shows a spelled-out period ("June 2026")

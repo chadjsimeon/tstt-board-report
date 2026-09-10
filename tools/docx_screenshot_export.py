@@ -34,6 +34,7 @@ try:                                   # imported as `tools.docx_screenshot_expo
         _wait_for_server,
         capture_all,
         discover_pages,
+        set_theme,
         slice_capture,
     )
 except ImportError:                    # run directly: tools/ is on sys.path
@@ -43,6 +44,7 @@ except ImportError:                    # run directly: tools/ is on sys.path
         _wait_for_server,
         capture_all,
         discover_pages,
+        set_theme,
         slice_capture,
     )
 
@@ -216,6 +218,8 @@ def main() -> int:
                          "Passed to the app as a query param; default: latest month.")
     ap.add_argument("--period-label", default=None,
                     help="Period text for the cover page (e.g. 'June 2026').")
+    ap.add_argument("--theme", default="light", choices=("dark", "light"),
+                    help="Report style to capture. Word defaults to light.")
     ap.add_argument("--out", default="exports/TSTT_Board_Report.docx",
                     help="Output .docx path (default: exports/TSTT_Board_Report.docx).")
     ap.add_argument("--viewport-width", type=int, default=1920,
@@ -235,6 +239,7 @@ def main() -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
 
+    set_theme(args.theme)
     out_path = Path(args.out)
     if not out_path.is_absolute():
         out_path = PROJECT_ROOT / out_path
@@ -266,7 +271,7 @@ def main() -> int:
             print("  server ready")
 
         captures = capture_all(base_url, pages, args.viewport_width, args.headed,
-                               args.focus_month)
+                               args.focus_month, args.theme)
         if not captures:
             print("ERROR: no pages captured.", file=sys.stderr)
             return 1
