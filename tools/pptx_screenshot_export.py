@@ -30,7 +30,7 @@ from pathlib import Path
 SLIDE_W_IN   = 13.333
 SLIDE_H_IN   = 7.5
 SLIDE_ASPECT = SLIDE_W_IN / SLIDE_H_IN          # 1.7778
-BG_RGB       = (255, 255, 255)                  # app background (#FFFFFF)
+BG_RGB       = (0, 0, 0)                        # app background (#000000)
 OVERLAP_FRAC = 0.06                             # slice overlap so cards aren't cut
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent

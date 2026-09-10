@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 from utils.data_loader import load_all_data
 from utils.month_selector import focus_month_selector, filter_data_to_month
 from utils.charts import inject_css
-from utils.rag import rev_var_rag, GREEN, AMBER, RED, GREY
+from utils.rag import rev_var_rag, GREEN
 
 inject_css()
 focus_month_selector()
@@ -18,8 +18,9 @@ focus_month_selector()
 # ── Config ───────────────────────────────────────────────────────────────────
 FY_START_MONTH = 4      # 4 = fiscal year starts April (Apr–Mar). Set 1 for calendar YTD.
 
-INK, MUTED, FAINT, GRID = "#1F2328", "#5B6675", "#7A8494", "#E6EAF0"
-PY_DOT   = "#8A8F98"
+INK, MUTED, FAINT, GRID = "white", "#8888aa", "#556677", "#1e1e3a"
+CARD     = "#161B22"      # the plot card behind the dots (assets/style.css)
+PY_DOT   = "#7788aa"
 DOT_SIZE = 24
 
 # X domain is derived from the data, never fixed: round the peak up to the next
@@ -38,10 +39,6 @@ LABEL_GUTTER = 150      # px reserved left of the plot for the LOB labels
 # viewport — it measured 44% at 1400px and 64% at the 1920px export width. The
 # domain holds it at ~57% everywhere, with the value column just to its right.
 X_DOMAIN = [0.14, 0.715]
-
-# Brighter on-card RAG than the utils/rag defaults. Page-local by design: editing
-# utils/rag.py would recolour every other page's variance text.
-BRIGHT = {GREEN: "#16A34A", AMBER: "#F59E0B", RED: "#DC2626", GREY: MUTED}
 
 LOBS = [
     ("Consumer", "CONSUMER SALES"),
@@ -89,9 +86,8 @@ labels   = [r[0] for r in rows]
 cy_vals  = [r[1] for r in rows]
 py_vals  = [r[2] for r in rows]
 variance = [c - p for c, p in zip(cy_vals, py_vals)]
-# rev_var_rag owns the threshold rule (>=0 green / >=-10 amber / <-10 red); the
-# BRIGHT map only restyles its result.
-rags = [BRIGHT[rev_var_rag((c - p) / abs(p) * 100) if p else GREY]
+# rev_var_rag owns the threshold rule; its colours are used as-is here.
+rags = [rev_var_rag((c - p) / abs(p) * 100) if p else MUTED
         for c, p in zip(cy_vals, py_vals)]
 
 other_cy = _sum(cy_win, "OTHER_Rev")
@@ -124,15 +120,15 @@ x_max = math.ceil(_peak / X_ROUND) * X_ROUND * (1 + X_HEADROOM)
 fig = go.Figure()
 
 # PY first, CY second — trace order is z-order, so CY draws on top where they
-# overlap. The white outline keeps both readable when values are close.
+# overlap. The card-coloured outline keeps both readable when values are close.
 fig.add_trace(go.Scatter(
     x=py_vals, y=labels, mode="markers", showlegend=False,
-    marker=dict(size=DOT_SIZE, color=PY_DOT, line=dict(color="#FFFFFF", width=2)),
+    marker=dict(size=DOT_SIZE, color=PY_DOT, line=dict(color=CARD, width=2)),
     hovertemplate="%{y} PY: %{x:,.1f}<extra></extra>",
 ))
 fig.add_trace(go.Scatter(
     x=cy_vals, y=labels, mode="markers", showlegend=False,
-    marker=dict(size=DOT_SIZE, color=rags, line=dict(color="#FFFFFF", width=2)),
+    marker=dict(size=DOT_SIZE, color=rags, line=dict(color=CARD, width=2)),
     hovertemplate="%{y} CY: %{x:,.1f}<extra></extra>",
 ))
 
@@ -140,7 +136,7 @@ fig.add_trace(go.Scatter(
 # swatch at 16px, so a built-in legend can never match a 20px chart dot; pixel-
 # sized shapes anchored to paper coords give exactly DOT_SIZE either way.
 LEG_ROW_Y = 26          # px above the plot top, centre of the legend row
-_LEG = [("CY", BRIGHT[GREEN], -110, -92), ("PY", PY_DOT, -50, -32)]
+_LEG = [("CY", GREEN, -110, -92), ("PY", PY_DOT, -50, -32)]
 
 legend_shapes = [
     dict(
@@ -148,7 +144,7 @@ legend_shapes = [
         xsizemode="pixel", ysizemode="pixel", xanchor=1, yanchor=1,
         x0=dot_x - DOT_SIZE / 2, x1=dot_x + DOT_SIZE / 2,
         y0=LEG_ROW_Y - DOT_SIZE / 2, y1=LEG_ROW_Y + DOT_SIZE / 2,
-        fillcolor=colour, line=dict(color="#FFFFFF", width=2), layer="above",
+        fillcolor=colour, line=dict(color=CARD, width=2), layer="above",
     )
     for _name, colour, dot_x, _text_x in _LEG
 ]
@@ -228,7 +224,7 @@ fig.update_layout(
     annotations=label_ann + value_ann + legend_ann + [footnote_ann],
     shapes=legend_shapes,
     showlegend=False,
-    hoverlabel=dict(bgcolor="#F6F8FA", font_color=INK, bordercolor="#D0D7DE"),
+    hoverlabel=dict(bgcolor="#111128", font_color=INK, bordercolor="#333366"),
 )
 
 st.plotly_chart(fig, use_container_width=True)

@@ -1,6 +1,6 @@
 import streamlit as st
 
-st.set_page_config(page_title="TSTT | Export to Word",
+st.set_page_config(page_title="TSTT | Export to PowerPoint",
                    page_icon="📥", layout="wide")
 
 import subprocess
@@ -19,14 +19,6 @@ focus_month_selector()
 ROOT = Path(__file__).resolve().parent.parent
 
 FORMATS = {
-    "Word (.docx)": {
-        "script": ROOT / "tools" / "docx_screenshot_export.py",
-        "out":    ROOT / "exports" / "TSTT_Board_Report.docx",
-        "ext":    "docx",
-        "mime":   "application/vnd.openxmlformats-officedocument."
-                  "wordprocessingml.document",
-        "app":    "Word",
-    },
     "PowerPoint (.pptx)": {
         "script": ROOT / "tools" / "pptx_screenshot_export.py",
         "out":    ROOT / "exports" / "TSTT_Board_Report.pptx",
@@ -34,6 +26,14 @@ FORMATS = {
         "mime":   "application/vnd.openxmlformats-officedocument."
                   "presentationml.presentation",
         "app":    "PowerPoint",
+    },
+    "Word (.docx)": {
+        "script": ROOT / "tools" / "docx_screenshot_export.py",
+        "out":    ROOT / "exports" / "TSTT_Board_Report.docx",
+        "ext":    "docx",
+        "mime":   "application/vnd.openxmlformats-officedocument."
+                  "wordprocessingml.document",
+        "app":    "Word",
     },
 }
 
@@ -56,7 +56,7 @@ fmt_name = st.radio(
     "Export format",
     options=list(FORMATS),
     horizontal=True,
-    help="Word is the board-pack format. PowerPoint is kept for the transition.",
+    help="PowerPoint is the board-pack format. Word is kept as an alternative.",
 )
 FMT    = FORMATS[fmt_name]
 SCRIPT = FMT["script"]
@@ -69,10 +69,10 @@ _unit    = "page" if _is_word else "slide"
 
 # ── About ────────────────────────────────────────────────────────────────────────
 st.markdown(f"""
-<div style="background:#F6F8FA;border-radius:8px;padding:18px 22px;
-            border:1px solid #D0D7DE;margin-bottom:20px;
-            font-size:0.85rem;color:#3B4351;line-height:1.8">
-  <div style="font-size:0.7rem;font-weight:700;color:#00875A;text-transform:uppercase;
+<div style="background:#161b22;border-radius:8px;padding:18px 22px;
+            border:1px solid #21262d;margin-bottom:20px;
+            font-size:0.85rem;color:#ccccdd;line-height:1.8">
+  <div style="font-size:0.7rem;font-weight:700;color:#00e676;text-transform:uppercase;
               letter-spacing:2px;margin-bottom:10px">Board Pack — {FMT['app']} Export</div>
   Each selected page is screenshotted in a headless browser and placed
   {_target}, so the document matches the live dashboard pixel-for-pixel.
@@ -94,10 +94,10 @@ selected_pages = st.multiselect(
 _opens = ("Word, Google Docs, or LibreOffice"
           if _is_word else "PowerPoint, Keynote, or LibreOffice")
 st.markdown(f"""
-<div style="background:#F0F3F7;border-radius:8px;padding:14px 20px;
-            border:1px solid #D0D7DE;margin-bottom:20px;
-            font-size:0.8rem;color:#7A8494;line-height:1.7">
-  <strong style="color:#5B6675">Notes:</strong>
+<div style="background:#0d1117;border-radius:8px;padding:14px 20px;
+            border:1px solid #21262d;margin-bottom:20px;
+            font-size:0.8rem;color:#556677;line-height:1.7">
+  <strong style="color:#8899aa">Notes:</strong>
   Generation takes roughly 2–3 minutes while every page is rendered and captured.
   The resulting file is a standard .{FMT['ext']} — open in {_opens}.
 </div>

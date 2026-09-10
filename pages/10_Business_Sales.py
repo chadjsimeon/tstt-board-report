@@ -123,7 +123,7 @@ mrr_trend      = _trend("MRR",   biz_mrr) if not biz_mrr.empty else None
 usg_trend      = _trend("USAGE", biz_mrr) if not biz_mrr.empty else None
 occ_trend      = _trend("OCC",   biz_mrr) if not biz_mrr.empty else None
 
-FP_ACCENTS = ["#00786C", "#0B6BCB", "#6D28D9", "#B45309", "#C53030"]
+FP_ACCENTS = ["#00d4a0", "#4a9eff", "#a78bfa", "#f59e0b", "#ff6b6b"]
 
 # ── Card builders ─────────────────────────────────────────────────────
 def _parse_pct(s):
@@ -138,37 +138,37 @@ def fp_r1_card(label, val_str, aop_pct, aop_m_str, yoy_str, accent, spark_series
     else:
         aop_html = (
             f'<span style="color:{col}">{aop_m_str}&nbsp;|&nbsp;{aop_pct:+.1f}%&nbsp;vs&nbsp;AOP</span>'
-            if aop_pct is not None else '<span style="color:#7A8494">— vs AOP</span>'
+            if aop_pct is not None else '<span style="color:#445566">— vs AOP</span>'
         )
     _yoy_col = py_col if py_col else rev_var_rag(_parse_pct(yoy_str))
     yoy_html = (
         f'<span style="color:{_yoy_col};font-weight:700">{yoy_str}</span>'
-        if yoy_str else '<span style="color:#7A8494">— vs PY</span>'
+        if yoy_str else '<span style="color:#445566">— vs PY</span>'
     )
     spark_html = (
         f'<div style="margin-top:8px;opacity:0.85">{_sparkline(spark_series, accent)}</div>'
         if spark_series else '<div style="margin-top:8px;height:44px"></div>'
     )
     return (
-        f'<div style="background:#F6F8FA;border-radius:10px;padding:7px 12px;'
-        f'border:1px solid #D0D7DE;border-top:3px solid {accent};height:100%">'
-        f'<div style="font-size:28px;color:#5B6675;font-weight:700;text-transform:uppercase;'
+        f'<div style="background:#161B22;border-radius:10px;padding:7px 12px;'
+        f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
+        f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
         f'letter-spacing:1.5px;margin-bottom:2px">{label}</div>'
-        f'<div style="font-size:62px;font-weight:800;color:#1F2328;margin-bottom:2px;'
+        f'<div style="font-size:62px;font-weight:800;color:white;margin-bottom:2px;'
         f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
         f'<div style="font-size:29px;font-weight:600;margin-bottom:0px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{aop_html}</div>'
         f'<div style="font-size:29px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{yoy_html}</div>'
         f'{spark_html}</div>'
     )
 
-def fp_r2_card(label, val_str, aop_str, aop_col, py_str, accent="#0B6BCB", py_col=None):
+def fp_r2_card(label, val_str, aop_str, aop_col, py_str, accent="#4a9eff", py_col=None):
     _py_col = py_col if py_col else rev_var_rag(_parse_pct(py_str))
     return (
-        f'<div style="background:#F6F8FA;border-radius:10px;padding:7px 12px;'
-        f'border:1px solid #D0D7DE;border-top:3px solid {accent};height:100%">'
-        f'<div style="font-size:28px;color:#5B6675;font-weight:700;text-transform:uppercase;'
+        f'<div style="background:#161B22;border-radius:10px;padding:7px 12px;'
+        f'border:1px solid #252545;border-top:3px solid {accent};height:100%">'
+        f'<div style="font-size:28px;color:#6677aa;font-weight:700;text-transform:uppercase;'
         f'letter-spacing:1.5px;margin-bottom:2px">{label}</div>'
-        f'<div style="font-size:62px;font-weight:800;color:#1F2328;margin-bottom:2px;'
+        f'<div style="font-size:62px;font-weight:800;color:white;margin-bottom:2px;'
         f'line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{val_str}</div>'
         f'<div style="font-size:29px;color:{aop_col};font-weight:600;margin-bottom:0px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{aop_str}</div>'
         f'<div style="font-size:29px;color:{_py_col};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{py_str}</div>'
@@ -185,7 +185,7 @@ _dc_py_delta = dc_py - dc_rev if dc_py is not None else None
 _dc_py_pct   = _dc_py_delta / abs(dc_py) * 100 if (_dc_py_delta is not None and dc_py) else None
 dc_py_str    = (f"{_dc_py_delta:+.1f} | {_dc_py_pct:+.1f}% vs PY"
                if _dc_py_pct is not None else "— vs PY")
-dc_py_col    = rev_var_rag(_dc_py_pct) if _dc_py_pct is not None else "#5B6675"
+dc_py_col    = rev_var_rag(_dc_py_pct) if _dc_py_pct is not None else "#7788aa"
 
 gp_vp = _vp(gp_rev, gp_aop_v)
 gp_vm = _vm(gp_rev, gp_aop_v)
@@ -203,7 +203,7 @@ if s_vp is not None:
     subs_aop_str = f"{(s_vm)/1000:+,.1f} | {s_vp:+.1f}% vs AOP"
     subs_aop_col = rev_var_rag(s_vp)
 else:
-    subs_aop_str, subs_aop_col = "— vs AOP", "#7A8494"
+    subs_aop_str, subs_aop_col = "— vs AOP", "#445566"
 s_py_pct = _vp(mob_subs, subs_py) if (mob_subs and subs_py) else None
 subs_py_str = f"{(int(mob_subs) - int(subs_py))/1000:+,.1f} | {s_py_pct:+.1f}% vs PY" if s_py_pct is not None else "— vs PY"
 
@@ -246,11 +246,11 @@ with left_area:
         ), unsafe_allow_html=True)
         st.markdown(_sp, unsafe_allow_html=True)
         st.markdown(fp_r2_card("Direct Costs", f"{dc_rev:.1f}",
-                               dc_aop_str, dc_aop_color, dc_py_str, accent="#C53030", py_col=dc_py_col),
+                               dc_aop_str, dc_aop_color, dc_py_str, accent="#ff6b6b", py_col=dc_py_col),
                     unsafe_allow_html=True)
         st.markdown(_sp, unsafe_allow_html=True)
         st.markdown(fp_r2_card("Gross Profit", f"{gp_rev:.1f}",
-                               gp_aop_str, gp_aop_color, gp_py_str, accent="#15803D"),
+                               gp_aop_str, gp_aop_color, gp_py_str, accent="#22c55e"),
                     unsafe_allow_html=True)
 
     with c2:
@@ -291,13 +291,13 @@ with right_area:
         ))
     fig_lines.update_layout(
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#1F2328"), height=420,
+        font=dict(color="white"), height=420,
         title=dict(text="<b>MRR / OCC / USAGE Trend</b>",
-                   font=dict(size=30, color="#1F2328"), x=0),
+                   font=dict(size=30, color="white"), x=0),
         xaxis=dict(showgrid=False, tickfont=dict(size=15), tickangle=-30),
-        yaxis=dict(showgrid=True, gridcolor="rgba(31,35,40,0.06)",
+        yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)",
                    tickfont=dict(size=15), tickprefix="$"),
-        legend=dict(bgcolor="rgba(246,248,250,0.92)", font=dict(size=14, color="#1F2328"),
+        legend=dict(bgcolor="rgba(20,20,40,0.8)", font=dict(size=14, color="white"),
                     orientation="v", x=1.01, y=1, xanchor="left", yanchor="top"),
         margin=dict(l=10, r=100, t=44, b=10),
     )
