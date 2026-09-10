@@ -102,10 +102,21 @@ def _open_excel(path):
     try:
         return pd.ExcelFile(path), None
     except PermissionError:
+        # Excel/OneDrive holds the workbook open. Copy it, then read the copy
+        # through memory and delete it here: pd.ExcelFile keeps its file handle
+        # open for the life of the object, and Windows refuses to unlink a file
+        # that is still open, so returning the temp path made every caller's
+        # cleanup raise PermissionError on the way out.
         tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
         tmp.close()
-        shutil.copy2(path, tmp.name)
-        return pd.ExcelFile(tmp.name), tmp.name
+        try:
+            shutil.copy2(path, tmp.name)
+            with open(tmp.name, "rb") as fh:
+                buf = io.BytesIO(fh.read())
+        finally:
+            if os.path.exists(tmp.name):
+                os.unlink(tmp.name)
+        return pd.ExcelFile(buf), None
 
 
 # ── Sheet reader ───────────────────────────────────────────────────────────────
