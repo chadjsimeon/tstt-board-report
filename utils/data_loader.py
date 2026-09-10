@@ -121,9 +121,32 @@ def _open_excel(path):
 
 # ── Sheet reader ───────────────────────────────────────────────────────────────
 def _read_sheet(xls, sheet_name):
-    """4-row header structure: title / subtitle / column headers / descriptions / data.
-    header=2 uses row 3 as column names; skiprows=[3] drops the description row (row 4)."""
-    df = pd.read_excel(xls, sheet_name=sheet_name, header=2, skiprows=[3])
+    """Read one data sheet, locating its header row rather than assuming one.
+
+    create_master_template.py writes five rows -- title / grain / column names /
+    column descriptions / data -- which is why this was once a fixed
+    header=2, skiprows=[3]. Sheets in the live workbook have since lost header
+    rows to manual editing: most no longer carry the description row, and
+    Consumer_Products and Business_Products have lost the grain row as well.
+    Fixed offsets then either silently drop the first data row or, where two
+    rows are missing, read a data row as the column names.
+
+    The column-name row is the first row carrying two or more values that are
+    all text -- the title and grain rows only ever fill column A. The row after
+    it is skipped only if it is all text too, i.e. a real description row; a
+    data row always carries a number or a date somewhere."""
+    probe = pd.read_excel(xls, sheet_name=sheet_name, header=None, nrows=8)
+
+    def _all_text(row):
+        values = row.dropna()
+        return len(values) >= 2 and all(isinstance(v, str) for v in values)
+
+    header_row = next((i for i in range(len(probe)) if _all_text(probe.iloc[i])), 2)
+    has_descriptions = (header_row + 1 < len(probe)
+                        and _all_text(probe.iloc[header_row + 1]))
+
+    df = pd.read_excel(xls, sheet_name=sheet_name, header=header_row,
+                       skiprows=[header_row + 1] if has_descriptions else None)
     return df.reset_index(drop=True).dropna(how="all")
 
 
