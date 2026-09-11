@@ -371,13 +371,23 @@ def load_all_data():
         # Churn column: whole-number count in new months, percentage in old months
         if "Churn" in cs.columns:
             cs["Churn"] = pd.to_numeric(cs["Churn"], errors="coerce")
-        for c in ["ARPU", "ARPU_AOP"]:
-            if c in cs.columns:
-                cs[c] = pd.to_numeric(cs[c], errors="coerce")
-        if "ARPU" not in cs.columns or cs["ARPU"].isna().all():
-            cs["ARPU"] = (cs["Revenue"] * M / cs["Subscribers"].replace(0, pd.NA)).fillna(0)
-        if "ARPU_AOP" not in cs.columns or cs["ARPU_AOP"].isna().all():
-            cs["ARPU_AOP"] = 0.0
+        # ARPU is revenue per subscriber, always derived and never read from the
+        # sheet. The workbook's ARPU columns are empty, and ARPU_AOP used to fall
+        # back to 0.0, which left every ARPU card on Prepaid, Postpaid and WTTx
+        # with no "vs AOP" figure at all. Deriving also keeps ARPU tied to the
+        # revenue and subscriber numbers printed beside it on the same card.
+        #
+        # Revenue is already scaled to millions, so scale back up for TT$/sub.
+        # Rows with no subscriber base (Other) stay NaN rather than 0: a zero
+        # ARPU would render as "$0", and _latest_row_with() selects on col > 0,
+        # so NaN is what correctly reads as "no value here".
+        def _arpu(rev_col, subs_col):
+            if rev_col not in cs.columns or subs_col not in cs.columns:
+                return pd.Series(float("nan"), index=cs.index)
+            return cs[rev_col] * M / cs[subs_col].replace(0, pd.NA)
+
+        cs["ARPU"]     = _arpu("Revenue", "Subscribers")
+        cs["ARPU_AOP"] = _arpu("Revenue_AOP", "Subscribers_AOP")
         cs["_dt"] = pd.to_datetime(cs["Month"], format="%b-%y", errors="coerce")
         cs = cs.sort_values(["Segment", "_dt"]).reset_index(drop=True)
         cs["_prev_subs"] = cs.groupby("Segment")["Subscribers"].shift(1)
