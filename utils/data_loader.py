@@ -865,8 +865,22 @@ def load_porting_trend():
 
 # ── Utilities ──────────────────────────────────────────────────────────────────
 def get_month_order(df, col="Month"):
-    """Return unique months in their original DataFrame order."""
-    return list(dict.fromkeys(df[col].dropna().tolist()))
+    """Return the unique months in chronological order.
+
+    This used to return them in DataFrame order, which was the same thing only
+    for as long as every sheet happened to be written in date order.
+    Business_Products is now written FY27 first and FY26 after, so appearance
+    order ran Apr-26..Mar-27, Apr-25..Mar-26 and ended on Mar-26. Every caller
+    that reads months[-1] as the latest month, or months[-13:] as the trailing
+    year, then silently addressed the wrong period.
+
+    Months that do not parse as Mon-YY keep their original order, after the ones
+    that do, so nothing is dropped from a sheet with an odd label in it."""
+    months = list(dict.fromkeys(df[col].dropna().tolist()))
+    parsed = {m: pd.to_datetime(m, format="%b-%y", errors="coerce") for m in months}
+    dated = sorted((m for m in months if pd.notna(parsed[m])), key=lambda m: parsed[m])
+    undated = [m for m in months if pd.isna(parsed[m])]
+    return dated + undated
 
 
 def pivot_by_group(df, index_col, group_col, value_col):
