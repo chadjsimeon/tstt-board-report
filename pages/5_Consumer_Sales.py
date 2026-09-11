@@ -127,7 +127,15 @@ if not v2_pnl_sel.empty:
     gp_act     = cs_rev_pnl - dc_act
     dc_is_ph   = gp_is_ph = False
     dc_aop     = _pnl(v2_pnl_sel, "CONSUMER SALES_COS_AOP")
-    gp_aop     = _pnl(v2_pnl_sel, "CONSUMER SALES_GP_AOP")
+    # Gross profit is revenue less direct costs on the AOP side too, exactly as
+    # the actual above is derived. CONSUMER SALES_GP_AOP (and _GP) are empty in
+    # every month of the workbook, so reading the column left the card showing
+    # "— vs AOP" while the actual beside it computed fine. The column stays as a
+    # fallback in case it is ever populated.
+    _rev_aop   = _pnl(v2_pnl_sel, "CONSUMER SALES_Rev_AOP")
+    gp_aop     = ((_rev_aop - dc_aop)
+                  if (_rev_aop is not None and dc_aop is not None)
+                  else _pnl(v2_pnl_sel, "CONSUMER SALES_GP_AOP"))
 else:
     dc_act   = v2_t_rev * 0.58
     gp_act   = v2_t_rev * 0.42
